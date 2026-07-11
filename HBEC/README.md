@@ -9,6 +9,10 @@ Issues and solutions for the HBEC Student application.
 
 ### 2026
 
+#### July
+- [2026-07-10: Redis Sentinel Failover — Celery Workers Crash with ReadOnlyError](./2026-07-10-redis-sentinel-failover-readonly-error.md)
+- [2026-07-10: Admin Backend 502 — Docker Network Mismatch After Container Recreate](./2026-07-10-admin-backend-502-docker-network-mismatch.md)
+
 #### May
 - No issues logged yet
 
