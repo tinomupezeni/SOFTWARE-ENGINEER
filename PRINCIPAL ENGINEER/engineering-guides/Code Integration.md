@@ -640,6 +640,10 @@ External Variable Management: Secrets must be injected into container runtimes u
 
 Encryption Standards: Local secrets used for development must be encrypted on disk, or stored in local environments that are explicitly ignored in the project's .gitignore file.
 
+Volume Mapping and Secret File Gotchas
+When using Docker Compose, volume-mapping files into containers requires strict prerequisite checks. If a mapped file (such as a private key or certificate) does not exist on the host before running `docker compose up -d`, Docker will automatically create an empty directory with the file's name in its place. This often causes applications to crash with `IsADirectoryError` upon starting. 
+To prevent this, CD deployment pipelines must always explicitly generate, touch, or copy the required host files into place before invoking Docker Compose.
+
 Feature Flag Delivery Model
 Feature flags decouple code deployment from feature activation.   
 
