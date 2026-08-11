@@ -28,7 +28,7 @@
   | Project | Fit | Notes |
   |---|---|---|
   | TESE-MARKET (BFF) | High | Already has DECISIONS_LOG + CLAUDE.md; align gate model with it. |
-  | HBEC | High | Has CODEBASE_AUDIT; needs formal SDLC gates. |
+  | HBEC | High | Ran against the real repo 2026-08-11 — see `PROJECT_ADAPTER_HBEC.md`. Real strengths (per-service CI tests, OpenAPI specs, real SLOs, populated readiness/runbook docs); the recurring gap is scaffolding created once and never exercised (zero ADRs despite a template, zero postmortems despite 25+ real incidents, threat model unfilled). |
   | shipwright | Medium | Rust CLI tool; SDLC applies to release process. |
   | Most others | Medium | Apply lightweight version (ADRs + test gate). |
 

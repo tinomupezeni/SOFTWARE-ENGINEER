@@ -15,6 +15,88 @@
 
 ## Guides applied
 
+### 1. SDLC
+- **Method:** ran the guide's 12 phases against HBEC's actual repo state
+  directly (file existence, CI job list, git log, branch names) rather than
+  against memory or the earlier audit docs alone — see the checks below,
+  each independently verifiable.
+- **The single most important finding:** a repeated pattern across multiple
+  phases of *scaffolding created once, then never exercised*. `docs/ADR_TEMPLATE.md`
+  exists but zero actual `ADR-NNN` files exist anywhere in the repo.
+  `docs/THREAT_MODEL_TEMPLATE.md` exists and is genuinely empty (44 lines,
+  section headers only). `SRE/POSTMORTEM_TEMPLATE.md` exists, but zero real
+  postmortems exist despite 25+ real incidents logged in `dev-logs/HBEC/` —
+  the incident data got captured, just never run through the guide's actual
+  Post-Incident Review process. `SRE/SLOs.md` is a real, well-specified
+  document (3 Critical User Journeys, explicit SLI/SLO/error-budget-policy),
+  **correcting an earlier, wrong claim in this same adapter's "Open gaps"
+  section that HBEC has no SLOs defined** — it does; what it lacks is
+  alerting wired to them, which is exactly why the `redis-sentinel`
+  crash-loop (7,237 restarts, found this same session) never tripped an SLO
+  breach despite plausibly violating the "System Availability ≥99.9%"
+  target.
+- **Phase-by-phase, condensed** (full phase list in the guide itself):
+  - Phase 1 (Discovery): no `vision_document.md` in the guide's prescribed
+    location; `PRD.md` exists at repo root (not `docs/requirements/`) and
+    predates a formal Vision Document step entirely.
+  - Phase 3 (Architecture): **strong** on OpenAPI — real, current specs per
+    service (`openapi/admin.yml`, `harness.yml`, `payments.yml`,
+    `schools.yml`, `student.yml`). **Not met** on ADRs (template-only, see
+    above) despite real architecture docs existing under other names
+    (`ADMIN_PIPELINE_ARCHITECTURE.md`, `CODEBASE_AUDIT.md`).
+  - Phase 5 (Engineering Standards): pre-commit linting is real and active
+    (ruff, ruff-format, detect-secrets — confirmed firing on every commit
+    made this session). OpenTelemetry-style trace-correlated structured
+    logging not confirmed present.
+  - Phase 6 (Dev Workflow): real PR-based review in active use (PRs #31,
+    #34 merged this session) — but branch names are ad-hoc
+    (`fix/workbench-prediction-gates`, `payment`, `blitzyhbec`), not the
+    guide's `feature/issue-[id]-[slug]` convention.
+  - Phase 7 (Testing & QA): **real, per-service CI test jobs exist**
+    (`harness-tests`, `harness-integration`, `student-backend-tests`,
+    `admin-backend-tests`, `student-frontend`, `mobile`, `config-parity`,
+    `ci-success` gate) — a genuine strength, not a template. **Gate 6's
+    85% coverage threshold is not met and not close**: `QUALITY_BASELINE.md`
+    ratchets coverage per service at 30%/15%/10% (harness/student/admin).
+    Zero mutation testing anywhere (`stryker`/`mutmut`/`cosmic-ray` all
+    absent).
+  - Phase 8 (Security): `security-scan.yaml` runs Gitleaks + TruffleHog +
+    Trivy on every push — real SCA/secret-scanning, not aspirational.
+    Threat model template exists, never filled in (see above).
+  - Phase 9 (CI/CD & Release): substantially *exceeds* the guide's baseline
+    as of today — see guide 10's entry below for the immutable-tagging/
+    build-once work. No `CHANGELOG.md` is auto-generated, despite commit
+    message discipline (`fix(deploy):`, `feat(exam-practice):` — real
+    Conventional Commits throughout) that would make this nearly free to add.
+  - Phase 10 (Production Readiness): `docs/PRODUCTION_READINESS.md` is a
+    real, detailed, populated checklist (DB/app/cache/rate-limit/circuit-
+    breaker/timeout/queue/memory/monitoring/degradation/load-balancing/
+    health-checks), not a template. Liveness/readiness health endpoints are
+    real and already documented in `CLAUDE.md` (`/health/live/`,
+    `/health/ready/` on Django; `/health`, `/health/ready` on the harness).
+    Still: per the SLO finding above, none of this is *operationalized*
+    with alerting that would actually catch a live breach.
+  - Phase 11 (Operations): `SRE/EMERGENCY_RECOVERY_RUNBOOK.md` is real and
+    populated (a genuine Incident Runbook). Postmortems: see the top finding
+    — zero written despite ample real incidents that warranted one.
+- **Compliance:**
+  - [x] PR-based code review in active practice
+  - [x] Per-service CI test suite, gated on a `ci-success` job
+  - [x] Automated secret/dependency scanning on every push
+  - [x] OpenAPI specs exist and are current, per service
+  - [x] SLOs are actually defined with real targets and an error-budget policy
+  - [x] A real, populated production-readiness checklist and emergency
+    recovery runbook exist
+  - [ ] Zero ADRs exist despite a template being present — the guide's
+    single most emphasized Phase 3 artifact is the one most completely
+    unused
+  - [ ] Threat model template unfilled
+  - [ ] Zero postmortems written despite 25+ real incidents on record
+  - [ ] Coverage nowhere near the guide's 85% gate; no mutation testing
+  - [ ] SLOs/readiness checklists not wired to alerting — they exist on
+    paper but a real reliability incident (redis-sentinel) proved they
+    aren't being watched in practice
+
 ### 10. Deployment And Maintenance
 - **Ported sections:** the new **Immutable Artifact Tagging and Build-Once
   Promotion** section (added 2026-08-11, same session that produced this
@@ -61,9 +143,13 @@
 Per `MANIFEST.md`'s fit assessment for HBEC — none of these have been
 formally ported yet; listed honestly rather than skipped silently:
 
-- [ ] 1. SDLC — HBEC has `CODEBASE_AUDIT.md` but no formal gate model / ADRs
-- [ ] 4. SRE — no SLOs or error budgets defined; production resiliency has
-  been reactive (see `dev-logs/HBEC/` incident history) rather than budgeted
+- [ ] 4. SRE — `SRE/SLOs.md` **does** define real SLOs and an error-budget
+  policy (corrected 2026-08-11 — an earlier version of this adapter wrongly
+  said none existed; see the guide 1 section above for how that was caught).
+  The actual gap is narrower than "no SLOs": they aren't wired to any
+  alerting, so a breach has no mechanism to surface. Production resiliency
+  has been reactive (see `dev-logs/HBEC/` incident history) despite the
+  targets existing on paper.
 - [ ] 5a. Observability — Prometheus/Grafana exist but aren't wired to
   alerting; a crash-looping container (`redis-sentinel`, 7000+ restarts) went
   unnoticed until someone happened to SSH in, discovered in the same session
@@ -105,7 +191,7 @@ Re-open this adapter each review cycle. If guide 10 is updated in the
 library (e.g. the registry-push variant of the promotion pattern gets
 written up), re-port the changed parts here.
 
-- **Adapter version:** 0.2 — updated same day after guides 5b/7 gained new
-  sections and guides 16/17 were created, all from HBEC's own incident
-  history (see `GUIDE_CHAIN_CRITIQUE_2026-08-11.md`).
+- **Adapter version:** 0.3 — ran guide 1 (SDLC) against HBEC's actual repo
+  state directly (not from memory/prior audits), moved it from "open gaps"
+  to "applied," and corrected a wrong claim about SLOs not existing.
 - **Last synced:** 2026-08-11
