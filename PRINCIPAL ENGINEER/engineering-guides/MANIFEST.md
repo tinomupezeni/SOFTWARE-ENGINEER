@@ -32,6 +32,17 @@
   | shipwright | Medium | Rust CLI tool; SDLC applies to release process. |
   | Most others | Medium | Apply lightweight version (ADRs + test gate). |
 
+### 2. Project Documentation
+- **File:** `2. Project Documentation.md`
+- **Scope:** Architectural standards, documentation requirements, and SDLC blueprint aligning ISO 12207 with agile tailoring for 1-10 dev teams.
+- **Stack:** Stack-agnostic; docs-as-deliverable.
+- **Triggers:** Project needs a documentation standard, or wants an ISO-aligned but agile process.
+- **applies_to:**
+  | Project | Fit | Notes |
+  |---|---|---|
+  | TESE-MARKET (BFF) | Medium | CLAUDE.md already encodes many of these rules. |
+  | Most others | Not yet reviewed | Companion to `PRINCIPAL ENGINEER/projects_documentation.md` (parent dir) — check that first before re-deriving. |
+
 ### 3. Mobile App Agent-First Development
 - **File:** `3. Mobile App Agent-First Development Guide.md`
 - **Scope:** React Native / Flutter mobile development driven by coding agents.
@@ -130,6 +141,8 @@
   | Project | Fit | Notes |
   |---|---|---|
   | SMEPulse | Medium | Webhook must ack Meta quickly and reliably; motivated idempotency + payload-shape guards. Load testing deferred — see `PROJECT_ADAPTER_SMEPULSE.md`. |
+  | TESE-MARKET (BFF) | Medium | Not yet reviewed against this project directly. |
+  | HBEC | Medium | AI-generation latency (paper/marking endpoints) and pgbouncer connection pooling both match; not yet reviewed against this project directly. |
 
 ### 10. Deployment And Maintenance
 - **File:** `10. Deployment And Maintenance.md`
@@ -144,6 +157,78 @@
   | shipwright | Medium | Dockerfile + compose agent. |
   | Most deployable projects | High | Resource caps are universal guidance. |
   | TESC (ScalarEye) | High | GH Actions self-hosted runner + nginx (not Coolify/Caddy). |
+
+### 11. SE Verification
+- **File:** `11. SE Verification.md`
+- **Scope:** Full-stack verification and production-readiness framework for teams whose implementation code is largely agent-generated: functional/contract/chaos testing, mutation-tested test-suite integrity, security (NIST SSDF/OWASP SAMM) and observability (OpenTelemetry/Prometheus) gates, SRE-style readiness (SLIs/SLOs, error budgets, MTTA/MTTR).
+- **Stack:** Django, FastAPI, Laravel, React, Flutter, Postgres, Redis, Docker Compose, GitHub Actions, OpenTelemetry.
+- **Triggers:** Project uses CLI coding agents to generate implementation code; needs CI gates beyond linting; deploys to a self-managed VPS and needs SLOs/production readiness review.
+- **applies_to:**
+  | Project | Fit | Notes |
+  |---|---|---|
+  | TESE-MARKET (BFF) | High | FastAPI + Postgres/Redis matches directly. Not yet reviewed against this project directly. |
+  | HBEC | High | Stack matches closely, but CLAUDE.md states most CI workflows are disabled — no automated test/lint gate today, so this guide's gates are aspirational here, not adopted. |
+  | shipwright | Low | Rust CLI/release tool, not a hosted service — DB pooling, contract-testing, and PRR/SLO sections don't apply. |
+  | TESC (ScalarEye) | High | Django + Postgres matches; existing pytest + k6 + fuzz baseline (guide 8) is a head start, but this guide's specific gates not yet reviewed against it. |
+  | SMEPulse | Medium | Prisma/Next only partially overlaps the guide's examples; mutation testing and PRR/SLO sections not yet reviewed against this project directly. |
+
+### 12. HCI
+- **File:** `12. HCI.md`
+- **Scope:** Cognitive-science-grounded UX/UI engineering — Nielsen's heuristics, Shneiderman's golden rules, ISO 9241/25010 usability standards, WCAG 2.2 accessibility, form/error-handling design, dashboard IA, usability testing/metrics.
+- **Stack:** Stack-agnostic; web and mobile.
+- **Triggers:** Project has a user-facing UI (web, mobile, or desktop); needs WCAG/accessibility compliance.
+- **applies_to:**
+  | Project | Fit | Notes |
+  |---|---|---|
+  | TESE-MARKET (BFF) | High | Storefront + admin-dashboard UIs; not yet reviewed against this project directly. |
+  | HBEC | High | Two React frontends with forms, dashboards, curriculum navigation; not yet reviewed against this project directly. |
+  | shipwright | Low | Rust CLI tool; no graphical UI surface. |
+  | TESC (ScalarEye) | Medium | Two React/Vite frontends (public portal + admin); not yet reviewed against this project directly. |
+  | SMEPulse | Medium | Next.js admin portal + WhatsApp conversational interface; not yet reviewed against this project directly. |
+
+### 13. Deployment (Production Readiness & Release Engineering)
+- **File:** `13. Deployment.md`
+- **Scope:** Enterprise-scale production readiness and release engineering — PRR checklists, staging/production parity vectors, deployment strategies (canary/blue-green/rolling/progressive delivery), zero-downtime DB migrations, rollback engineering, SLO-based observability, incident response. Written for Kubernetes/cloud-native shops with a dedicated SRE function — heavier-weight than guide 10's self-hosted-VPS equivalent, and the two are complementary rather than redundant (10 answers "how do I run this on my VPS," 13 answers "what does a rigorous cloud-scale promotion process look like").
+- **Stack:** Kubernetes, PostgreSQL/MySQL, Docker, Terraform, Prometheus.
+- **Triggers:** Project needs a formal Production Readiness Review before a major release; runs on Kubernetes or another orchestrated platform; needs zero-downtime relational DB migrations or a documented rollback/incident-response runbook.
+- **applies_to:**
+  | Project | Fit | Notes |
+  |---|---|---|
+  | TESE-MARKET (BFF) | Medium | PRR/rollback/DB-migration sections plausibly fit; Kubernetes-specific subsections don't (nginx/Traefik, no orchestrator). |
+  | HBEC | Medium | Immutable-tagging/rollback already ported via guide 10 (see `PROJECT_ADAPTER_HBEC.md`); this guide's PRR checklist and parity vectors overlap but aren't checked against HBEC specifically. Docker Compose on one VPS, not Kubernetes. |
+  | shipwright | Low | Not a running production service — PRR/canary/incident-response don't map; release-artifact-integrity ideas may still apply. |
+  | TESC (ScalarEye) | Medium | Section 5's ORM-migration guidance names Django directly, mapping to TESC's stack; PRR/rollback sections not yet reviewed against it. |
+  | SMEPulse | Medium | Postgres/Prisma migrations benefit from the Expand-Contract guidance; not yet reviewed against this project directly. No Kubernetes in use. |
+- **Note:** none of the tracked projects run Kubernetes, so no entry above exceeds `medium` — pull the stack-agnostic parts (PRR checklist, Expand-Contract DB pattern, rollback triggers, incident-response protocol, postmortem template) rather than the whole guide.
+
+### 14. SDK Development
+- **File:** `SDK Development.md`
+- **Scope:** Building, packaging, and maintaining production-grade Python libraries, SDKs, and plugin-extensible developer platforms consumed by external/third-party code — public API design, src-layout packaging, PyPI release/supply-chain security, layered config, error taxonomies, plugin sandboxing, SemVer/deprecation compatibility.
+- **Stack:** Python, Pydantic, httpx, Hatchling, PyPI, mypy, pytest.
+- **Triggers:** Project builds or distributes a Python library, SDK, or plugin-extensible developer platform for external consumers; must preserve a stable public API contract across versions.
+- **applies_to:**
+  | Project | Fit | Notes |
+  |---|---|---|
+  | TESE-MARKET (BFF) | Low | FastAPI BFF serving its own frontends, not a distributed client SDK; shared TS/Py packages are internal-only. |
+  | HBEC | Low | Application suite serving its own frontends via internal HMAC calls; nothing packaged/versioned as a redistributable library. |
+  | shipwright | Low | Rust CLI tool; Python packaging detail doesn't transfer, though SemVer/deprecation principles are language-agnostic. |
+  | TESC (ScalarEye) | Low | Django ORM application, not a published library. |
+  | SMEPulse | Low | Next.js/Prisma — not Python, not a distributed SDK. Guide does not apply. |
+- **Note:** none of the tracked projects currently ship a distributable client SDK — revisit if one splits out a public library.
+
+### 15. Code Integration
+- **File:** `Code Integration.md`
+- **Scope:** End-to-end code integration lifecycle — git branching strategy (trunk-based dev), PR standards, the 12-vector code review framework, CI/CD quality gates, integration testing, merge-conflict resolution, Postgres migration safety, API versioning/contract testing, config/secrets/feature-flag rollout, release/rollback procedures, and how to review AI-agent-generated contributions specifically.
+- **Stack:** git, GitHub Actions, PostgreSQL, Docker, Coolify.
+- **Triggers:** Project uses a PR-based git workflow with a CI/CD pipeline gating merges; runs Postgres migrations in production; integrates AI coding agents into the review/merge workflow.
+- **applies_to:**
+  | Project | Fit | Notes |
+  |---|---|---|
+  | TESE-MARKET (BFF) | High | FastAPI + Postgres + Docker matches the guide's migration-timeout and CI/CD examples directly. |
+  | HBEC | High | Stack matches (Django, FastAPI, Postgres, Docker, GitHub Actions), but per CLAUDE.md most CI workflows are disabled — the guide's core thesis (automated gates blocking merge) is aspirational here, not adopted. |
+  | shipwright | Medium | Branching/PR-size/release guidance is language-agnostic; worked examples (Django/FastAPI, Postgres locking) don't map directly. |
+  | TESC (ScalarEye) | High | Django + Postgres 15 + GH Actions self-hosted runner already in place; overlaps with this guide's CI and migration-safety sections. |
+  | SMEPulse | Medium | CI-gated tests for `apps/webhook` already established (guide 8), but no Postgres migration-locking or PR/branching review yet against this guide. |
 
 ---
 

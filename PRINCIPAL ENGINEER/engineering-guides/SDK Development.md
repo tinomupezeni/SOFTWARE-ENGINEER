@@ -1,4 +1,75 @@
 Production Python SDK and Developer Platform Engineering Handbook
+
+## Metadata
+
+```yaml
+id: 14
+title: SDK Development (Python Libraries, SDKs & Developer Platforms)
+scope: >-
+  Building, packaging, and maintaining production-grade Python libraries,
+  SDKs, and plugin-extensible developer platforms consumed by external or
+  third-party code: public API design and interface-boundary hygiene, src-layout
+  packaging and PyPI release/supply-chain security, layered configuration,
+  error taxonomies, plugin sandboxing, and SemVer/deprecation compatibility
+  guarantees for code that runs inside a caller's own process rather than the
+  team's own application.
+stack:
+  - python
+  - pydantic
+  - httpx
+  - hatchling
+  - pypi
+  - mypy
+  - pytest
+triggers:
+  - "Project builds or distributes a Python library, SDK, or plugin-extensible developer platform for external/third-party consumers"
+  - "Project must preserve a stable public API contract across versions (SemVer, deprecation policy, migration tooling)"
+  - "Project ships a client library that other applications import and depend on, rather than an application serving its own frontend"
+applies_to:
+  - project: TESE-MARKET (BFF)
+    fit: low
+    notes: >-
+      FastAPI BFF exposing a REST API to its own storefront/admin frontends,
+      not a distributed client SDK; the monorepo's shared TS/Py packages are
+      internal-only, so the guide's public-API-contract/versioning concerns
+      don't apply yet. Not yet reviewed against this project directly.
+  - project: HBEC
+    fit: low
+    notes: >-
+      Django/FastAPI application suite (Admin CMS, Student Backend, Harness)
+      serving its own two frontends via internal HMAC-signed calls; nothing in
+      the service map is packaged or versioned as a redistributable Python
+      library. Not yet reviewed against this project directly.
+  - project: shipwright
+    fit: low
+    notes: >-
+      Rust CLI tool; the guide's packaging/tooling detail (pyproject.toml,
+      Hatchling, PyPI, py.typed, mypy) is Python-specific and does not
+      transfer, though the API-contract and SemVer/deprecation-policy
+      sections are language-agnostic in principle. Not yet reviewed against
+      this project directly.
+  - project: TESC
+    fit: low
+    notes: >-
+      Django ORM application (crypto/decryption endpoints), not a published
+      library. Not yet reviewed against this project directly.
+  - project: SMEPulse
+    fit: low
+    notes: >-
+      Next.js/Prisma app — not Python, and not a distributed SDK. Guide does
+      not apply.
+rewire_notes: >-
+  This guide is Python-specific (pyproject.toml, Hatchling, PyPI, py.typed,
+  mypy) and assumes the project's deliverable is a redistributable
+  library/SDK consumed by third-party code, not an application serving its
+  own frontend. None of the five tracked projects currently ship such an
+  artifact; if one of them ever splits out a public client library (e.g.
+  TESE-MARKET's shared Py packages becoming an installable package), revisit
+  the applies_to fits above instead of assuming "low" stays permanent.
+```
+
+---
+
 How to Use This Handbook
 This engineering handbook defines the standards, architectural paradigms, and design rules for building, distributing, and maintaining production-grade Python libraries, Software Development Kits (SDKs), frameworks, and extensible developer platforms. The instructions, code specifications, and validation processes contained within this document are optimized for highly reliable execution contexts. They establish an enforceable engineering standard for software development.
 

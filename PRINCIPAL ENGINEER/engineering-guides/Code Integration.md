@@ -1,5 +1,55 @@
 Code Integration, Pull Request Review & Merge Engineering Handbook
 
+## Metadata
+
+```yaml
+id: 15
+title: Code Integration, PR Review & Merge Engineering
+scope: >-
+  End-to-end code integration lifecycle for small teams: git branching
+  strategy, pull request standards, code review, CI/CD quality gates,
+  database migration safety, API versioning, configuration/secrets/feature
+  flag rollout, and release/rollback procedures — including how to review
+  contributions from AI coding agents.
+stack:
+  - git
+  - github-actions
+  - postgresql
+  - docker
+  - coolify
+triggers:
+  - "Project uses git with a pull request-based workflow"
+  - "Project has a CI/CD pipeline gating merges to the trunk branch"
+  - "Project runs database migrations against PostgreSQL in production"
+  - "Project integrates AI coding agents (e.g. Claude Code) into the review/merge workflow"
+applies_to:
+  - project: TESE-MARKET (BFF)
+    fit: high
+    notes: "FastAPI + Postgres + Docker stack matches the guide's migration-timeout and CI/CD examples directly. Not yet reviewed against this project directly."
+  - project: HBEC
+    fit: high
+    notes: "Stack matches (Django, FastAPI, Postgres, Docker, GitHub Actions), but per HBEC's own CLAUDE.md most CI workflows are disabled — only a Gitleaks secret scan and a VPS deploy job run, with no automated lint/test/coverage gate. The guide's core thesis (automated quality gates blocking merge) is aspirational here, not yet adopted."
+  - project: shipwright
+    fit: medium
+    notes: "Rust CLI tool; the guide's PR-size, branching, and release-integration guidance is language-agnostic, but its worked examples (Django/FastAPI/Laravel, Postgres locking) don't map directly. Not yet reviewed against this project directly."
+  - project: TESC
+    fit: high
+    notes: "Django + Postgres 15 + GitHub Actions self-hosted runner already in place (per MANIFEST guides 6/8/10), which overlaps with this guide's CI and migration-safety sections. Not yet reviewed against this project directly for PR/merge process specifically."
+  - project: SMEPulse
+    fit: medium
+    notes: "Next.js/Prisma + Postgres with CI-gated tests for apps/webhook already established (per MANIFEST guide 8), but no Postgres migration-locking or PR/branching review yet against this guide. Not yet reviewed against this project directly."
+rewire_notes: >-
+  Worked examples are GitHub Actions + Coolify + PostgreSQL-specific (Django,
+  FastAPI/Alembic, and Laravel timeout snippets); swap for the project's
+  actual pipeline/host (e.g. a different CI runner, Traefik/nginx instead of
+  Coolify) while keeping the gate ordering (lint -> test -> build -> deploy)
+  and the lock_timeout/statement_timeout migration guidance, which is
+  host-agnostic.
+```
+
+---
+
+
 How to Use This Handbook
 This handbook defines the engineering standard for managing, reviewing, and integrating source code changes within modern software engineering teams. It is structured as an authoritative reference and an enforceable protocol that governs the transition of code from local development environments into shared production systems.   
 
