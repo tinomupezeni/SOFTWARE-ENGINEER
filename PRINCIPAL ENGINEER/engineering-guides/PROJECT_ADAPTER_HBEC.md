@@ -98,9 +98,14 @@
     aren't being watched in practice
 
 ### 10. Deployment And Maintenance
-- **Ported sections:** the new **Immutable Artifact Tagging and Build-Once
-  Promotion** section (added 2026-08-11, same session that produced this
-  adapter — HBEC's incident is the reason that section exists at all).
+- **Ported sections:** the **Immutable Artifact Tagging and Build-Once
+  Promotion** pattern (added 2026-08-11, same session that produced this
+  adapter — HBEC's incident is the reason it exists at all). That content
+  has since been split out to its own guide, **18. Build Once, Deploy
+  Everywhere**, so it's directly reusable outside VPS/Coolify/Caddy
+  projects — guide 10 now only keeps the single-host instantiation and
+  points to guide 18 for the rest. This adapter section's compliance
+  record below applies equally to both.
 - **Landed in:** `.github/workflows/cd.yml` (`deploy-staging` /
   `deploy-production` / `rollback-production` jobs),
   `scripts/deploy/image-tags.sh` (the `exists`/`prune` helper).

@@ -146,7 +146,7 @@
 
 ### 10. Deployment And Maintenance
 - **File:** `10. Deployment And Maintenance.md`
-- **Scope:** Self-hosted VPS multi-tenancy, Docker resource isolation, Coolify, Caddy. Also covers immutable artifact tagging / build-once-promote-everywhere, exhaustive backup scope before a destructive wipe, a gateway-unreachable triage checklist, deployment-verification patterns (Blue-Green/Smoke/Staging + the False Positive Trap), and host-level (systemd/VPS) failure modes beneath Docker (added 2026-08-11).
+- **Scope:** Self-hosted VPS multi-tenancy, Docker resource isolation, Coolify, Caddy. Also covers exhaustive backup scope before a destructive wipe, a gateway-unreachable triage checklist, deployment-verification patterns (Blue-Green/Smoke/Staging + the False Positive Trap), and host-level (systemd/VPS) failure modes beneath Docker (added 2026-08-11). The single-host instantiation of immutable-artifact-tagging / build-once-promotion lives here; the full stack-agnostic pattern was split out to guide 18 for reuse outside VPS/Coolify/Caddy projects.
 - **Stack:** Docker, Docker Compose, Coolify, Caddy, Linux VPS.
 - **Triggers:** Project deploys to a self-managed VPS.
 - **applies_to:**
@@ -257,6 +257,20 @@
   | shipwright | None | Rust CLI tool. No model calls, no retrieval, no agents. |
   | TESC (ScalarEye) | None | No LLM/AI integration in its current architecture. |
   | SMEPulse | None | Static Twilio templates, not LLM-generated content. |
+
+### 18. Build Once, Deploy Everywhere: Immutable Artifact Promotion
+- **File:** `18. Build Once Deploy Everywhere.md`
+- **Scope:** Tag every build artifact by the immutable identity of the commit it came from, then promote that exact artifact between environments instead of rebuilding it. Covers the single-host (no registry) and multi-host (registry push/pull) variants, a fast-rollback pattern that falls out of the same mechanism, retention, and the specific way this silently breaks when two environments' build steps drift structurally out of sync. Split out of guide 10 on 2026-08-11 so the pattern is reusable outside VPS/Coolify/Caddy projects — guide 10 keeps only the single-host instantiation and points here for the rest.
+- **Stack:** Docker, Docker Compose, git, CI/CD, stack-agnostic.
+- **Triggers:** Project has more than one deployment environment; a bug fixed on staging reappeared in production (or vice versa); images are tagged `:latest`/by branch name rather than build identity; rollback means rebuilding an old commit and hoping it comes out the same.
+- **applies_to:**
+  | Project | Fit | Notes |
+  |---|---|---|
+  | HBEC | High | Source of this guide — full compliance record in `PROJECT_ADAPTER_HBEC.md` under guide 10. |
+  | TESE-MARKET (BFF) | High | Multiple services + a promotion path is exactly this guide's trigger. Not yet reviewed against this project directly. |
+  | TESC (ScalarEye) | Medium | GH Actions self-hosted runner already exists to host this pattern; not yet reviewed against this project directly. |
+  | SMEPulse | Medium | Not yet reviewed against this project directly. |
+  | shipwright | Low | A release/deploy tool itself, not a running service with environments to promote between. |
 
 ---
 
