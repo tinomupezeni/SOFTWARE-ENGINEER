@@ -97,6 +97,62 @@
     paper but a real reliability incident (redis-sentinel) proved they
     aren't being watched in practice
 
+### 2. Project Documentation
+- **Method:** guide 2's own content overlaps heavily with guides 1, 4, 6, 8,
+  10, and 11 (already run/refined this session) — ISO/NIST/SAMM process
+  mapping, testing topology, DB pooling, SRE/SLOs, blue-green/DORA. Rather
+  than re-deriving the same findings under a different heading, this run
+  focused on what's actually distinctive to guide 2: its companion
+  `projects_documentation.md`'s document inventory, and the AI-agent/
+  AGENTS.md/MCP-gateway-security material neither of the other guides own.
+- **Document inventory (`projects_documentation.md`'s table), checked
+  directly against the repo root:** missing `README.md`, `ARCHITECTURE.md`,
+  `CONTRIBUTING.md`, `RUNBOOK.md`, `CHANGELOG.md`, `SECURITY.md`,
+  `docs/adr/`, `docs/onboarding.md`, `docs/glossary.md` — HBEC does not meet
+  the doc's own stated "default minimum for any real project" (README +
+  ARCHITECTURE, even short). `SECURITY.md`'s absence is notable given the
+  doc's own trigger for it ("handles sensitive data") and HBEC handling
+  institutional/student data. The *substance* often exists under different
+  names — `CLAUDE.md` (320 lines) carries much of what ARCHITECTURE.md/
+  CONTRIBUTING.md would; `PRD.md`, `EngineerApproach.md` exist at root;
+  `SRE/EMERGENCY_RECOVERY_RUNBOOK.md` is a real runbook just not at the
+  canonical path — but a new contributor or external auditor looking for
+  the canonical filenames a professional project is expected to have would
+  not find them.
+- **AGENTS.md — genuinely present, narrower than expected:** 23 lines,
+  scoped entirely to telemetry/observability rules for agent-written code
+  (mandatory JSON logs with `trace_id`/`span_id`/`service.name`,
+  OpenTelemetry tracing, Prometheus metric types, `/health/live` +
+  `/health/ready` pathways) — general engineering conventions live in
+  `CLAUDE.md` instead, an unusual but workable split.
+- **Checked AGENTS.md's specific mandates against real code — a genuine
+  strength, unlike guide 1's template-never-exercised pattern:**
+  - `AGENTIC_HARNESS/app/shared/observability/tracing.py`: real OpenTelemetry
+    setup, auto-instrumenting FastAPI/SQLAlchemy/Redis/httpx, exporting to
+    Jaeger — not a stub.
+  - Both Django backends (`STUDENT/hbec_backend`, `ADMIN/adminBackend`)
+    wire a custom `core.logging.OpenTelemetryJSONFormatter` in
+    `config/settings/production.py` — real, not aspirational.
+  - `/health/live`/`/health/ready` pathways: confirmed real (already
+    documented in `CLAUDE.md`, cross-referenced under guide 1 above).
+  - Not confirmed: whether `structlog`'s output actually carries
+    `trace_id`/`span_id` on every log line as AGENTS.md's rule 3 demands
+    (structlog is in use in the Harness, but no explicit trace-context
+    processor was found wired to it) — worth a direct check, not assumed
+    either way.
+- **MCP gateway security section: not applicable.** No custom MCP server
+  code or `.mcp.json` config found anywhere in the repo — HBEC doesn't
+  build MCP servers today, so this section has nothing to check against.
+- **Compliance:**
+  - [x] AGENTS.md exists and its specific mandates are substantially real
+    (OTel tracing in the Harness, JSON+OTel log formatter in both Django
+    backends, split health endpoints) — checked in code, not assumed
+  - [ ] Canonical doc filenames (README, ARCHITECTURE, CONTRIBUTING,
+    RUNBOOK, CHANGELOG, SECURITY) absent at root despite substantial
+    content existing under other names
+  - [ ] structlog-to-trace-context correlation not confirmed
+  - N/A MCP gateway security — no custom MCP servers in this repo
+
 ### 10. Deployment And Maintenance
 - **Ported sections:** the **Immutable Artifact Tagging and Build-Once
   Promotion** pattern (added 2026-08-11, same session that produced this
@@ -196,7 +252,8 @@ Re-open this adapter each review cycle. If guide 10 is updated in the
 library (e.g. the registry-push variant of the promotion pattern gets
 written up), re-port the changed parts here.
 
-- **Adapter version:** 0.3 — ran guide 1 (SDLC) against HBEC's actual repo
-  state directly (not from memory/prior audits), moved it from "open gaps"
-  to "applied," and corrected a wrong claim about SLOs not existing.
+- **Adapter version:** 0.4 — ran guide 2 (Project Documentation) against
+  HBEC's actual repo state; found the canonical doc filenames absent at
+  root despite real substance existing under other names, and confirmed
+  AGENTS.md's telemetry mandates are substantially honored in real code.
 - **Last synced:** 2026-08-11

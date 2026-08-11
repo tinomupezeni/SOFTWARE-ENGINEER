@@ -34,13 +34,14 @@
 
 ### 2. Project Documentation
 - **File:** `2. Project Documentation.md`
-- **Scope:** Architectural standards, documentation requirements, and SDLC blueprint aligning ISO 12207 with agile tailoring for 1-10 dev teams.
+- **Scope:** Architectural standards, documentation requirements, and SDLC blueprint aligning ISO 12207 with agile tailoring for 1-10 dev teams. Overlaps guides 1/4/6/8/10/11 heavily; its distinctive content is the companion doc's document inventory and the AGENTS.md/MCP-gateway-security material.
 - **Stack:** Stack-agnostic; docs-as-deliverable.
 - **Triggers:** Project needs a documentation standard, or wants an ISO-aligned but agile process.
 - **applies_to:**
   | Project | Fit | Notes |
   |---|---|---|
   | TESE-MARKET (BFF) | Medium | CLAUDE.md already encodes many of these rules. |
+  | HBEC | High | Ran 2026-08-11 — see `PROJECT_ADAPTER_HBEC.md`. Missing README/ARCHITECTURE/CONTRIBUTING/RUNBOOK/CHANGELOG/SECURITY at root (fails the doc's own stated minimum) despite the substance existing under other names; AGENTS.md's telemetry mandates checked and substantially real in code (OTel tracing, JSON log formatters). |
   | Most others | Not yet reviewed | Companion to `PRINCIPAL ENGINEER/projects_documentation.md` (parent dir) — check that first before re-deriving. |
 
 ### 3. Mobile App Agent-First Development
