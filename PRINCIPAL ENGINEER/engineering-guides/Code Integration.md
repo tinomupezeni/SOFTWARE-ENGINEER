@@ -1535,3 +1535,47 @@ Section XI: User Experience & Design Consistency
 
 11.5 Layout Responsiveness: Have you verified that layouts scale correctly across different screen sizes and orientations?
 
+16. Single Source of Truth for Cross-File Constants
+When the same literal value, storage key, or field reference must appear in more than one file, it must be defined once and imported or referenced everywhere else. Copying it into a second location does not create two sources of the same truth; it creates two independent values that happen to start out equal and are free to drift the moment either one is edited alone.
+
+The Duplication-to-Divergence Failure Path
+┌────────────────────────────────────────────────────────┐
+│         Duplication-to-Divergence Failure Path         │
+├────────────────────────────────────────────────────────┤
+│                                                          │
+│  [ Value Copied Into a Second File Instead of Imported ]│
+│                          │                               │
+│                          ▼                               │
+│  [ One Copy Is Edited Later; the Other Is Not ]          │
+│                          │                               │
+│                          ▼                               │
+│  [ Behavior Silently Diverges Between the Two Callers ] │
+│                          │                               │
+│                          ▼                               │
+│  [ Bug Surfaces Far From the Line That Actually Drifted]│
+│                                                          │
+└────────────────────────────────────────────────────────┘
+
+Evidence From Production: Three Failures of the Same Shape
+The following three incidents, drawn from the HBEC project's own bug and dev-log records, are the same failure shape expressed through three different mechanisms: a URL prefix constant, a storage key name, and an ORM field reference.
+
+Duplicated Constant (API_BASE): HBEC's PROBLEM.md Bug #1 recorded three separate frontend files (revisionApi.ts, examApi.ts, useLevelPreference.ts) that each declared their own local const API_BASE = '/api' and prepended it to paths passed into apiFetch(). apiFetch() in src/lib/api.ts already prepended the same /api prefix internally, so every one of those copies silently doubled the path to /api/api/... and produced a 404. The constant was never wrong in isolation; it was wrong because it existed in four places instead of one.
+
+Divergent Key Name (hbec_auth vs. hbc_auth_token): HBEC's PROBLEM.md Bug #2a recorded harnessApi.ts reading the auth token via localStorage.getItem('hbec_auth') as a JSON object, while api.ts actually stored the token under localStorage.setItem('hbc_auth_token', accessToken) as a plain string. Both files needed the same value — the current access token — but neither imported a shared constant for the storage key, so the two names, and the two formats, diverged without either author noticing until the harness chat API started returning 401 Unauthorized.
+
+Repeated Invalid ORM Field (select_related("release")): HBEC's dev logs for 2026-07-21 record the same copy-pasted field reference causing the same crash in two different views, hours apart. TopicListCreateView.get_queryset() called Topic.objects.select_related("subject", "release") even though Topic has no release foreign key, which raised a FieldError and turned the topics list into a silent "0 topics" state. The immediate fix removed "release" from that one queryset. Later the same day, TopicDetailView — a second, separate view in the same apps/curriculum/views.py — crashed a DELETE request with the identical FieldError: Invalid field name(s) given in select_related: 'release', because it carried its own copy of the same invalid select_related("subject", "release") call that nobody had checked for after the first fix shipped.
+
+Closing the Fix, Not Just the Ticket
+The reason the select_related("release") mistake reappeared hours after it was first fixed is not that the fix was wrong — it is that the fix closed the reported ticket instead of closing the pattern. Fixing the one queryset that crashed answered the symptom in front of the reviewer; it did not answer the question "does this invalid field reference exist anywhere else in the codebase," and nobody asked that question until the second view crashed in production.
+
+When a bug of this shape is found — a literal, key name, or field reference that has been copy-pasted rather than imported — the fix is not complete when the reported instance compiles and the ticket closes. Before the fix is considered closed, run a repository-wide search for the same literal or pattern (the constant's value, the key name, the field name) across every file, module, and service boundary, not only the one that was reported. A grep across the repository for select_related("release" or for hbec_auth would have found the second occurrence in the same afternoon instead of in a second incident.
+
+Prevention Checklist
+[ ] Is this literal, key name, or field reference used in more than one file?
+
+[ ] If yes, is it defined once (a shared constant, enum, or config value) and imported everywhere else, rather than re-declared or copy-pasted?
+
+[ ] When fixing a bug caused by a wrong literal, key, or field reference, has the same string or pattern been searched for across the entire repository — not just the reported file — before the fix is marked resolved?
+
+[ ] Does the pull request description for this fix note whether a repo-wide search was run, and what (if anything) else it found?
+

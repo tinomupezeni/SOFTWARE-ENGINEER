@@ -68,14 +68,36 @@ formally ported yet; listed honestly rather than skipped silently:
   alerting; a crash-looping container (`redis-sentinel`, 7000+ restarts) went
   unnoticed until someone happened to SSH in, discovered in the same session
   that produced this adapter
-- [ ] 5b. Secure Application Configuration — not yet audited against this
-  guide specifically
+- [ ] 5b. Secure Application Configuration — partially applied historically:
+  the guide's own fail-fast-startup-validation example
+  (`_validate_production_secrets()`) IS HBEC's real fix from
+  `dev-logs/2026-06-02-hbec-production-resiliency.md` — but that was months
+  before this adapter, and hasn't been re-verified as still present/correct
+  in the current codebase this session. Treat as "implemented historically,
+  not re-verified now," not as an open gap in the same sense as the others.
 - [ ] 6. Database Engineering — Postgres-backed, UUIDv7 PK standard not
   reviewed against HBEC's schema
-- [ ] 7. Software Security Engineering — handles institutional/student data;
-  not yet audited against this guide
+- [ ] 7. Software Security Engineering — the new Financial/Payment Webhook
+  Security section's gaps are not hypothetical for HBEC: they're the exact
+  findings of `dev-logs/2026-05-21-payment-microservice-audit.md` (missing
+  Paynow signature verification, called a "critical vulnerability"; no
+  webhook idempotency; a reused-across-trust-domains secret). That audit's
+  own research pass found no later document confirming these were closed.
+  Needs a direct check against the current `PAYMENTS/` codebase, not another
+  paraphrase of the audit.
 - [ ] 8. E2E Testing — Playwright config exists for the student frontend;
   not gated in CI as of this adapter's creation
+- [ ] 16. AI Agent Orchestration and Delegation — HBEC is the guide's own
+  flagship applies_to case (this session's delegation IS the evidence), but
+  no adapter section exists yet formally recording HBEC's practice against
+  the guide's specific framework (DoD, 3-Step Delegation, Blueprint pattern)
+- [ ] 17. AI/LLM System Observability and Behavioral Correctness — same
+  situation: HBEC is the source of every example in the guide (the silent
+  model-fallback incident, the empty-RAG finding, the 3 agent-behavior
+  bugs), but none of the guide's recommended additions (per-request
+  model/tier logging, retrieval hit/miss logging, a golden-transcript
+  regression suite) have actually been built into HBEC yet — the guide
+  exists because of HBEC's history, not because HBEC already does this.
 
 ## Review cadence
 
@@ -83,5 +105,7 @@ Re-open this adapter each review cycle. If guide 10 is updated in the
 library (e.g. the registry-push variant of the promotion pattern gets
 written up), re-port the changed parts here.
 
-- **Adapter version:** 0.1
+- **Adapter version:** 0.2 — updated same day after guides 5b/7 gained new
+  sections and guides 16/17 were created, all from HBEC's own incident
+  history (see `GUIDE_CHAIN_CRITIQUE_2026-08-11.md`).
 - **Last synced:** 2026-08-11

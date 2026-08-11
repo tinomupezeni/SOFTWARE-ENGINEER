@@ -21,7 +21,7 @@
 
 ### 1. SDLC
 - **File:** `1. SDLC.md`
-- **Scope:** Full systems/software development lifecycle (ISO 12207 + NIST SSDF + OWASP SAMM), gates, ADRs, agent-driven workflow.
+- **Scope:** Full systems/software development lifecycle (ISO 12207 + NIST SSDF + OWASP SAMM), gates, ADRs, agent-driven workflow. Also covers technical-debt audit cadence (verify-before-delete) and foundational-docs-at-project-start (added 2026-08-11).
 - **Stack:** Stack-agnostic. Assumes small (1–4) team, CLI coding agents, self-hosted VPS.
 - **Triggers:** Greenfield project, or a project with no defined process / missing ADRs / no quality gates.
 - **applies_to:**
@@ -57,7 +57,7 @@
 
 ### 4. Site Reliability Engineering
 - **File:** `4. Site Reliability Engineering.md`
-- **Scope:** SLOs, error budgets, on-call, toil caps, postmortems for self-hosted infra.
+- **Scope:** SLOs, error budgets, on-call, toil caps, postmortems for self-hosted infra. Also covers shallow-vs-deep health check design and the "Zombie Service" failure mode (added 2026-08-11).
 - **Stack:** Docker, Coolify, VPS, Linux.
 - **Triggers:** Project runs in production on self-managed infra.
 - **applies_to:**
@@ -81,7 +81,7 @@
 
 ### 5b. Secure Application Configuration
 - **File:** `5. Secure Application Configuration.md`
-- **Scope:** Secrets, env config, config hardening.
+- **Scope:** Secrets, env config, config hardening. Also covers fail-fast startup validation — crash on boot rather than silently run with a placeholder/missing production secret (added 2026-08-11).
 - **Stack:** Stack-agnostic.
 - **Triggers:** Project has `.env`, secrets, or external service credentials.
 - **applies_to:**
@@ -107,7 +107,7 @@
 
 ### 7. Software Security Engineering
 - **File:** `7. Software Security Engineering.md`
-- **Scope:** Threat modeling, authn/z, OWASP, secure design.
+- **Scope:** Threat modeling, authn/z, OWASP, secure design. Also covers financial/payment webhook security — signature verification, secret-domain isolation, idempotency, at-least-once delivery (added 2026-08-11).
 - **Stack:** Stack-agnostic.
 - **Triggers:** Project handles user data, auth, or payments.
 - **applies_to:**
@@ -134,7 +134,7 @@
 
 ### 9. Performance Engineering
 - **File:** `9. Perfomance Engineering.md`
-- **Scope:** Queueing-theory capacity planning, backend/DB performance, observability, and AI-agent verification workflows for performance-sensitive systems.
+- **Scope:** Queueing-theory capacity planning, backend/DB performance, observability, and AI-agent verification workflows for performance-sensitive systems. Also covers LLM-provider rate limits as an external capacity ceiling distinct from code-level performance, and capacity-cost-tier estimation (added 2026-08-11).
 - **Stack:** Stack-agnostic; FastAPI examples given.
 - **Triggers:** Project has a latency-sensitive request path (e.g. a webhook with a delivery-provider timeout) or needs load/capacity planning.
 - **applies_to:**
@@ -146,7 +146,7 @@
 
 ### 10. Deployment And Maintenance
 - **File:** `10. Deployment And Maintenance.md`
-- **Scope:** Self-hosted VPS multi-tenancy, Docker resource isolation, Coolify, Caddy. Also covers immutable artifact tagging / build-once-promote-everywhere (added 2026-08-11).
+- **Scope:** Self-hosted VPS multi-tenancy, Docker resource isolation, Coolify, Caddy. Also covers immutable artifact tagging / build-once-promote-everywhere, exhaustive backup scope before a destructive wipe, a gateway-unreachable triage checklist, deployment-verification patterns (Blue-Green/Smoke/Staging + the False Positive Trap), and host-level (systemd/VPS) failure modes beneath Docker (added 2026-08-11).
 - **Stack:** Docker, Docker Compose, Coolify, Caddy, Linux VPS.
 - **Triggers:** Project deploys to a self-managed VPS.
 - **applies_to:**
@@ -218,7 +218,7 @@
 
 ### 15. Code Integration
 - **File:** `Code Integration.md`
-- **Scope:** End-to-end code integration lifecycle — git branching strategy (trunk-based dev), PR standards, the 12-vector code review framework, CI/CD quality gates, integration testing, merge-conflict resolution, Postgres migration safety, API versioning/contract testing, config/secrets/feature-flag rollout, release/rollback procedures, and how to review AI-agent-generated contributions specifically.
+- **Scope:** End-to-end code integration lifecycle — git branching strategy (trunk-based dev), PR standards, the 12-vector code review framework, CI/CD quality gates, integration testing, merge-conflict resolution, Postgres migration safety, API versioning/contract testing, config/secrets/feature-flag rollout, release/rollback procedures, and how to review AI-agent-generated contributions specifically. Also covers single-source-of-truth discipline for cross-file constants, and closing a bug by its pattern, not just its one reported instance (added 2026-08-11).
 - **Stack:** git, GitHub Actions, PostgreSQL, Docker, Coolify.
 - **Triggers:** Project uses a PR-based git workflow with a CI/CD pipeline gating merges; runs Postgres migrations in production; integrates AI coding agents into the review/merge workflow.
 - **applies_to:**
@@ -229,6 +229,34 @@
   | shipwright | Medium | Branching/PR-size/release guidance is language-agnostic; worked examples (Django/FastAPI, Postgres locking) don't map directly. |
   | TESC (ScalarEye) | High | Django + Postgres 15 + GH Actions self-hosted runner already in place; overlaps with this guide's CI and migration-safety sections. |
   | SMEPulse | Medium | CI-gated tests for `apps/webhook` already established (guide 8), but no Postgres migration-locking or PR/branching review yet against this guide. |
+
+### 16. AI Agent Orchestration and Delegation
+- **File:** `16. AI Agent Orchestration and Delegation.md`
+- **Scope:** How a human engineer delegates implementation work to AI coding agents and verifies the result — the Builder-to-Architect identity shift, the Reverse Engineering Path audit technique, a Definition of Done for agent-delegated tasks, the 3-Step Delegation framework (Directive / Verification Script / Standard Reference), and the Blueprint-repo pattern. Distinct from guide 1 (mentions "agent-driven workflow" in passing) and guide 11 (mentions reviewing agent output) — neither centers on the delegation loop itself.
+- **Stack:** Stack-agnostic; CLI coding agents, git, bash/PowerShell/SSH, Docker.
+- **Triggers:** Project uses CLI coding agents for implementation; delegated work has no Definition of Done; scripts cross shell boundaries (PowerShell → SSH → Bash → Python etc.).
+- **applies_to:**
+  | Project | Fit | Notes |
+  |---|---|---|
+  | shipwright | High | Literal origin case — the guide's case-study incident and its remediation pattern. |
+  | HBEC | High | This session's own delegation (parallel subagents wiring 15+ guides, fixing a real deploy incident) is itself live evidence the framework works, not just theory. |
+  | SMEPulse | High | Its adapter already practices "Behavioral Proof" (real test/curl against target env) unprompted. |
+  | TESE-MARKET (BFF) | High | Raw material (CLAUDE.md, DECISIONS_LOG) exists; not yet reorganized around this framework specifically. |
+  | TESC (ScalarEye) | Medium | Plausible fit; no documented evidence yet either way. |
+
+### 17. AI/LLM System Observability and Behavioral Correctness
+- **File:** `17. AI-LLM System Observability and Behavioral Correctness.md`
+- **Scope:** Detecting semantic/behavioral degradation in LLM/agent-backed systems that are "up" by SRE measures (guide 4) and "passing" by functional-test measures (guide 11) while silently producing wrong, degraded, or ungrounded output — model-fallback drift, empty/ungrounded RAG retrieval, and agent behavioral-contract violations (routing, memory, multi-turn continuity) that throw no error and fail no status-code assertion.
+- **Stack:** FastAPI, LangGraph, LiteLLM, Qdrant, Redis, PostgreSQL (source stack; swap for whatever a target project uses — the three failure-mode checks generalize).
+- **Triggers:** Project routes through more than one LLM provider/model tier; implements RAG over a vector store; runs LLM-backed agents with routing, memory, or multi-turn state.
+- **applies_to:**
+  | Project | Fit | Notes |
+  |---|---|---|
+  | HBEC | High | Source of every example: the 2026-07-21 silent model-fallback incident, SYSTEM-AUDIT.md's single-provider and empty-RAG findings, PROBLEM.md's 3 agent behavioral-contract bugs. |
+  | TESE-MARKET (BFF) | None | E-commerce BFF with no LLM/AI-agent surface. Does not apply unless/until an AI feature is added. |
+  | shipwright | None | Rust CLI tool. No model calls, no retrieval, no agents. |
+  | TESC (ScalarEye) | None | No LLM/AI integration in its current architecture. |
+  | SMEPulse | None | Static Twilio templates, not LLM-generated content. |
 
 ---
 
