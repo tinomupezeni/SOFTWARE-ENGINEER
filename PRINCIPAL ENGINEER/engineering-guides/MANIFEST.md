@@ -92,6 +92,7 @@
   | TESC | High | Postgres + crypto search. |
   | Most backend projects | High | Postgres is the default. |
   | TESC (ScalarEye) | High | Django ORM + Postgres 15; Celery/Fernet crypto paths. |
+  | SMEPulse | High | Prisma + Postgres; ephemeral-Postgres-in-CI rule ported, `db push` not yet `migrate` — see `PROJECT_ADAPTER_SMEPULSE.md`. |
 
 ### 7. Software Security Engineering
 - **File:** `7. Software Security Engineering.md`
@@ -104,6 +105,7 @@
   | TESE-MARKET (BFF) | High | Payments + wallets + multi-tenant. |
   | HBEC | High | Sensitive institutional data. |
   | TESC | High | Crypto (Fernet), decryption endpoints, instauth. |
+  | SMEPulse | Medium | Hand-rolled signed-cookie session (no auth lib, due to Next 16 compatibility risk) — see `PROJECT_ADAPTER_SMEPULSE.md`. |
 
 ### 8. E2E Testing
 - **File:** `8. E2E Testing.md`
@@ -117,17 +119,28 @@
   | HBEC | Medium | ADMIN app. |
   | Most web projects | Medium | Smoke test minimum. |
   | TESC (ScalarEye) | High | Strong baseline: pytest tiers + k6 load + fuzz. |
+  | SMEPulse | High | Vitest + Supertest for `apps/webhook` (unit + integration, CI-gated); `apps/admin` UI E2E not started. |
+
+### 9. Performance Engineering
+- **File:** `9. Perfomance Engineering.md`
+- **Scope:** Queueing-theory capacity planning, backend/DB performance, observability, and AI-agent verification workflows for performance-sensitive systems.
+- **Stack:** Stack-agnostic; FastAPI examples given.
+- **Triggers:** Project has a latency-sensitive request path (e.g. a webhook with a delivery-provider timeout) or needs load/capacity planning.
+- **applies_to:**
+  | Project | Fit | Notes |
+  |---|---|---|
+  | SMEPulse | Medium | Webhook must ack Meta quickly and reliably; motivated idempotency + payload-shape guards. Load testing deferred — see `PROJECT_ADAPTER_SMEPULSE.md`. |
 
 ### 10. Deployment And Maintenance
 - **File:** `10. Deployment And Maintenance.md`
-- **Scope:** Self-hosted VPS multi-tenancy, Docker resource isolation, Coolify, Caddy.
+- **Scope:** Self-hosted VPS multi-tenancy, Docker resource isolation, Coolify, Caddy. Also covers immutable artifact tagging / build-once-promote-everywhere (added 2026-08-11).
 - **Stack:** Docker, Docker Compose, Coolify, Caddy, Linux VPS.
 - **Triggers:** Project deploys to a self-managed VPS.
 - **applies_to:**
   | Project | Fit | Notes |
   |---|---|---|
   | TESE-MARKET (BFF) | High | nginx/Traefik instead of Caddy — adapt. |
-  | HBEC | High | docker-compose.production.yml exists. |
+  | HBEC | High | Two Compose environments, one VPS, no registry. Full adapter: `PROJECT_ADAPTER_HBEC.md` — ported the immutable-sha-tagging / build-once section this same day, root-caused from a real staging incident. |
   | shipwright | Medium | Dockerfile + compose agent. |
   | Most deployable projects | High | Resource caps are universal guidance. |
   | TESC (ScalarEye) | High | GH Actions self-hosted runner + nginx (not Coolify/Caddy). |
