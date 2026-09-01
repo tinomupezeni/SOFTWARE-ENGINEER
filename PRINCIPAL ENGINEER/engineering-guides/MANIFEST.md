@@ -264,6 +264,14 @@
 - **Scope:** Tag every build artifact by the immutable identity of the commit it came from, verify it on staging, then promote that exact artifact to production instead of rebuilding it. Covers the canonical staging-branch → production → `main` order, manual SSH and GitHub Actions paths, single-host (no registry) and multi-host (registry push/pull) variants, downtime reduction, fast rollback, retention, and the way this silently breaks when environments' build steps drift structurally out of sync. Split out of guide 10 on 2026-08-11 so the pattern is reusable outside VPS/Coolify/Caddy projects — guide 10 keeps only the single-host instantiation and points here for the rest.
 - **Stack:** Docker, Docker Compose, git, CI/CD, stack-agnostic.
 - **Triggers:** Project has more than one deployment environment; a bug fixed on staging reappeared in production (or vice versa); images are tagged `:latest`/by branch name rather than build identity; rollback means rebuilding an old commit and hoping it comes out the same.
+
+### 19. Issue-to-Verified-Production Engineering Workflow
+- **File:** `19. Issue-to-Verified-Production Engineering Workflow.md`
+- **Scope:** Closed-loop operating procedure connecting issue triage, AI-agent directives, root-cause and pattern audits, regression proof, staging gates, immutable artifact promotion, production verification, rollback, honest issue closure, and conversion of repeated failures into standards or automated guards.
+- **Stack:** Git, GitHub Actions, CLI coding agents, Docker, Docker Compose, PostgreSQL, Redis, stack-agnostic.
+- **Triggers:** Multiple human/agent handoffs; issues marked resolved with prevention work open; local fixes not verified in staging; repeated defects across files/services/environments; production changes made before a repeatable staging gate; release-critical commands silently failing.
+- **applies_to:** HBEC (high), TESC (high), TESE-MARKET (high), SMEPulse (medium), shipwright (medium).
+- **Note:** Guide 18 owns how an exact artifact is promoted; Guide 19 defines when that artifact is eligible and what evidence is required before and after promotion.
 - **applies_to:**
   | Project | Fit | Notes |
   |---|---|---|
