@@ -9,6 +9,11 @@ Issues and solutions for the HBEC Student application.
 
 ### 2026
 
+#### September
+- [2026-09-09: Staging Postgres/Pgbouncer Password Drift — Restarting Long-Lived Containers Exposed a Silent Credential Mismatch](./2026-09-09-staging-postgres-secret-drift-crash-loop.md)
+- [2026-09-09: O-Level Silently Unselectable — Dropped From Every Exam Board's supported_levels](./2026-09-09-olevel-not-in-exam-board-supported-levels.md)
+- [2026-09-09: Silent Auth Failure Falls Back to Stale Guest-Cached Subjects Instead of Refreshing the Token](./2026-09-09-stale-guest-subjects-on-silent-auth-failure.md)
+
 #### August
 - [2026-08-19: GitHub Actions Billing-Blocked — Manual Deploy Fallback Established and Documented](./2026-08-19-github-actions-billing-blocked-manual-deploy-fallback.md)
 - [2026-08-19: Duplicate Empty-Shell Practice Papers from Two Uncoordinated Replication Paths](./2026-08-19-duplicate-practice-papers-replication-race.md)
@@ -64,4 +69,4 @@ docker compose logs --tail=100 [service_name]
 
 ---
 
-**Last Updated:** 2026-08-19
+**Last Updated:** 2026-09-09
