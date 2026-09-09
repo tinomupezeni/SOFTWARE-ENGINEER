@@ -10,6 +10,7 @@ Issues and solutions for the HBEC Student application.
 ### 2026
 
 #### September
+- [2026-09-09: zchpc-hbca-vps Has No Celery Beat/Worker Containers — Admin Content Has Never Auto-Replicated There](./2026-09-09-zchpc-vps-missing-celery-beat-worker-no-replication.md)
 - [2026-09-09: Staging Postgres/Pgbouncer Password Drift — Restarting Long-Lived Containers Exposed a Silent Credential Mismatch](./2026-09-09-staging-postgres-secret-drift-crash-loop.md)
 - [2026-09-09: O-Level Silently Unselectable — Dropped From Every Exam Board's supported_levels](./2026-09-09-olevel-not-in-exam-board-supported-levels.md)
 - [2026-09-09: Silent Auth Failure Falls Back to Stale Guest-Cached Subjects Instead of Refreshing the Token](./2026-09-09-stale-guest-subjects-on-silent-auth-failure.md)

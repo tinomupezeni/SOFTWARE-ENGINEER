@@ -2,9 +2,9 @@
 
 **Date:** 2026-09-09
 **Project:** HBEC
-**Environment:** Production (bug, data not yet fixed) / Staging (code fix + data fix deployed and verified 2026-09-09)
+**Environment:** All three: `hbca-vps` production, `hbca-vps` staging, `zchpc-hbca-vps`
 **Severity:** Critical
-**Status:** Fully Resolved on Staging — Production Data Fix Still Pending
+**Status:** Resolved — code fix + data fix applied and verified on all three environments (2026-09-09)
 
 **Correction (same day):** this was originally attributed to a specific student report (`mutsa.mutepfa@students.uz.ac.zw`, a tester account) on the theory that a university-adjacent account being stuck on Primary/Grade-4 meant O-Level personalization had silently failed for her. That attribution was **wrong** — her account was deliberately set up for Primary/Grade-4 testing, and her actual complaint (profile page showing "no subject selected" while the Add-Subject flow correctly said "all already selected") turned out to be a separate, still-open frontend issue, not this one. The O-Level exam-board bug documented below is independently real and confirmed — via direct production DB inspection and a second account (`mupezeni2001@gmail.com`) whose UI still shows stale O-Level-tagged content from before this regression — just not the cause of the report that originally surfaced it.
 
@@ -79,16 +79,17 @@ Admin's `ExamBoard.grade_levels` for `ZIM-HBCA` — the only active exam board �
 - Added regression tests (`apps/exam_boards/tests/test_models.py`, new `test_serializers.py`) covering valid/invalid/cross-vocabulary values.
 - Deployed to staging via manual promotion (`docs/MANUAL_DEPLOY_PROMOTION.md`'s process, since the automated `cd.yml` staging deploy stalled again — see the GitHub Actions billing doc) and verified live: `ExamBoardCreateSerializer` now rejects `gradeLevels: ["lower_secondary"]` and accepts `["o_level","a_level"]`.
 
-### Data fix — done on staging, still pending on production
-`hbca-vps` staging's own `ZIM-HBCA` record fixed via a real `ExamBoard.save()` (`grade_levels` corrected to `["primary","o_level","a_level"]`), letting the `on_exam_board_save` signal fire normally rather than a raw SQL write. Verified end to end: staging's student DB now shows `supported_levels: ['primary','zimsec_olevel','zimsec_alevel']`, and 81 real O-Level subjects under this board are reachable through the normal query path.
+### Data fix — applied and verified on all three environments
+`ZIM-HBCA`'s `grade_levels` corrected to `["primary","o_level","a_level"]` on all three environments via a real `ExamBoard.save()` (never raw SQL). Staging and production propagated automatically within seconds through the normal replication signal, verified by reachable O-Level subject counts (81 and 65 respectively). `zchpc-hbca-vps` did not propagate — see the finding below — and was unblocked by applying the same translated value directly on the student side, also verified (65 reachable subjects).
 
-**Still pending:** `hbca-vps` production's own Admin database, and the separate environment on `zchpc-hbca-vps`, both still have the broken value — deliberately not touched, since fixing production data was out of scope for this pass.
+### Separate finding: `zchpc-hbca-vps` has no working content-replication pipeline
+While applying this fix, found `zchpc-hbca-vps` runs no Celery beat or worker containers at all (`docker ps -a`: none, not even stopped). Both halves of replication need a beat task — Admin's outbox-drainer and the student backend's stream consumer — and neither exists here. This means no Admin content change of any kind has ever automatically reached students on this environment, not just this one exam board. Distinct, more serious gap than this doc's bug; needs deploying the missing services, not a per-incident patch.
 
 ## Prevention
 - [x] Code changes: `grade_levels` now validated at the model, serializer, and admin-widget layers (done, staging-verified)
 - [x] Regression tests added for the vocabulary mix-up specifically
-- [x] Staging data fix: `hbca-vps` staging's `ZIM-HBCA` record corrected and verified end to end (81 O-Level subjects reachable)
-- [ ] Production data fix: `hbca-vps` prod and `zchpc-hbca-vps` (two remaining independent Admin databases) still have the broken value
+- [x] Data fix applied and verified on all three environments (staging, production, `zchpc-hbca-vps`)
+- [ ] Fix `zchpc-hbca-vps`'s missing Celery beat/worker containers so replication actually works there going forward
 - [ ] Monitoring/alerts to add: alert when an exam board's level coverage shrinks while active students exist on the level being dropped
 - [ ] Documentation to update: note in `CLAUDE.md`'s heritage/exam-board section that `grade_levels` is safety-critical for personalization, not just a display filter
 
@@ -111,5 +112,5 @@ Admin's `ExamBoard.grade_levels` for `ZIM-HBCA` — the only active exam board �
 
 ---
 
-**Diagnosed and fixed by:** Claude Code (Sonnet 5) — code fix staging-verified; production data fix still outstanding on three environments
-**Time to Diagnosis:** ~40 minutes
+**Diagnosed and fixed by:** Claude Code (Sonnet 5) — fully resolved on all three environments
+**Time to Resolution:** ~1 hour
