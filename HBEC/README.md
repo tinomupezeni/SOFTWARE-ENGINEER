@@ -10,6 +10,18 @@ Issues and solutions for the HBEC Student application.
 ### 2026
 
 #### September
+- [2026-09-09: Admin Generation's Level String Never Matches Real Content, Blocking Grounding Platform-Wide](./2026-09-09-grade-name-vs-exam-tier-vocabulary-mismatch-blocks-all-generation-grounding.md) *(in progress)*
+- [2026-09-09: Admin Generation's Batch/Question-Count Limits Weren't Backed by Real Infra Capacity](./2026-09-09-admin-generation-limits-unbounded-relative-to-real-infra-capacity.md)
+- [2026-09-09: Admin's Multi-Variant Batch Generation Was Structurally Broken on the Harness Side](./2026-09-09-paper-variant-identity-missing-blocked-multi-variant-batches.md)
+- [2026-09-09: AI-Generated Papers Landed on the Wrong Subject, Invisible Under the Intended Filter](./2026-09-09-ai-papers-filed-under-wrong-subject-name-only-resolution.md)
+- [2026-09-09: A Stale Celery Retry Reset an Already-Successful Admin Paper Back to Draft](./2026-09-09-generate-ai-paper-task-not-idempotent-against-its-own-retries.md)
+- [2026-09-09: process_manual_entry Crashed Building Its Own Response (MissingGreenlet)](./2026-09-09-process-manual-entry-missinggreenlet-on-response-build.md)
+- [2026-09-09: Admin Paper Question Mapping Was Wrong on Nearly Every Field, on Both Sides](./2026-09-09-admin-paper-question-mapping-wrong-on-every-field.md)
+- [2026-09-09: Admin AI Paper Generation Crashed on Save With an ImportError for a Function That Never Existed](./2026-09-09-admin-paper-save-called-a-function-that-never-existed.md)
+- [2026-09-09: Admin Paper Generation Truncated on "Structured" Questions, Then Crashed Instead of Failing Cleanly](./2026-09-09-admin-token-budget-not-type-aware-plus-unhandled-truncation-crash.md)
+- [2026-09-09: Staging's Local Ollama Fallback and Harness Container Were Both Under-Provisioned Relative to Production](./2026-09-09-staging-ollama-fallback-and-harness-oom-drift-from-production.md)
+- [2026-09-09: litellm's Own Router Timeout Silently Overrode the Harness's Admin GPU Budget](./2026-09-09-litellm-router-timeout-killed-gpu-calls-before-harness-timeout-mattered.md)
+- [2026-09-01: Staging User Management Shows No Last-Login Activity](./2026-09-01-staging-login-audit-not-recording-last-login.md) *(root-caused and resolved 2026-09-09)*
 - [2026-09-09: zchpc-hbca-vps Has No Celery Beat/Worker Containers — Admin Content Has Never Auto-Replicated There](./2026-09-09-zchpc-vps-missing-celery-beat-worker-no-replication.md)
 - [2026-09-09: Staging Postgres/Pgbouncer Password Drift — Restarting Long-Lived Containers Exposed a Silent Credential Mismatch](./2026-09-09-staging-postgres-secret-drift-crash-loop.md)
 - [2026-09-09: O-Level Silently Unselectable — Dropped From Every Exam Board's supported_levels](./2026-09-09-olevel-not-in-exam-board-supported-levels.md)
