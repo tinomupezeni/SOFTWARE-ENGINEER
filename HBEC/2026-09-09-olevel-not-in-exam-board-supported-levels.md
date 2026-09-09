@@ -2,9 +2,9 @@
 
 **Date:** 2026-09-09
 **Project:** HBEC
-**Environment:** Production (bug) / Staging (code fix deployed and verified 2026-09-09)
+**Environment:** Production (bug, data not yet fixed) / Staging (code fix + data fix deployed and verified 2026-09-09)
 **Severity:** Critical
-**Status:** Code Fix Deployed to Staging — Production Data Fix Still Pending
+**Status:** Fully Resolved on Staging — Production Data Fix Still Pending
 
 **Correction (same day):** this was originally attributed to a specific student report (`mutsa.mutepfa@students.uz.ac.zw`, a tester account) on the theory that a university-adjacent account being stuck on Primary/Grade-4 meant O-Level personalization had silently failed for her. That attribution was **wrong** — her account was deliberately set up for Primary/Grade-4 testing, and her actual complaint (profile page showing "no subject selected" while the Add-Subject flow correctly said "all already selected") turned out to be a separate, still-open frontend issue, not this one. The O-Level exam-board bug documented below is independently real and confirmed — via direct production DB inspection and a second account (`mupezeni2001@gmail.com`) whose UI still shows stale O-Level-tagged content from before this regression — just not the cause of the report that originally surfaced it.
 
@@ -79,13 +79,16 @@ Admin's `ExamBoard.grade_levels` for `ZIM-HBCA` — the only active exam board �
 - Added regression tests (`apps/exam_boards/tests/test_models.py`, new `test_serializers.py`) covering valid/invalid/cross-vocabulary values.
 - Deployed to staging via manual promotion (`docs/MANUAL_DEPLOY_PROMOTION.md`'s process, since the automated `cd.yml` staging deploy stalled again — see the GitHub Actions billing doc) and verified live: `ExamBoardCreateSerializer` now rejects `gradeLevels: ["lower_secondary"]` and accepts `["o_level","a_level"]`.
 
-### Still pending — production data fix
-The actual live `ZIM-HBCA` exam board record (both on `hbca-vps` production, and its staging counterpart, and the separate environment on `zchpc-hbca-vps`) still has the broken `grade_levels` value — the code fix prevents this recurring, it doesn't retroactively correct existing data. That requires a real `ExamBoard.save()` (via the Admin API/UI or a Django shell `ALTER`-equivalent, never raw SQL, so the `on_exam_board_save` replication signal fires) on each environment's own Admin database — deliberately not done automatically, since it mutates production data.
+### Data fix — done on staging, still pending on production
+`hbca-vps` staging's own `ZIM-HBCA` record fixed via a real `ExamBoard.save()` (`grade_levels` corrected to `["primary","o_level","a_level"]`), letting the `on_exam_board_save` signal fire normally rather than a raw SQL write. Verified end to end: staging's student DB now shows `supported_levels: ['primary','zimsec_olevel','zimsec_alevel']`, and 81 real O-Level subjects under this board are reachable through the normal query path.
+
+**Still pending:** `hbca-vps` production's own Admin database, and the separate environment on `zchpc-hbca-vps`, both still have the broken value — deliberately not touched, since fixing production data was out of scope for this pass.
 
 ## Prevention
 - [x] Code changes: `grade_levels` now validated at the model, serializer, and admin-widget layers (done, staging-verified)
 - [x] Regression tests added for the vocabulary mix-up specifically
-- [ ] Production data fix: correct the live `ZIM-HBCA` record on `hbca-vps` prod, `hbca-vps` staging's own Admin DB, and `zchpc-hbca-vps` (three independent Admin databases)
+- [x] Staging data fix: `hbca-vps` staging's `ZIM-HBCA` record corrected and verified end to end (81 O-Level subjects reachable)
+- [ ] Production data fix: `hbca-vps` prod and `zchpc-hbca-vps` (two remaining independent Admin databases) still have the broken value
 - [ ] Monitoring/alerts to add: alert when an exam board's level coverage shrinks while active students exist on the level being dropped
 - [ ] Documentation to update: note in `CLAUDE.md`'s heritage/exam-board section that `grade_levels` is safety-critical for personalization, not just a display filter
 
