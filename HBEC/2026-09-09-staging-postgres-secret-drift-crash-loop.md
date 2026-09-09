@@ -13,11 +13,13 @@ While deploying three unrelated bug fixes to staging (an auth fallback fix, an e
 - `student-backend-staging` and `admin-backend-staging`: `django.db.utils.OperationalError: connection failed: connection to server at "172.25.0.14", port 5432 failed: FATAL: password authentication failed for user "hbec"`, crash-looping.
 - `harness-staging`: hung indefinitely at `==> Waiting for database...`, never crashing, never becoming healthy.
 - `hbec-pgbouncer-staging` (harness's own bouncer) logs: `password authentication failed for user "harness"`, repeating on every connection attempt.
+- `hbec-payments-staging`: `asyncpg.exceptions.ProtocolViolationError: SASL authentication failed`, crash-looping — same `hbec`/`main-pgbouncer` credential, different database (`hbec_payments`). Surfaced downstream as `GET /api/subscription/` returning **502 Bad Gateway** on the student frontend ("Payment service unavailable").
+- `hbec-schools-backend-staging`: `django.db.utils.OperationalError ... FATAL: SASL authentication failed` against `main-pgbouncer` — same root cause, third service on the same shared `hbec` credential.
 - `hbec-langfuse-staging`: separately restart-looping with `Error: P1000: Authentication failed against database server at langfuse-db` — same failure signature, different service, not fixed in this pass.
 
 ## Environment Details
 - **Server/Host:** `hbca-vps`, staging environment only (`/home/winstontino/HBEC`) — production (`/opt/hbec`) was deliberately not touched
-- **Services Affected:** `hbec-main-pgbouncer-staging`, `hbec-postgres-staging` (config only, not the DB itself), `hbec-pgbouncer-staging`, `hbec-harness-db-staging`, `hbec-student-backend-staging`, `hbec-admin-backend-staging`, `hbec-harness-staging`; `hbec-langfuse-staging` affected but unresolved
+- **Services Affected:** `hbec-main-pgbouncer-staging`, `hbec-postgres-staging` (config only, not the DB itself), `hbec-pgbouncer-staging`, `hbec-harness-db-staging`, `hbec-student-backend-staging`, `hbec-admin-backend-staging`, `hbec-harness-staging`, `hbec-payments-staging`, `hbec-schools-backend-staging`; `hbec-langfuse-staging` affected but unresolved
 - **Related Components:** `.env.staging` (hand-maintained, never touched by `cd.yml`), `docker/secrets/*.txt` (hand-maintained secret files), `docker-compose.staging.yml`'s `secrets:` block
 - **Time First Observed:** 2026-09-09, immediately after restarting containers that had been running 45+ hours without interruption
 
@@ -59,6 +61,7 @@ Postgres only applies `POSTGRES_PASSWORD_FILE` at first `initdb` — never on re
 - Confirmed at least three instances of the identical pattern (`hbec`/main postgres, `harness`/harness-db, `langfuse`/langfuse-db — all named `*_dev_password` in `.env.staging`). Only the first two were fixed in this pass; Langfuse's is a different failure shape (its current env already matches `.env.staging`, so its root cause needs separate investigation) and was left broken, flagged for follow-up.
 - Also noticed incidentally: `~/HBEC/staging.sh`, the hand-maintained management wrapper `docs/MANUAL_DEPLOY_PROMOTION.md` assumes exists, is **not present** on the VPS at all. Worked around by invoking `docker compose` directly with the same flags the runbook describes it using.
 - Also noticed: an unused `docker/secrets/staging/harness_db_password.txt` exists with a **third**, different value — not referenced anywhere in `docker-compose.staging.yml`. Dead leftover, not cleaned up, worth removing so it doesn't get mistaken for the real one later.
+- **Missed two more services on the first pass**: `payments-staging` and `schools-backend-staging` both also connect through `main-pgbouncer` using the same `hbec` credential (different database names — `hbec_payments`, presumably a schools-specific DB), and both had been recreated by an earlier full-stack `docker compose up` *before* the `.env.staging` fix landed, but weren't included in the follow-up targeted-service restart. Surfaced live: a user reported `GET /api/subscription/` returning 502 on the student frontend ("Payment service unavailable"). Fixed the same way (recreate to pick up the corrected env var); confirmed via a direct HTTP check that the endpoint now returns a proper `401` instead of a gateway failure. This is the practical lesson — after a shared-credential fix, every service sharing that credential needs checking, not just the ones that happened to crash first.
 
 ## Root Cause
 `.env.staging` was never updated when the real secret files under `docker/secrets/` were generated (2026-08-03), leaving generic placeholder passwords in the env file that no longer matched the actual secrets docker-compose feeds into the database containers via `*_FILE` env vars. This was invisible for weeks because nothing restarted the affected containers. For `harness-db` specifically, the drift is deeper than a config mismatch: the database's own initialized password predates even the secret file's last rotation, so the live role password had to be fixed directly, not just the surrounding config.
@@ -68,7 +71,7 @@ Postgres only applies `POSTGRES_PASSWORD_FILE` at first `initdb` — never on re
 ### Immediate Fix
 - `.env.staging`: `POSTGRES_PASSWORD`/`POSTGRES_PASSWORD_ENCODED` and `HARNESS_DB_PASSWORD` updated to match their respective `docker/secrets/*.txt` files (backed up first: `.env.staging.bak-<timestamp>`).
 - `harness-db-staging`'s `harness` role password reset directly via `ALTER ROLE` (through the trusted local socket) to match the now-correct secret value, since the data volume predated the secret file's last rotation.
-- `main-pgbouncer-staging`, `pgbouncer-staging` (harness's bouncer), `student-backend-staging`, `admin-backend-staging`, `harness-staging` recreated/restarted to pick up the corrected values. All confirmed healthy and functionally verified afterward (not just healthchecks — see References for the live 401/200/validation tests run against each fix).
+- `main-pgbouncer-staging`, `pgbouncer-staging` (harness's bouncer), `student-backend-staging`, `admin-backend-staging`, `harness-staging`, `payments-staging`, `schools-backend-staging` recreated/restarted to pick up the corrected values. All confirmed healthy and functionally verified afterward (not just healthchecks — see References for the live 401/200/validation tests run against each fix).
 
 ### Long-term Fix
 Not done in this pass — flagged for follow-up:
@@ -96,6 +99,7 @@ Not done in this pass — flagged for follow-up:
   - GPU fallback: `litellm-staging` reached the ZCHPC tunnel (`http://172.17.0.1:11436/api/tags`) → 200
   - Auth fix: `SubjectListView` with a bogus bearer token → 401 (previously would have silently served guest data); with no token at all → still 200 (guest path intact)
   - Exam-board validation: `ExamBoardCreateSerializer` rejects `gradeLevels: ["lower_secondary"]`, accepts `["o_level", "a_level"]`
+  - Payments: `GET https://staging-student.hbca.tech/api/subscription/` went from `502 Bad Gateway` to `401` (proper auth-required response) once `payments-staging` was recreated
 
 ---
 
