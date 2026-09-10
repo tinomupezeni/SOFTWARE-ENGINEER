@@ -14,6 +14,8 @@ Issues and solutions for the HBEC Student application.
 - [2026-09-10: Admin Frontend Typecheck Is Red on a Committed Commit — `resetPassword` Test Uses Fields the Type Doesn't Have](./2026-09-10-reset-password-test-type-mismatch.md)
 - [2026-09-10: Staging and Production Resolve the Same Image Tag — No Environment Separation](./2026-09-10-staging-and-production-share-the-latest-image-tag.md)
 - [2026-09-10: `/opt/hbec` Is Not the "5 Files" CLAUDE.md Describes — Stale Checkout, Zero-Commit Git Repo](./2026-09-10-opt-hbec-stale-checkout-and-empty-git-repo.md)
+- [2026-09-10: Production's Student Backend Was Missing 22 Subjects From Its Own Curriculum Mirror](./2026-09-10-production-student-backend-missing-22-subjects.md)
+- [2026-09-10: Specimen Papers With No Year Can Never Replicate to Student Backend — NOT NULL Mismatch](./2026-09-10-null-year-specimen-papers-never-replicate-to-student.md)
 - [2026-09-09: Admin Generation's Batch/Question-Count Limits Weren't Backed by Real Infra Capacity](./2026-09-09-admin-generation-limits-unbounded-relative-to-real-infra-capacity.md)
 - [2026-09-09: Admin's Multi-Variant Batch Generation Was Structurally Broken on the Harness Side](./2026-09-09-paper-variant-identity-missing-blocked-multi-variant-batches.md)
 - [2026-09-09: AI-Generated Papers Landed on the Wrong Subject, Invisible Under the Intended Filter](./2026-09-09-ai-papers-filed-under-wrong-subject-name-only-resolution.md)
