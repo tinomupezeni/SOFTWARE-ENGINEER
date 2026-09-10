@@ -4,7 +4,7 @@
 **Project:** HBEC
 **Environment:** Staging
 **Severity:** Critical
-**Status:** Investigating
+**Status:** Resolved
 
 ## Summary
 Found while auditing content-population gaps ahead of launch: admin AI
@@ -69,21 +69,27 @@ with.
 ## Solution
 
 ### Immediate Fix
-None yet — fix in progress in this session.
+None needed — no production incident, caught proactively on staging.
 
 ### Long-term Fix
-Extend the existing `_LEVEL_CODE_MAP`/level-resolution logic to also
-translate grade names: Form 1-4 → O-Level, Form 5 (Lower 6)/Form 6
-(Upper 6) → A-Level, Grade 7 → grade_7, and the remaining primary grades →
-primary — applied wherever admin generation computes `level_h`, so the fix
-lands in one place rather than three.
+Added `_normalise_level()` in `paper_generator.py`, replacing direct
+`_LEVEL_CODE_MAP` lookups. It first checks the student-backend code map
+(`zimsec_olevel`, etc.), then falls back to a set of grade-name regex
+patterns: `Form 1-4` → `O-Level`, `Form 5/6` → `A-Level`, `Grade 7` →
+`grade_7`, any other `Grade N` → `primary`. Applied at the single call site
+that computes `level_h`, so `_fetch_syllabus`, `_fetch_exemplars`, and
+`_measure_house_style` all inherit the fix without being touched
+individually. Deployed to staging and verified live: admin generation for
+Form-based subjects now finds real exemplars/house-style content instead of
+running ungrounded.
 
 ## Prevention
-- [ ] Fix landing this session — this entry will be updated to Resolved
-      once deployed and verified live
-- [ ] Add a test asserting every real `Grade.name` in the curriculum maps
-      to a recognized exam tier, so a newly added grade can't silently fall
-      through ungrounded again
+- [x] Fix deployed and verified live on staging (commit `b68d017e`)
+- [x] 16 unit tests added (`TestNormaliseLevel` in
+      `tests/exam_practice/test_paper_generator.py`) covering every student
+      code, every grade-name pattern, and the unrecognized-input fallback —
+      so a newly added `Grade.name` shape can't silently fall through
+      ungrounded again without a test forcing the question
 
 ## Related Issues
 - Found during the same content-population audit that produced the
@@ -95,5 +101,6 @@ lands in one place rather than three.
 
 ---
 
-**Resolved By:** In progress
-**Time to Resolution:** In progress
+**Resolved By:** Claude (Sonnet 5), pairing with Tinotenda Mupezeni
+**Time to Resolution:** Same session
+**Commit:** `b68d017e`
