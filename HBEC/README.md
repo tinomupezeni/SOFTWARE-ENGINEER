@@ -10,6 +10,8 @@ Issues and solutions for the HBEC Student application.
 ### 2026
 
 #### September
+- [2026-09-10: Deleting or Unpublishing an ExamPaper in Admin Never Removes It From Harness or Student Backend](./2026-09-10-exam-paper-delete-unpublish-never-retracts-downstream.md)
+- [2026-09-10: Admin's "Learning Guide" Content Type Has No Replication Signal, and Nothing Downstream Would Read It Even If It Did](./2026-09-10-learning-guide-authored-content-never-consumed-anywhere.md)
 - [2026-09-09: Admin Generation's Level String Never Matches Real Content, Blocking Grounding Platform-Wide](./2026-09-09-grade-name-vs-exam-tier-vocabulary-mismatch-blocks-all-generation-grounding.md)
 - [2026-09-10: Admin Frontend Typecheck Is Red on a Committed Commit — `resetPassword` Test Uses Fields the Type Doesn't Have](./2026-09-10-reset-password-test-type-mismatch.md)
 - [2026-09-10: Staging and Production Resolve the Same Image Tag — No Environment Separation](./2026-09-10-staging-and-production-share-the-latest-image-tag.md)
