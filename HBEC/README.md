@@ -19,6 +19,7 @@ Issues and solutions for the HBEC Student application.
 - [2026-09-10: CLAUDE.md's "Push to main Deploys Production" Rule Is Stale — cd.yml Is workflow_dispatch-Only](./2026-09-10-claude-md-branch-rule-stale-main-push-does-not-deploy.md)
 - [2026-09-10: Student last_login Never Recorded — Every Student Shows "Never" in Admin's Student List](./2026-09-10-student-last-login-never-recorded.md)
 - [2026-09-10: Parent Signup Error Reporting Crashes Instead of Reporting the Actual Validation Error](./2026-09-10-parent-signup-error-flattening-keyerror.md)
+- [2026-09-10: A Load-Testing Tool Created 142 Synthetic Accounts Directly on Production](./2026-09-10-load-test-tool-ran-against-production-142-accounts.md)
 - [2026-09-09: Admin Generation's Batch/Question-Count Limits Weren't Backed by Real Infra Capacity](./2026-09-09-admin-generation-limits-unbounded-relative-to-real-infra-capacity.md)
 - [2026-09-09: Admin's Multi-Variant Batch Generation Was Structurally Broken on the Harness Side](./2026-09-09-paper-variant-identity-missing-blocked-multi-variant-batches.md)
 - [2026-09-09: AI-Generated Papers Landed on the Wrong Subject, Invisible Under the Intended Filter](./2026-09-09-ai-papers-filed-under-wrong-subject-name-only-resolution.md)
