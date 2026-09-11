@@ -10,6 +10,7 @@ Issues and solutions for the HBEC Student application.
 ### 2026
 
 #### September
+- [2026-09-11: Harness /metrics Crashes on Production — PROMETHEUS_MULTIPROC_DIR Unset](./2026-09-11-harness-metrics-endpoint-crashes-on-production-missing-prometheus-multiproc-dir.md)
 - [2026-09-11: Production Had 26 Unmerged Duplicate Subject Rows, Blocking the SubjectFamily Migration](./2026-09-11-production-had-26-unmerged-duplicate-subjects-blocking-subjectfamily-migration.md)
 - [2026-09-11: Bulk-PDF Papers With No Inferable Year Were Permanently Stuck as Untouched Drafts](./2026-09-11-bulk-pdf-import-unparseable-filenames-permanently-stuck-with-no-year.md)
 - [2026-09-11: Real Bulk PDF Batches Hit Two Silent Limits Below the Documented 200-File Cap](./2026-09-11-bulk-pdf-import-blocked-by-nginx-and-django-upload-limits.md)
