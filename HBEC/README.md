@@ -10,6 +10,7 @@ Issues and solutions for the HBEC Student application.
 ### 2026
 
 #### September
+- [2026-09-11: Bulk Import Had No Path for "Just a Folder of PDFs"](./2026-09-11-bulk-import-had-no-path-for-a-bare-folder-of-pdfs.md)
 - [2026-09-11: Staging's admin-backend/admin-worker/admin-beat Ran Stale Code Against an Already-Migrated Subject Schema](./2026-09-11-admin-backend-staging-ran-stale-code-against-migrated-subject-schema.md)
 - [2026-09-11: "Upload New Paper" Was Fully Built End-to-End But Had No Button or Route Anywhere in the Admin UI](./2026-09-11-new-paper-upload-fully-built-but-unreachable-in-admin-ui.md)
 - [2026-09-11: Live Practice UI Never Renders `sharedContext`/`subQuestions` — Structured Questions Showed Blank Bodies](./2026-09-11-practice-ui-never-renders-sub-question-content.md)
