@@ -12,21 +12,26 @@ A centralized repository for tracking production issues, bugs, and their solutio
 
 ```
 dev-logs/
-├── [PROJECT_NAME]/
-│   ├── README.md                    # Project-specific issue index
-│   └── YYYY-MM-DD-issue-name.md     # Individual issue logs
+├── Architecture_and_Design/
+├── Backend_and_API/
+├── Database_and_State/
+├── DevOps_and_Infrastructure/
+├── Frontend_and_UI/
+├── Integrations_and_Auth/
+├── Mobile_Apps/
 └── templates/
     └── issue-template.md            # Template for new issues
 ```
+*(Log files are stored in technical directories and named `[PROJECT]-YYYY-MM-DD-issue-name.md`)*
 
 ## Projects Tracked
 
 - [Shipwright](./shipwright/) - DevOps deployment automation tool
-- [CRM Professional](./CRM/)
-- [SMEPULSE](./SMEPULSE/) (coming soon)
-- [HBEC](./HBEC/) (coming soon)
-- [Market-Link](./Market-Link/)
-- [chemglee-concept-site](./chemglee-concept-site/)
+- CRM Professional
+- SMEPULSE
+- HBEC
+- Market-Link
+- chemglee-concept-site
 
 ## How to Use
 
@@ -42,24 +47,25 @@ Claude Code and Gemini CLI are configured to automatically create issue logs whe
 Use the helper script for quick manual logging:
 
 ```powershell
-# Auto-detect project from current directory
+# Auto-detect project from current directory and prompt for Category
 cd C:\Users\Dell\Documents\projects\CRM\crm
 C:\Users\Dell\Documents\projects\dev-logs\log-issue.ps1 -Title "backend-crash" -Severity Critical
 
-# Or specify project explicitly
-C:\Users\Dell\Documents\projects\dev-logs\log-issue.ps1 -Project CRM -Title "nginx-down" -Severity High
+# Or specify project and category explicitly
+C:\Users\Dell\Documents\projects\dev-logs\log-issue.ps1 -Project CRM -Title "nginx-down" -Severity High -Category DevOps_and_Infrastructure
 ```
 
 ### Manual (Traditional)
 1. Copy template: `templates/issue-template.md`
-2. Name it: `[PROJECT]/YYYY-MM-DD-brief-description.md`
+2. Name it: `[TECHNICAL_CATEGORY]/[PROJECT]-YYYY-MM-DD-brief-description.md`
 3. Fill in all sections
 4. Commit and push
 
 ## Quick Links
 
 - [Issue Template](./templates/issue-template.md)
-- [Recent Issues](./CRM/)
+- [Recent Backend Logs](./Backend_and_API/)
+- [Recent DevOps Logs](./DevOps_and_Infrastructure/)
 
 ---
 
