@@ -10,6 +10,7 @@ Issues and solutions for the HBEC Student application.
 ### 2026
 
 #### September
+- [2026-09-11: Staging's admin-backend/admin-worker/admin-beat Ran Stale Code Against an Already-Migrated Subject Schema](./2026-09-11-admin-backend-staging-ran-stale-code-against-migrated-subject-schema.md)
 - [2026-09-11: "Upload New Paper" Was Fully Built End-to-End But Had No Button or Route Anywhere in the Admin UI](./2026-09-11-new-paper-upload-fully-built-but-unreachable-in-admin-ui.md)
 - [2026-09-11: Live Practice UI Never Renders `sharedContext`/`subQuestions` — Structured Questions Showed Blank Bodies](./2026-09-11-practice-ui-never-renders-sub-question-content.md)
 - [2026-09-11: 54 Student Papers Point at Harness Papers That No Longer Exist — Bulk Resync Cannot Reach Them](./2026-09-11-orphaned-student-papers-point-to-deleted-harness-papers.md)
