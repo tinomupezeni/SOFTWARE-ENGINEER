@@ -4,7 +4,7 @@
 **Project:** HBEC
 **Environment:** Staging (verified against production-mirrored data volume)
 **Severity:** Medium
-**Status:** Identified, not fixed (data cleanup — deferred to user decision)
+**Status:** Resolved on staging (54 orphaned rows deleted, 2026-09-11)
 
 ## Summary
 After merging PR #42 (content ingestion pipeline fix — one payload entry per
@@ -75,10 +75,20 @@ clean it up.
 ## Solution
 
 ### Immediate Fix
-None applied. This is stale data, not a live bug in the resync or the
-ingestion pipeline — flagged for the user to decide how to handle (delete
-the 54 orphaned student papers, or investigate whether the missing harness
-papers should be re-uploaded/restored instead).
+User chose to delete the orphaned rows rather than restore the missing
+harness papers. Before deleting, backed up all 54 rows' identifying detail
+(student id, title, harness_paper_id, subject, updated_at, question count)
+to a local JSON file outside the containers. Then, on staging:
+
+```python
+qs = Paper.objects.exclude(harness_paper_id__isnull=True).exclude(harness_paper_id='')
+orphan_ids = [p.id for p in qs if str(p.harness_paper_id) not in live_harness_ids]
+Paper.objects.filter(id__in=orphan_ids).delete()
+```
+
+Result: `54 Paper` rows deleted, cascading to `1256 PaperQuestion` +
+`1 PaperInteraction` rows. Confirmed zero orphaned rows remain afterward.
+Staging only — not yet applied to production.
 
 ### Long-term Fix
 - Add a periodic or on-demand consistency check: student `Paper` rows whose
