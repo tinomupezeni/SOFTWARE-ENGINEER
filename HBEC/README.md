@@ -10,6 +10,7 @@ Issues and solutions for the HBEC Student application.
 ### 2026
 
 #### September
+- [2026-09-11: Internal Harness→Student Endpoints Share the Public Anonymous Rate Limit](./2026-09-11-internal-harness-endpoints-share-public-anon-rate-limit.md)
 - [2026-09-10: Library Page's "Open Queue" CTA Links to Itself](./2026-09-10-library-review-queue-cta-links-to-itself.md)
 - [2026-09-10: Deleting or Unpublishing an ExamPaper in Admin Never Removes It From Harness or Student Backend](./2026-09-10-exam-paper-delete-unpublish-never-retracts-downstream.md)
 - [2026-09-10: Admin's "Learning Guide" Content Type Has No Replication Signal, and Nothing Downstream Would Read It Even If It Did](./2026-09-10-learning-guide-authored-content-never-consumed-anywhere.md)
