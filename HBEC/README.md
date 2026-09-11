@@ -10,6 +10,7 @@ Issues and solutions for the HBEC Student application.
 ### 2026
 
 #### September
+- [2026-09-11: Bulk-PDF Papers With No Inferable Year Were Permanently Stuck as Untouched Drafts](./2026-09-11-bulk-pdf-import-unparseable-filenames-permanently-stuck-with-no-year.md)
 - [2026-09-11: Real Bulk PDF Batches Hit Two Silent Limits Below the Documented 200-File Cap](./2026-09-11-bulk-pdf-import-blocked-by-nginx-and-django-upload-limits.md)
 - [2026-09-11: Bulk Import Had No Path for "Just a Folder of PDFs"](./2026-09-11-bulk-import-had-no-path-for-a-bare-folder-of-pdfs.md)
 - [2026-09-11: Staging's admin-backend/admin-worker/admin-beat Ran Stale Code Against an Already-Migrated Subject Schema](./2026-09-11-admin-backend-staging-ran-stale-code-against-migrated-subject-schema.md)
