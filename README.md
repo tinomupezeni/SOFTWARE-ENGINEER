@@ -25,7 +25,8 @@ dev-logs/
 - [CRM Professional](./CRM/)
 - [SMEPULSE](./SMEPULSE/) (coming soon)
 - [HBEC](./HBEC/) (coming soon)
-- [Market-Link](./Market-Link/) (coming soon)
+- [Market-Link](./Market-Link/)
+- [chemglee-concept-site](./chemglee-concept-site/)
 
 ## How to Use
 
