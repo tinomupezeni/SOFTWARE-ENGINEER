@@ -153,6 +153,79 @@
   - [ ] structlog-to-trace-context correlation not confirmed
   - N/A MCP gateway security — no custom MCP servers in this repo
 
+### 19. Issue-to-Verified-Production Engineering Workflow
+- **Method:** rather than a fresh guide-by-guide run, this section records what
+  the 2026-08-18 → 2026-09-11 incident wave already shows about how this guide
+  is actually practiced at HBEC — the guide's own manifest entry names HBEC as
+  its flagship `applies_to` case, but until this sync no adapter section
+  existed to back that claim with evidence.
+- **What the wave shows working:** a real, sustained shift from reactive
+  (user/customer reports something down) to proactive (self-discovered via
+  audit, incidental testing, or pre-promotion checks) issue discovery — e.g.
+  "found while auditing readiness for a staging→production promotion"
+  (`2026-09-10-production-student-backend-missing-22-subjects.md`), "found
+  incidentally while typechecking an unrelated dashboard change"
+  (`2026-09-10-reset-password-test-type-mismatch.md`), a full read-only audit
+  that caught a chat feature silently faking every reply
+  (`2026-08-18-flutter-mobile-audit-fake-project-guide-replies.md`). Later
+  entries also cite earlier ones by name/pattern
+  (`2026-09-11-orphaned-student-papers...` explicitly refers back to
+  `2026-09-10-exam-paper-delete-unpublish...` as "the same class of gap") —
+  real evidence of §4's pattern-audit layer being applied in practice, not
+  just documented as a rule.
+- **What it shows still open:** the same bug class recurring across sibling
+  services within roughly a day of each other rather than being caught in one
+  sweep — `last_login` never recorded was found and fixed for admin auth
+  (`2026-09-09`) and rediscovered, separately, on student auth the next day
+  (`2026-09-10-student-last-login-never-recorded.md`) — meaning §4's "search
+  sibling services" step is followed *after* a fix, when the pattern is
+  named, but not always applied proactively at the moment the first instance
+  is found. Also: a production promotion this same session crash-looped on a
+  migration whose data-cleanup precondition (`merge_duplicate_subjects.py`)
+  had only ever been run against staging
+  (`2026-09-11-production-had-26-unmerged-duplicate-subjects-...`) — exactly
+  the staging-proves-the-artifact-not-the-environment gap this guide's §6
+  and guide 22's §6 both name.
+- **Compliance:**
+  - [x] Proactive, self-initiated discovery is the dominant mode by September
+    (see incident wave above), not user-reported outages as in May/June
+  - [x] Root-cause statements are causal, not just symptom descriptions, and
+    frequently cite prior related incidents by name
+  - [ ] Pattern audit (§4 layer 4 — sibling services) is not yet run
+    *proactively* the moment a bug class is first found; it currently runs
+    one day later, as a second discovery
+  - [ ] A data-cleanup script's success on staging is still being treated as
+    sufficient before promoting the migration it's a precondition for — no
+    per-environment re-verification step exists yet
+
+### 6. Database Engineering
+- **Status:** reviewed this sync (previously "not reviewed" in Open gaps
+  below) — findings are evidenced, but no remediation has been built yet, so
+  this stays open rather than moving to a compliant "ported" section.
+- **Findings:** HBEC's Admin CMS / Student Backend / Agentic Harness
+  three-way replication is the entire case-study evidence behind the new
+  **guide 22 (Multi-Service Data Replication and Consistency)** — see that
+  guide for the full pattern set. Concretely at HBEC: `ExamPaper`
+  delete/unpublish never retracted downstream
+  (`2026-09-10-exam-paper-delete-unpublish-never-retracts-downstream.md`),
+  the identical gap recurring one day later on student `Paper` rows pointing
+  at deleted harness papers
+  (`2026-09-11-orphaned-student-papers-point-to-deleted-harness-papers.md`),
+  a nullable producer field replicated into a `NOT NULL` consumer column
+  silently dropping specimen papers
+  (`2026-09-10-null-year-specimen-papers-never-replicate-to-student.md`), and
+  a 22-subject replication gap that sat undetected until a migration
+  referenced one of the missing rows
+  (`2026-09-10-production-student-backend-missing-22-subjects.md`).
+- **Compliance:**
+  - [ ] No periodic reconciliation job exists to diff entity counts/ids
+    across Admin/Student/Harness and surface drift before something
+    references a gap
+  - [ ] No general retraction-audit was run across every entity sharing
+    `ExamPaper`'s replication shape when its own retraction path was fixed
+  - [ ] Producer/consumer schema-permissiveness parity not yet audited for
+    other mirrored entities beyond `ExamPaper.year`
+
 ### 10. Deployment And Maintenance
 - **Ported sections:** the **Immutable Artifact Tagging and Build-Once
   Promotion** pattern (added 2026-08-11, same session that produced this
@@ -222,8 +295,10 @@ formally ported yet; listed honestly rather than skipped silently:
   before this adapter, and hasn't been re-verified as still present/correct
   in the current codebase this session. Treat as "implemented historically,
   not re-verified now," not as an open gap in the same sense as the others.
-- [ ] 6. Database Engineering — Postgres-backed, UUIDv7 PK standard not
-  reviewed against HBEC's schema
+- [ ] 6. Database Engineering — UUIDv7 PK standard still not reviewed against
+  HBEC's schema; the cross-service replication-consistency half of this guide
+  *has* now been reviewed — see the new "6. Database Engineering" section
+  above (and guide 22) rather than treating it as fully unreviewed
 - [ ] 7. Software Security Engineering — the new Financial/Payment Webhook
   Security section's gaps are not hypothetical for HBEC: they're the exact
   findings of `dev-logs/2026-05-21-payment-microservice-audit.md` (missing
@@ -252,8 +327,10 @@ Re-open this adapter each review cycle. If guide 10 is updated in the
 library (e.g. the registry-push variant of the promotion pattern gets
 written up), re-port the changed parts here.
 
-- **Adapter version:** 0.4 — ran guide 2 (Project Documentation) against
-  HBEC's actual repo state; found the canonical doc filenames absent at
-  root despite real substance existing under other names, and confirmed
-  AGENTS.md's telemetry mandates are substantially honored in real code.
-- **Last synced:** 2026-08-11
+- **Adapter version:** 0.5 — folded in the 2026-08-18 → 2026-09-11 incident
+  wave (~40 new dev-log entries): added a guide 19 section backing its
+  flagship-case claim with real evidence (proactive-discovery shift, plus the
+  still-open sibling-pattern-audit-timing gap); added a guide 6 section
+  documenting the replication-consistency findings that produced the new
+  guide 22, moving that line out of "not reviewed" in Open gaps.
+- **Last synced:** 2026-09-11

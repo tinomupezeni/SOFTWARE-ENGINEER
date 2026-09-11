@@ -21,7 +21,7 @@
 
 ### 1. SDLC
 - **File:** `1. SDLC.md`
-- **Scope:** Full systems/software development lifecycle (ISO 12207 + NIST SSDF + OWASP SAMM), gates, ADRs, agent-driven workflow. Also covers technical-debt audit cadence (verify-before-delete) and foundational-docs-at-project-start (added 2026-08-11).
+- **Scope:** Full systems/software development lifecycle (ISO 12207 + NIST SSDF + OWASP SAMM), gates, ADRs, agent-driven workflow. Also covers technical-debt audit cadence (verify-before-delete), foundational-docs-at-project-start (added 2026-08-11), and declared-but-never-exercised tooling — "Potemkin tooling" — as a Sprint-1 gate (added 2026-09-11, from MARITCHO's lint/type/migration tools never actually run).
 - **Stack:** Stack-agnostic. Assumes small (1–4) team, CLI coding agents, self-hosted VPS.
 - **Triggers:** Greenfield project, or a project with no defined process / missing ADRs / no quality gates.
 - **applies_to:**
@@ -93,7 +93,7 @@
 
 ### 6. Database Engineering
 - **File:** `6. Database Engineering.md`
-- **Scope:** PostgreSQL internals, schema design, migrations, UUIDv7 PKs, connection mgmt.
+- **Scope:** PostgreSQL internals, schema design, migrations, UUIDv7 PKs, connection mgmt. Now also points to guide 22 for cross-service data consistency once a project's data model spans more than one database (added 2026-09-11).
 - **Stack:** PostgreSQL (primary), SQLAlchemy/Alembic implied.
 - **Triggers:** Project uses a relational DB (esp. Postgres).
 - **applies_to:**
@@ -147,7 +147,7 @@
 
 ### 10. Deployment And Maintenance
 - **File:** `10. Deployment And Maintenance.md`
-- **Scope:** Self-hosted VPS multi-tenancy, Docker resource isolation, Coolify, Caddy. Also covers exhaustive backup scope before a destructive wipe, a gateway-unreachable triage checklist, deployment-verification patterns (Blue-Green/Smoke/Staging + the False Positive Trap), and host-level (systemd/VPS) failure modes beneath Docker (added 2026-08-11). The single-host instantiation of immutable-artifact-tagging / build-once-promotion lives here; the full stack-agnostic pattern was split out to guide 18 for reuse outside VPS/Coolify/Caddy projects.
+- **Scope:** Self-hosted VPS multi-tenancy, Docker resource isolation, Coolify, Caddy. Also covers exhaustive backup scope before a destructive wipe, a gateway-unreachable triage checklist, deployment-verification patterns (Blue-Green/Smoke/Staging + the False Positive Trap), and host-level (systemd/VPS) failure modes beneath Docker (added 2026-08-11). The single-host instantiation of immutable-artifact-tagging / build-once-promotion lives here; the full stack-agnostic pattern was split out to guide 18 for reuse outside VPS/Coolify/Caddy projects. The gateway-unreachable triage checklist now also covers a reverse proxy (nginx) caching a stale upstream IP after a container recreate, independent of Docker DNS/networking being entirely healthy (added 2026-09-11, from CRM).
 - **Stack:** Docker, Docker Compose, Coolify, Caddy, Linux VPS.
 - **Triggers:** Project deploys to a self-managed VPS.
 - **applies_to:**
@@ -267,7 +267,7 @@
 
 ### 19. Issue-to-Verified-Production Engineering Workflow
 - **File:** `19. Issue-to-Verified-Production Engineering Workflow.md`
-- **Scope:** Closed-loop operating procedure connecting issue triage, AI-agent directives, root-cause and pattern audits, regression proof, staging gates, immutable artifact promotion, production verification, rollback, honest issue closure, and conversion of repeated failures into standards or automated guards.
+- **Scope:** Closed-loop operating procedure connecting issue triage, AI-agent directives, root-cause and pattern audits, regression proof, staging gates, immutable artifact promotion, production verification, rollback, honest issue closure, and conversion of repeated failures into standards or automated guards. Also covers the "Unfinished Pipe" failure mode — a feature where every layer was built in isolation but the end-to-end path connecting them was never actually exercised, so it's completely non-functional with no error to catch it — and adds reachability to the Definition of Done for multi-layer features (added 2026-09-11, from HBEC).
 - **Stack:** Git, GitHub Actions, CLI coding agents, Docker, Docker Compose, PostgreSQL, Redis, stack-agnostic.
 - **Triggers:** Multiple human/agent handoffs; issues marked resolved with prevention work open; local fixes not verified in staging; repeated defects across files/services/environments; production changes made before a repeatable staging gate; release-critical commands silently failing.
 - **applies_to:** HBEC (high), TESC (high), TESE-MARKET (high), SMEPulse (medium), shipwright (medium).
@@ -280,6 +280,34 @@
   | TESC (ScalarEye) | Medium | GH Actions self-hosted runner already exists to host this pattern; not yet reviewed against this project directly. |
   | SMEPulse | Medium | Not yet reviewed against this project directly. |
   | shipwright | Low | A release/deploy tool itself, not a running service with environments to promote between. |
+
+### 20. Development Tasks Guide
+- **File:** `20. Development Tasks Guide.md`
+- **Scope:** Task specification and governance discipline for dual-engine (human + AI coding agent) teams — why underspecified directives ("build the login system") cause disproportionate failure for agents specifically, task hierarchy/granularity to keep work within agent context limits, and empirically-cited agent failure modes (misread-intent scope overreach, inaccurate self-reporting, breaking maintenance changes, reviewer abandonment, multi-agent coordination collapse). Overlaps guide 16 (which centers on the delegation/verification loop itself) and guide 1's AI-Agent Considerations per phase; this guide's distinctive angle is the task-definition contract that precedes delegation.
+- **Stack:** Stack-agnostic; assumes CLI coding agents (Claude Code, Codex, Gemini CLI, etc.) working alongside human engineers.
+- **Triggers:** Project delegates implementation work to AI coding agents; task descriptions are handed off ambiguously; multiple agents or agents-plus-humans work the same codebase.
+- **applies_to:** Not yet reviewed against any tracked project directly — added to the manifest 2026-09-11 (file existed since 2026-09-04; this closes that gap, see `GUIDE_CHAIN_CRITIQUE_2026-08-11.md`-style self-audit).
+
+### 21. LLM Latency Engineering
+- **File:** `21. LLM Latency Engineering.md`
+- **Scope:** Full request-lifecycle mechanics for LLM-backed applications — network/gateway/auth hops, prefill vs. decode phases, TTFT/TPOT/TTLT metrics, streaming protocol serialization, and where latency actually gets spent end to end.
+- **Stack:** Stack-agnostic; any application calling an LLM inference API (local or hosted), streaming or non-streaming.
+- **Triggers:** Project calls an LLM/inference API on a user-facing request path; latency complaints can't be localized to a specific hop; a router/gateway timeout is suspected of masking or preempting the model's own timeout.
+- **applies_to:**
+  | Project | Fit | Notes |
+  |---|---|---|
+  | HBEC | High | Directly evidenced by this session's own incidents: litellm's global `router_settings.timeout` silently overriding the harness's own per-call timeout and killing GPU calls early (`2026-09-09-litellm-router-timeout-...`), and a flat per-question token-budget estimate that didn't account for question type, crashing on truncated responses (`2026-09-09-admin-token-budget-not-type-aware-...`). Added to the manifest 2026-09-11 — file existed since before 2026-09-01 but was never entered here.
+
+### 22. Multi-Service Data Replication and Consistency
+- **File:** `22. Multi-Service Data Replication and Consistency.md`
+- **Scope:** Keeping the same logical entity consistent across more than one service/database with no real foreign key at the boundary — retraction-on-delete audited as a full set (not one incident at a time), producer/consumer schema-permissiveness parity, periodic reconciliation for silently-invisible replication gaps, idempotent async consumers against their own retries, id-not-name cross-service references, and per-environment verification of a migration's data-cleanup precondition.
+- **Stack:** PostgreSQL, Celery/Redis, Django, FastAPI, stack-agnostic.
+- **Triggers:** More than one service holds its own copy of the same entity; entities are linked across services by a plain id column instead of an enforced FK; a delete/unpublish in one service has no visible effect on its downstream copies.
+- **applies_to:**
+  | Project | Fit | Notes |
+  |---|---|---|
+  | HBEC | High | Source of every finding in the guide — the Admin/Student/Harness three-way replication produced this guide's entire case-study evidence in one week (2026-09-09 to 2026-09-11). See `PROJECT_ADAPTER_HBEC.md`. |
+- **Note:** Added 2026-09-11, split out as a standalone guide rather than folded into guide 6 (Database Engineering) because the failure mode is specifically cross-database, not single-schema — guide 6 now carries a short pointer section to this one instead of duplicating its content.
 
 ---
 
