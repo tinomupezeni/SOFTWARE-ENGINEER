@@ -4,7 +4,8 @@
 **Project:** HBEC
 **Environment:** Staging
 **Severity:** Medium
-**Status:** Fixed, deployed to staging
+**Status:** Fixed, deployed to staging (sentinel corrected from 1900 to
+2100 after the first value also failed live — see Update below)
 
 ## Summary
 Direct follow-up to
@@ -67,6 +68,30 @@ None needed — this closes the loop the previous fix opened.
 - [ ] Monitoring/alerts to add — n/a
 - [ ] Documentation to update — n/a, self-documenting via the title suffix
 - [ ] Code changes required — done
+
+## Update: 1900 Was Also Rejected — Corrected to 2100
+The first version of this fix used `UNKNOWN_YEAR = 1900`. Manually
+retrying the one paper from the user's real batch that needed it failed
+immediately with the exact same error shape: `HarnessExtractionError:
+Extraction failed: {"detail":"Invalid paper metadata: year=1900"}`.
+
+Traced to `AGENTIC_HARNESS/app/admin/schemas.py::PaperUploadRequest`:
+`year: int = Field(..., ge=1990, le=2100)` — the harness constrains year
+to 1990-2100, so 1900 was never valid to begin with; it just happened to
+produce the same class of error as `year=0` for a different reason (below
+the range, not merely falsy). Corrected `UNKNOWN_YEAR` to **2100** — the
+top of the valid range, which no real *past* ZIMSEC paper can ever be
+dated, so it stays an unambiguous sentinel while actually passing
+validation. Retried live on staging: the year error is gone entirely (the
+same file then hit an unrelated `MAX_PAGES exceeded: limit 400, got 686`
+— that specific file turned out to be a 686-page bundle, the same
+oversized-file category as the "2014 To 2020" bundle already flagged
+during the original batch review, not a year problem).
+
+**Lesson**: a sentinel value must be checked against the actual downstream
+validator's range, not just picked because it "looks obviously fake" —
+1900 reads as an obvious placeholder to a human, but the harness's schema
+doesn't know that, it only knows `1990 <= year <= 2100`.
 
 ## Related Issues
 - Direct continuation of the two immediately-preceding entries from the
