@@ -10,6 +10,7 @@ Issues and solutions for the HBEC Student application.
 ### 2026
 
 #### September
+- [2026-09-11: Live Practice UI Never Renders `sharedContext`/`subQuestions` — Structured Questions Showed Blank Bodies](./2026-09-11-practice-ui-never-renders-sub-question-content.md)
 - [2026-09-11: 54 Student Papers Point at Harness Papers That No Longer Exist — Bulk Resync Cannot Reach Them](./2026-09-11-orphaned-student-papers-point-to-deleted-harness-papers.md)
 - [2026-09-11: Internal Harness→Student Endpoints Share the Public Anonymous Rate Limit](./2026-09-11-internal-harness-endpoints-share-public-anon-rate-limit.md)
 - [2026-09-10: Library Page's "Open Queue" CTA Links to Itself](./2026-09-10-library-review-queue-cta-links-to-itself.md)
