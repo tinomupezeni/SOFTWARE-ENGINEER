@@ -15,6 +15,11 @@ GitHub Actions continuous deployment to the VPS was failing with a `dependency f
 2. **Missing Environment Variables**: 
    Strict environment interpolation in newer Docker Compose versions flagged `GRAFANA_ADMIN_PASSWORD` and `LANGFUSE_SECRET` as missing/empty in the generated `/opt/hbec/.env` file. This caused `docker compose up -d` validation to fail after the keys were manually fixed.
 
+## Prevention / Rule
+**Guardrail:** a deploy preflight check that asserts every host path a compose file bind-mounts as a single file actually exists as a file (not missing, not already a directory) before running `docker compose up` — failing loudly instead of letting Docker Compose silently create an empty directory in its place.
+
+This is the same "Docker silently creates a placeholder for a missing bind-mount path" defect as the later `2026-08-18-flutter-apk-not-downloadable-bind-mount-shadow.md` incident — one guardrail closes both instances of the pattern.
+
 ## Resolution
 1. **Directory Cleanup**: SSH'd into the VPS and removed the empty directories created by Docker Compose in `/opt/hbec/docker/keys/`.
 2. **Restored Keys**: Copied the valid keys from the local user backup (`~/projects/HBEC/docker/keys/`) to the deployment directory (`/opt/hbec/docker/keys/`).

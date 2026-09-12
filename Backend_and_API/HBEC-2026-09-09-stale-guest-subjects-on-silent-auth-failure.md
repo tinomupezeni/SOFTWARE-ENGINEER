@@ -42,6 +42,11 @@ Traced the Topic Revision screen's data path front-to-back:
 ## Root Cause
 `SoftJWTAuthentication.authenticate()` silently returns `None` instead of raising 401 on an expired/invalid token, which prevents the frontend's automatic token-refresh flow from ever running. `SubjectListView` then falls back to an unauthenticated "guest" branch that trusts a client-supplied, `localStorage`-cached `level` value with no server-side verification against the actual account — and caches that untrusted response server-side for an hour. When the client's cached level is stale (as happens whenever a level change bypasses the personalization endpoint), the student is served subjects for a level they are no longer on, with no error anywhere in the chain.
 
+## Prevention / Rule
+**Guardrail:** Any endpoint offering a dual authenticated/guest path must call the new `token_present_but_rejected(request)` middleware helper before falling into its guest branch — codified as a required code-review checklist item for every new "works for guest, richer for logged-in" endpoint.
+
+`SoftJWTAuthentication` returning `None` on a rejected token is deliberate by design (genuinely public endpoints depend on it) and can't be tightened globally without breaking them — the guardrail has to live at each dual-path endpoint, not at the authentication class itself.
+
 ## Solution
 
 ### Implemented (deployed to staging, verified live 2026-09-09)

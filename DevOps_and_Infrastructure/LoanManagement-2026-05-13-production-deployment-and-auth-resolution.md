@@ -49,6 +49,22 @@ docker exec mlms-admin-api python manage.py makemigrations
 2. **Schema Drift:** Decoupling between API implementation and automated verification scripts.
 3. **Auth Desync:** Password mismatch between VPS database state and deployment script parameters.
 
+## Prevention / Rule
+**Guardrail:** (1) Pin every Dockerfile's base image to a named stable
+release (`-bookworm`, never a rolling/testing codename) via a lint rule
+that rejects unpinned or testing-channel base images in CI. (2) Run the
+smoke test suite against the same OpenAPI/URL spec the API itself is
+generated from (or fail CI if a route the smoke tests hit doesn't exist in
+the current spec), so the two can't silently diverge. (3) Have the seed
+script read the same credential value the smoke-test runner uses (a single
+shared secret/config source), instead of two independently-set passwords
+that can drift apart.
+
+Each of the three root causes maps to a mechanism that would have caught it
+before it reached production: pinned base images stop the mirror
+instability, spec-driven smoke tests stop route drift, and one shared
+credential source stops the auth desync.
+
 ## Solution
 
 ### Immediate Fix

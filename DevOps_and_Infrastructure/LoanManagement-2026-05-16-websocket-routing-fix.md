@@ -17,6 +17,17 @@ The Admin and Agent Portals were experiencing WebSocket connection failures (/ws
 ## Root Cause
 The Caddy configuration for both probitasadmin.restksolutions.co.zw and probitas.restksolutions.co.zw was missing a specific handle for the /ws/* path. Since /ws/* did not match the defined /api/* or /admin/* handles, it hit the catch-all handle which routes to the frontend Nginx containers. The frontend returned a standard HTTP response (index.html), which caused the WebSocket handshake to fail.
 
+## Prevention / Rule
+**Guardrail:** Generate every domain's reverse-proxy block for an
+ASGI-backed service from one shared template/snippet that always includes
+the `/ws/*` handle, instead of hand-writing each domain's config
+independently — a missing handle on one domain and its sibling domain is
+the same bug appearing twice because nothing forced them to stay in sync.
+
+This is the second domain to hit the identical missing-handle bug in the
+same investigation — a shared template is what stops a fix applied to one
+domain from needing to be separately rediscovered on the next.
+
 ## Solution
 
 ### Immediate Fix

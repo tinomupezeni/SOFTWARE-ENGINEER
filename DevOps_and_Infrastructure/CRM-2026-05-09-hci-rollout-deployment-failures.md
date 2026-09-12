@@ -45,6 +45,11 @@ docker compose -f docker-compose.yml build
 2. Inconsistent lockfile state due to manual package.json edits.
 3. Cross-platform architectural conflict: Web app importing React Native primitives.
 
+## Prevention / Rule
+**Guardrail:** a monorepo import-boundary lint rule (e.g. `dependency-cruiser` or an ESLint `no-restricted-imports` rule) that fails the build if any file under `apps/web/**` imports a React Native-only package or a shared package flagged as RN-only.
+
+This catches the architectural conflict (#3) — the most damaging of the three, since it isn't a missing-dependency problem but a fundamentally incompatible import — at PR/lint time, weeks before it would otherwise surface as a cryptic Vite transform error during a Docker build.
+
 ## Solution
 
 ### Immediate Fix

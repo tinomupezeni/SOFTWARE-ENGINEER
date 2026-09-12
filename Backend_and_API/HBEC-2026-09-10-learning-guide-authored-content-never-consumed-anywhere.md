@@ -86,6 +86,17 @@ this content shape:
 admin UI) without ever deciding — or building — how a published guide reaches
 the student-facing tutor. It is not a regression; the pipe was never laid.
 
+## Prevention / Rule
+**Guardrail:** A Definition-of-Done gate for any new admin-authored content
+type: a content-authoring feature cannot merge without a passing end-to-end
+test that publishes a real row and asserts some real downstream consumer
+(harness or student) actually fetches and uses it.
+
+This is the guide-19 "Unfinished Pipe" pattern by name — `LearningGuide`
+shipped a full model/serializer/UI with nobody ever writing the one test
+that would have proven a consumer exists. Requiring that test before merge
+makes "authored content nothing reads" impossible to ship silently.
+
 ## Solution
 
 ### Immediate Fix

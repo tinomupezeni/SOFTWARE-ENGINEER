@@ -31,6 +31,11 @@ Verified container health and backend responses via SSH. Confirmed backend retur
 - **CSP:** Nginx security headers lacked the necessary overrides for Google's identity services.
 - **DuckDB:** The schema check was executing a version query before verifying table existence, causing log-level noise.
 
+## Prevention / Rule
+**Guardrail:** extend the production smoke test to assert, through the public domain (not by calling Django directly): (a) `/api/curriculum/levels/` returns 200, (b) the built JS bundle contains a non-empty `VITE_GOOGLE_CLIENT_ID`, and (c) response headers permit `accounts.google.com` — fail the deploy if any assertion fails.
+
+Three of the four root causes here (routing, missing build arg, CSP) are all invisible from the backend's own health check and only show up when hit exactly as a real browser would hit them — through the public domain, with the real built bundle.
+
 ## Solution
 
 ### Immediate Fix

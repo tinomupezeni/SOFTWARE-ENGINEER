@@ -50,6 +50,18 @@ serializer error), and indexing a dict with `[0]` raises `KeyError`, not the
 Type assumption bug: `_flatten_signup_errors` doesn't handle the case where
 a field's `serializer.errors[field]` value is a `dict` rather than a `list`.
 
+## Prevention / Rule
+**Guardrail:** A parametrized regression test for `_flatten_signup_errors`
+that feeds it every shape DRF's `serializer.errors` can actually produce —
+list-valued (simple field), dict-valued (nested serializer), and the
+existing `children`-list special case — so a dict-shaped value is exercised
+by CI, not just simple field errors.
+
+The bug existed because only the list-shaped case was ever tested; a test
+matrix covering DRF's real error shapes turns this exact `KeyError` into a
+failing assertion the first time the function is written, not a crash a
+real parent hits in production.
+
 ## Solution
 
 ### Immediate Fix

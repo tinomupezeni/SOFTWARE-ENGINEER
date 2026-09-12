@@ -64,6 +64,11 @@ year" (specimen papers), but Student Backend's mirrored `Paper.year` doesn't
 allow that, and the replication consumer has no handling for the mismatch
 beyond letting the insert fail and dropping the event.
 
+## Prevention / Rule
+**Guardrail:** Make the replication consumer's per-message failure path alert (not just log-and-ACK) on any constraint violation, and add a CI check that diffs producer/consumer model nullability for every field mirrored across services — a consumer schema stricter than its producer for a shared field is a build-time-catchable defect, not a runtime surprise.
+
+This is guide 22's schema-permissiveness-parity rule applied directly: the consumer silently dropped a valid producer value with nothing visible to an admin, which is exactly what let this sit unnoticed on every environment indefinitely.
+
 ## Solution
 
 ### Immediate Fix

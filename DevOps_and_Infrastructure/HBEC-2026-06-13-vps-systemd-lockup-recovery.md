@@ -32,6 +32,11 @@ Resolved a critical "Transport endpoint is not connected" systemd failure that c
 - **GPU Status:** Active (NVIDIA T1000/RTX 5060 recognized)
 - **Replication Delay:** 0 (Sync verified post-recovery)
 
+## Prevention / Rule
+**Guardrail:** an external canary check (independent of the host, e.g. Uptime Kuma or a cron job on a different machine) that periodically SSHes in and runs `systemctl is-system-running`, paging if it hangs or returns anything other than `running`/`degraded` — not just a check that the containers respond.
+
+This incident's failure point was beneath Docker entirely (systemd itself unreachable) — any monitoring that only checks container/HTTP health would stay green right up until the host became fully unmanageable, exactly the "Host-Level Failure Modes Beneath Docker" gap this incident seeded in guide 10.
+
 ## Prevention
 - Added `VPS_SYSTEMD_LOCKUP_DIAGNOSIS.md` to the main repository for future emergency reference.
 - Standardized Docker healthchecks to use built-in tools (`ollama list`) or `python3` rather than external dependencies like `curl`.

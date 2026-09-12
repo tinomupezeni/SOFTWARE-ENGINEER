@@ -53,6 +53,11 @@ schemas are `extra="forbid"`.
 The question-mapping code referenced a mix of nonexistent fields and a
 wrong import; it had never been exercised by generation or by any test.
 
+## Prevention / Rule
+**Guardrail:** a schema-contract test that calls the mapping function directly and asserts its output constructs the target Pydantic model (`extra="forbid"`) without raising — run in CI whenever either side of the mapping's schema file changes.
+
+This turns the file's own listed-but-unchecked idea ("a schema-level contract test that fails if either side of this mapping's field names drift again") into an enforced CI check, so a field-name mismatch between producer and consumer fails a test in seconds instead of only failing the first time generation actually runs.
+
 ## Solution
 
 ### Immediate Fix

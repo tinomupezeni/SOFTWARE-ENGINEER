@@ -37,6 +37,11 @@ Read `apps/internal/views.py` directly: `StudentContextView.get()` (line ~100) c
 ## Root Cause
 `_build_context`'s definition was nested under `class SyncStudentView(APIView):` instead of `class StudentContextView(InternalAuthMixin, APIView):`, so any call to it from `StudentContextView.get()` raised `AttributeError`.
 
+## Prevention / Rule
+**Guardrail:** A CI test that directly calls every internal endpoint's handler (`StudentContextView().get(...)`, not just an HTTP-level smoke test) against a real object, so a `self.<method>` reference with no matching definition in its own class fails immediately.
+
+Python doesn't check method membership until the line actually executes — a bad merge silently misplaced this method and nothing exercised the endpoint until real traffic hit it in production, for an unknown period, degrading gracefully instead of loudly.
+
 ## Solution
 
 ### Immediate Fix

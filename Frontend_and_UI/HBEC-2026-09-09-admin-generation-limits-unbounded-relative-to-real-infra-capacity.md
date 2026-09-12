@@ -49,6 +49,11 @@ erroring.
 Configuration/UX gap: input ceilings not grounded in measured infrastructure
 capacity.
 
+## Prevention / Rule
+**Guardrail:** A single shared constants module (e.g. `capacity_limits.py`) that defines every batch/question ceiling alongside a code comment citing the specific measured test that justified it, imported by both the Django serializer validator and the frontend's `max` attribute.
+
+This makes an arbitrary round-number limit structurally impossible to introduce — a reviewer immediately sees a bare number with no capacity citation next to it — and keeps backend/frontend limits from drifting apart since both read the same constant.
+
 ## Solution
 
 ### Immediate Fix

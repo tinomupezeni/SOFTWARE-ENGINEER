@@ -41,6 +41,11 @@ Both `docker-compose.staging.yml` and `docker-compose.production.yml` bind-mount
 ## Root Cause
 Host-mounted directories in both compose files silently shadow anything baked into the image at those exact paths, and three separate download links across the codebase each pointed at a file that either didn't exist on the host or had never been placed there.
 
+## Prevention / Rule
+**Guardrail:** a required, automated post-deploy check that `curl -I`s every advertised static download link and fails the deploy if the response `Content-Type` is `text/html` or the byte size doesn't match the real artifact — turning the file's own listed-but-unchecked prevention item into an enforced CI/deploy gate rather than a to-do.
+
+A request that "succeeds" with the wrong content and no error anywhere is invisible to any check that only looks at HTTP status codes — this is the false-positive trap named in guide 10, applied to static file serving specifically.
+
 ## Solution
 
 ### Immediate Fix

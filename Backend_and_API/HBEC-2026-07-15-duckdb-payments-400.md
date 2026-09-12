@@ -40,6 +40,11 @@ The system experienced two distinct issues simultaneously: a client-side databas
 - **DuckDB:** The browser abruptly closed, reloaded, or partially cleared storage before DuckDB could checkpoint the `.wal` file to the main `.db` file, leaving the database state corrupted and unrecoverable by default.
 - **Payments:** The codebase was recently migrated to a new VPS, and during this move, the configuration for the ZB payment gateway (such as `zbEnabled` flag and the API/Secret keys) was forgotten and not re-applied in the Admin panel. This caused the backend to default to disabling ZB payments, leading to an immediate 400 Bad Request rejection upon initiation.
 
+## Prevention / Rule
+**Guardrail:** A documented, must-complete environment-migration checklist — every payment-gateway key, feature flag, and "enabled" toggle enumerated explicitly, not remembered — checked off and diffed against the old environment before a VPS/infra migration is marked done.
+
+The payments half of this incident wasn't a code bug at all; it was a forgotten manual re-configuration step with no checklist forcing it to be re-applied on the new host.
+
 ## Solution
 
 ### Immediate Fix

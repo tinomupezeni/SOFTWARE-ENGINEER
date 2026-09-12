@@ -45,6 +45,11 @@ design doc, never carried through to the ORM model or migration.
 Implementation drift from an otherwise-correct design doc; the one comment
 that did flag it was never resolved.
 
+## Prevention / Rule
+**Guardrail:** A pre-commit/CI grep that fails the build on any `# TODO`/`# Needs UniqueConstraint(...)`-style comment left unresolved in `models.py` — or, more directly, a CI check that parses `database_schema_design.md`'s composite-unique-constraint table and asserts a matching `UniqueConstraint` exists in `__table_args__` for each row.
+
+The gap here wasn't a lack of documentation — the comment already named the missing constraint — it was that nothing made an unresolved TODO block a merge.
+
 ## Solution
 
 ### Long-term Fix

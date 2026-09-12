@@ -62,6 +62,11 @@ docker exec hbec-admin-frontend sh -c 'nslookup admin-backend 127.0.0.11'
 ## Root Cause
 When `docker compose up -d` recreated the admin-backend container (as part of the Redis sentinel fix rollout), the container was attached to the wrong set of networks. The production compose file defines `networks: [app-net, db-net, hbca-network]` for the admin-backend service, but the recreation only attached it to `hbec-network` (from the dev compose file). The network override from `docker-compose.production.yml` was not fully applied during the merge.
 
+## Prevention / Rule
+**Guardrail:** an automated check, run as part of the deploy script immediately after any `docker compose up -d`, that compares each recreated service's actual attached networks (`docker inspect --format '{{range .NetworkSettings.Networks}}{{.NetworkID}} {{end}}'`) against what the production compose file declares, and fails the deploy loudly on any mismatch instead of leaving it to be discovered as a live 502.
+
+This automates the exact manual check (item 2 of guide 10's gateway-unreachable triage checklist) that this incident is the origin case for — catching the mismatch at deploy time instead of at the next user's request.
+
 ## Solution
 
 ### Immediate Fix

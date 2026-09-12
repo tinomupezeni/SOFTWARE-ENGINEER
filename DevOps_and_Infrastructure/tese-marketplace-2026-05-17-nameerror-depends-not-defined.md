@@ -40,6 +40,9 @@ The code was likely copy-pasted or written without verifying imports for the new
 ## Root Cause
 Incomplete implementation of the `/api/v1/health/deep` endpoint in `tese-store-api`. The endpoint uses `Depends(get_db)` and the `Session` type hint, but none of these symbols were imported into the `main.py` module.
 
+## Prevention / Rule
+**Guardrail:** A CI step that runs `ruff check` with `F821` (undefined name) enabled against every microservice on every PR, blocking merge on any finding — so a missing import is caught at review time, not the first time a specific endpoint like `/api/v1/health/deep` actually gets hit.
+
 ## Solution
 
 ### Immediate Fix

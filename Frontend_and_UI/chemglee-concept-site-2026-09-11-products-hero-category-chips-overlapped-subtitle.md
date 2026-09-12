@@ -26,6 +26,11 @@ once its content wrapped — a sibling in normal flow would have pushed
 content down; an absolutely positioned one just overlaps whatever is
 underneath it.
 
+## Prevention / Rule
+**Guardrail:** A visual-regression test (e.g. Playwright + screenshot diff) on the products hero at a narrow viewport width with a category list long enough to force a wrap, run in CI.
+
+Absolutely-positioned content that can grow (wrapping text/chips) is invisible to a type-checker or unit test — only a rendered screenshot at the content's worst-case (most-wrapped) size actually catches an overlap like this before a user does.
+
 ## Solution
 Moved the chip row into normal flow, directly under the subtitle
 (`frontend/src/routes/products.tsx`), using `mt-7 flex gap-2.5 flex-wrap

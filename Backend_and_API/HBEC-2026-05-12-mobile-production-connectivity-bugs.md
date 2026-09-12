@@ -37,6 +37,11 @@ Checked eas.json for environment variable alignment and pi.ts for backend URL f
 ## Root Cause
 Configuration drift between the mobile app's environment definitions and the production backend/proxy infrastructure, combined with legacy code in the AI Harness client that was not updated during the Auth refactor.
 
+## Prevention / Rule
+**Guardrail:** A pre-build validation script that asserts every environment variable the app reads is present and correctly prefixed (`EXPO_PUBLIC_*` for Expo) before a production build is allowed to proceed — fail the build, don't ship a silently-unconfigured bundle.
+
+The actual failure here was invisible at build time: a missing prefix silently dropped the variable from the compiled JS bundle with no error anywhere. A build-time assertion converts that into an immediate, loud failure instead of a runtime connectivity mystery.
+
 ## Solution
 
 ### Immediate Fix

@@ -23,6 +23,11 @@ Encountered multiple critical failures during deployment to the VPS:
 - **Migrations**: Local model changes in 'quotations' were not migrated before building/pushing images.
 - **Script Logic**: The RunRemote helper in crm.ps1 lacked error checking for remote ssh exit codes.
 
+## Prevention / Rule
+**Guardrail:** a CI/preflight step that runs `python manage.py makemigrations --check --dry-run` and fails the build the moment any app has model changes not yet reflected in a migration file.
+
+This directly targets the second root cause — migrations silently going missing before a deploy — with a single deterministic check, rather than relying on someone remembering to run `makemigrations` before every push.
+
 ## Solution
 
 ### Immediate Fix

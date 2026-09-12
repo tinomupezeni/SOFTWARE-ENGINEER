@@ -14,6 +14,8 @@ Added the missing import statement to the top of `backend/instauth/views/auth_vi
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 ```
 
+**Prevention / Rule:** Run a static undefined-name check (`ruff`'s `F821`, or equivalent flake8 rule) as a required CI step on every file — it flags a name used but never imported/defined, which is exactly this bug, before it ever reaches a running server.
+
 ## 2. Program Creation Failure (400 Bad Request)
 
 **Issue:**
@@ -32,3 +34,7 @@ Update the database constraint to scope the uniqueness by institution. The model
 unique_together = ('institution', 'department', 'code')
 ```
 This change will require generating and applying a new database migration (`makemigrations` and `migrate`).
+
+**Prevention / Rule:** Require every `unique_together`/`UniqueConstraint` added to a multi-tenant model to include the tenant/institution FK as its leading field — enforced as an explicit code-review checklist item (or a custom migration lint check that flags any new constraint on a shared table missing the tenant column).
+
+A uniqueness constraint that omits the tenant column is, by construction, a cross-tenant collision waiting to happen the moment two institutions pick the same value — this rule catches it at review time instead of at a real institution's signup.

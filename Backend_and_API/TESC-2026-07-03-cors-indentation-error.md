@@ -58,6 +58,11 @@ program_obj, _ = Program.objects.get_or_create(
 )  # ← extra closing paren
 ```
 
+## Prevention / Rule
+**Guardrail:** Make `ruff check .` (or `python -m compileall`) a required, blocking CI step on every push — not a step developers are trusted to remember locally before committing.
+
+An `IndentationError` is a syntax-level failure any linter or compile check catches instantly; the only reason it reached a running container is that nothing enforced the check between commit and deploy — a CI gate, not local discipline, closes that gap permanently.
+
 ## Solution
 
 ### Immediate Fix

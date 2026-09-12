@@ -91,6 +91,20 @@ admin-side authoring model, the student-side serving model, and the
 replication path between them are three separate pieces that don't connect.
 This is a genuinely unfinished feature, not a regression.
 
+## Prevention / Rule
+**Guardrail:** A CI check that asserts every dispatch target listed in
+`ReplicationService.dispatch`'s `url_map` (e.g. `"harness"`, `"student"`)
+has a live, importable handler on the receiving side for that event type —
+and, separately, a rule that any function with zero callers in the
+codebase (like `build_harness_sbp_payload`) is either exercised by a test
+or flagged by a dead-code lint, not left silently inert until something
+finally calls it.
+
+This closes both concrete halves of this bug: the missing `"student"`
+dispatch target would fail the check immediately, and the broken
+`SBPTemplate` import in `build_harness_sbp_payload` would have raised in
+CI the day it was written instead of the day someone finally called it.
+
 ## Solution
 
 ### Immediate Fix (workaround, applied to unblock the demo)

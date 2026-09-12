@@ -56,6 +56,16 @@ entirely.
 Test/type drift: `ResetPasswordRequest` changed shape after the test was
 written, and nothing caught the mismatch before merge.
 
+## Prevention / Rule
+**Guardrail:** Add `tsc -b` (`npm run typecheck`) as its own required,
+separately-named CI job on Admin/Student Frontend, gating merge — not
+merely implied by whatever type-checking the test runner's transpilation
+happens to do.
+
+CLAUDE.md already claims "zero typecheck errors" as a project rule; this
+commit proved that rule isn't enforced anywhere at merge time. A dedicated
+gate makes the rule self-enforcing instead of aspirational.
+
 ## Solution
 
 ### Immediate Fix

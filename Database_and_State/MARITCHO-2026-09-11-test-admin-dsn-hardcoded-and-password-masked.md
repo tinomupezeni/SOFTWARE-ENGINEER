@@ -67,6 +67,11 @@ wrong string-conversion method on a `URL` object) each individually looked
 correct under the only conditions ever actually tested — a single
 long-lived local Postgres on the default port.
 
+## Prevention / Rule
+**Guardrail:** CI must always validate against freshly created service containers on non-default ports/credentials — never the long-lived local dev database — since that's the only thing that actually exercises DSN-derivation code instead of a hardcoded value that happens to coincidentally match. Already implemented: `.github/workflows/backend-ci.yml` now does exactly this on every run.
+
+Both bugs here were invisible under the one condition ever tested (local Postgres on 5432 with known credentials); a fresh, differently-configured environment is what turned "always worked" into a caught defect before real CI ever saw it.
+
 ## Solution
 
 ### Long-term Fix

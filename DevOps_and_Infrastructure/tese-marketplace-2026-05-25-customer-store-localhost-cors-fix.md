@@ -117,6 +117,9 @@ Deployed blindly without verifying bundle contents.
 
 ---
 
+## Prevention / Rule
+**Guardrail:** A CI/deploy-pipeline step — not a manual pre-deploy script someone has to remember to run — that greps every built frontend bundle for `localhost` and refuses to deploy if found. **This is the third time this exact bug class has hit this repo** (see `2026-05-15-domain-routing-swap-and-frontend-api-connection.md` and the admin-dashboard incident the same day as this one). Two prior "prevention measures" written as documentation and checklists did not stop a third occurrence; only a hard, automated gate in the pipeline itself will.
+
 ## The Engineering Fix
 
 ### Changes Made

@@ -16,6 +16,11 @@ The initial fix to bypass the Docker Hub login prompt using docker info failed b
 ## Root Cause
 Cross-version inconsistency in docker info output. Modern Docker environments store authentication state in ~/.docker/config.json but do not necessarily expose it via the basic info command.
 
+## Prevention / Rule
+**Guardrail:** a code-review checklist item banning any script-side check that parses a CLI tool's human-readable plaintext output — require reading a structured config file (`~/.docker/config.json`) or a `--format json` flag instead.
+
+Plaintext CLI output is explicitly not a stable interface across tool versions; a JSON/config-file source is. This removes the entire class of "worked on my Docker version, broke on someone else's" bugs, not just this one instance of it.
+
 ## Solution
 
 ### Immediate Fix

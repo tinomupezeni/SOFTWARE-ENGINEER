@@ -29,6 +29,18 @@ the whole folder (a folder is almost always "all of subject X's papers"),
 and a title/year/session/paper-number a sane filename like
 `Mathematics Paper 1 June 2014.pdf` already spells out.
 
+## Prevention / Rule
+**Guardrail:** Before marking any import/creation feature complete, write
+down the realistic "how does a real user actually have this data" input
+shapes as an explicit checklist and validate the feature against each one —
+not just the shapes that map cleanly onto the existing data model (rows
+with metadata) but the shape the feature's actual users will show up with.
+
+A folder of files with no manifest is the default shape for anyone who
+just downloaded past papers — the gap here wasn't a bug in the existing
+CSV/JSON/ZIP paths, it was that the checklist of supported shapes was
+never checked against how a real curator's files actually arrive.
+
 ## Solution
 
 ### Immediate Fix

@@ -36,6 +36,11 @@ The script targeted `tesc-backend-1`, but Docker was running `tesc-main-backend-
 ## Root Cause
 Deployment automation used a stale container name and suppressed the resulting migration failure.
 
+## Prevention / Rule
+**Guardrail:** Deploy scripts run migrations via `docker compose exec <service-name-from-compose>` — never a hand-typed container name — with no `|| true` on the command, and the deploy step then queries `django_migrations` for the expected latest migration name and fails the deploy if it isn't there.
+
+Two independent failures have to both happen for this bug to hide: a name mismatch (compose service name vs. the container's actual runtime name) and error suppression on the command that would have surfaced it. Resolving the service name through Compose itself removes the first; refusing to swallow a non-zero exit on a release-critical step removes the second — either alone would have caught this.
+
 ## Solution
 
 ### Immediate Fix

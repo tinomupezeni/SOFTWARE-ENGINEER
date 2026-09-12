@@ -35,6 +35,11 @@ Not yet determined precisely — likely a leftover from before the review
 queue was folded into `SubjectPage`, never updated to point at a real
 destination once the old destination was retired.
 
+## Prevention / Rule
+**Guardrail:** An automated link-integrity check (e.g. a Playwright pass over every route) that renders each page, collects every CTA/nav link on it, and asserts each target path differs from the current route.
+
+This catches a `to` prop hardcoded to the page it already sits on before a human happens to click it — exactly the kind of dead link that survives silently because it renders normally and only fails on click.
+
 ## Solution
 Not applied — needs a decision on where "Open queue" should actually take
 an admin now that there's no standalone review-queue page (a specific

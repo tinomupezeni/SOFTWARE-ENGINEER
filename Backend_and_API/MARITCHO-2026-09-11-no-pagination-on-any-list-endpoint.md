@@ -54,6 +54,17 @@ No endpoint has yet hit a scale where this mattered, so pagination was
 never added — a reasonable trade-off so far, but worth flagging explicitly
 since it wasn't a deliberate decision, just an absence.
 
+## Prevention / Rule
+**Guardrail:** A repo-level test that inspects every router function whose
+response model is a `list[...]` and asserts it declares the shared
+pagination dependency — failing CI the moment a new list-returning endpoint
+ships without it.
+
+This turns "pagination was never a deliberate decision, just an absence"
+into something that can't happen silently again: a new list endpoint
+either declares pagination or fails the check, so the gap can't
+re-accumulate unnoticed the way it did across all 6 original endpoints.
+
 ## Solution
 
 ### Immediate Fix

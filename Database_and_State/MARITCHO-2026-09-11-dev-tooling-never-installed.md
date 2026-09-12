@@ -53,6 +53,11 @@ marked `TODO` in the backlog at the time other Sprint-1 items were marked
 `DONE` — the linting setup was never actually completed, so nothing ever
 installed or ran these tools.
 
+## Prevention / Rule
+**Guardrail:** A CI job that actually installs and runs every tool declared under `[project.optional-dependencies].dev` (`ruff check .`, `mypy .`, `pytest`) against a fresh environment on every push — not a backlog checkbox someone marks `DONE` by inspection. A tool named in `pyproject.toml` is a claim, not a gate, until something has executed it and failed at least once.
+
+Already implemented as this file's own long-term fix (`.github/workflows/backend-ci.yml`, validated against genuinely fresh containers) — recorded here as the guardrail so `BACK-001` can be marked `DONE` on real evidence, not aspiration.
+
 ## Solution
 
 ### Immediate Fix

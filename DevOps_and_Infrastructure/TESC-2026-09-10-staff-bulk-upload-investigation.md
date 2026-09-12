@@ -35,6 +35,11 @@ If a row's `Staff(...)` construction or later `.save()` fails (duplicate `employ
 
 Wasn't able to confirm orphan rows exist in the prod DB for this specific incident (direct DB query was blocked), so this is a **found-by-code-review** bug, not yet DB-confirmed for this event — but it's a real defect regardless of whether it explains today's particular 400.
 
+## Prevention / Rule
+**Guardrail:** A repo-specific lint/review check — or a targeted unit test — asserting that any bulk-import loop which auto-creates a side-entity (`Faculty.objects.create`/`Department.objects.create`) ahead of a dependent row's own validation is wrapped in `transaction.atomic()` per row. Concretely: a test that uploads a file with one deliberately-invalid row and asserts zero new Faculty/Department rows exist afterward.
+
+The bug wasn't the auto-create feature itself — it's that side-entity creation and the row's own save happened in two separate, un-atomic steps, so a failure in the second left the first committed. A per-row savepoint (the fix actually applied) is the mechanism; a test asserting "a failed row leaves no orphan side-entities" is what stops this specific shape of bug from being reintroduced by a future refactor of this same function.
+
 ## Recommended fix
 
 Wrap each row's faculty/department lookup-or-create + staff prepare step in `transaction.atomic()` (savepoint per row), so a failed row cleanly rolls back any Faculty/Department it would have created:

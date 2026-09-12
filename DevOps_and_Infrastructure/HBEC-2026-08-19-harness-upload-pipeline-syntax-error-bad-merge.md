@@ -51,6 +51,11 @@ The first, incomplete copy's docstring never closed, so everything from that `""
 ## Root Cause
 A merge on 2026-08-18 mishandled a conflict in `upload_pipeline.py`, leaving a hard `SyntaxError` (via a duplicated, never-closed docstring) and silently reverting three functions to broken/incomplete pre-fix states. The file has never been importable since, meaning the admin paper-upload endpoint has been completely non-functional — not intermittent, total — for a full day before discovery.
 
+## Prevention / Rule
+**Guardrail:** a CI step that explicitly checks `pytest --collect-only`'s exit code and fails the whole build red on any collection error, instead of only reporting the pass/fail count of whatever tests *did* successfully collect.
+
+This is the actual gap that let a full day of complete endpoint failure hide behind "6 tests didn't run" instead of an unmissable red build — the file's own Prevention list already names this as unchecked; this makes it the enforced rule.
+
 ## Solution
 
 ### Immediate Fix

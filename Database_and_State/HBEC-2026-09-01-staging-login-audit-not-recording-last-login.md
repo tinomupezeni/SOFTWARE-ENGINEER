@@ -46,6 +46,11 @@ The available CLI history confirms the discrepancy but does not establish whethe
 `user_logged_in` signal or otherwise updates `last_login` — a known gap in
 hand-rolled DRF+SimpleJWT login views that don't call `django.contrib.auth.login()`.
 
+## Prevention / Rule
+**Guardrail:** Route every login path (admin, student, Google Sign-In, any future one) through one shared `finalize_authentication(user)` helper that calls `update_last_login()` internally, and enforce via code review that no view issuing tokens directly may skip it — never leave the audit side effect to each hand-rolled view to remember individually.
+
+This is the same gap independently rediscovered a day later on the Student Backend's own login views (`2026-09-10-student-last-login-never-recorded.md`) — a shared helper, not a per-view fix, is what stops it recurring a third time on the next custom auth path.
+
 ## Solution
 
 ### Immediate Fix

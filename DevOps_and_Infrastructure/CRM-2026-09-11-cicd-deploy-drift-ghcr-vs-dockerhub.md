@@ -18,6 +18,11 @@ Went to run `deploy.sh` after pushing frontend fixes and discovered the document
 ## Root Cause
 Deployment tooling (`deploy.sh`, `docker-compose.deploy.yml`, `VPS_DEPLOYMENT_GUIDE.md`, the CI `deploy` job) was written for an idealized "pull prebuilt images from a registry" flow, but the actual production host was set up — and has since been patched through incidents (`fix_crm.sh`, `setup_crm_production.sh`, the 2026-05-07 crash-loop fix) — using a different, ad-hoc "build in place from a local Docker Hub-tagged compose file" flow. The two were never reconciled after whichever migration/restructure happened (see `2026-05-08-monorepo-migration-phase*.md` — those may be part of why this drifted).
 
+## Prevention / Rule
+**Guardrail:** a CI job, run after every "deploy" workflow, that SSHes into `restk-vps` and compares the running containers' image digest (`docker inspect --format '{{.Image}}'`) against the digest CI just built and pushed — failing/alerting loudly if they don't match within a few minutes of a green CI run.
+
+This makes "CI passed" and "production actually changed" a provable, checked fact instead of an assumption — which is exactly the assumption that silently broke here and went unnoticed until someone manually tried to deploy.
+
 ## Solution (workaround used for this session's deploy)
 1. `rsync`'d `frontend/` (excluding `node_modules`, `dist`, `.git`) directly from a local dev checkout to `restk-vps:~/apps/crm-src/frontend` — bypassing the broken GitHub access from the VPS entirely.
 2. `ln -sfn ~/apps/crm-src/frontend ~/apps/crm/frontend` so the existing `docker-compose.yml`'s `build: context: ./frontend` resolves.

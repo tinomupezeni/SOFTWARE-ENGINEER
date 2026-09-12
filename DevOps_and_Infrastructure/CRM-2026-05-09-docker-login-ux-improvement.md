@@ -16,6 +16,11 @@ The crm.ps1 deployment script was unconditionally calling docker login, resultin
 ## Root Cause
 The Push function in crm.ps1 executed docker login -u tinotenda762 without first checking if a valid session already existed.
 
+## Prevention / Rule
+**Guardrail:** extract "is Docker already authenticated" into one shared, tested helper function that every deployment script calls, instead of each script inlining its own ad-hoc `docker login`/auth-check logic.
+
+A single shared helper means a fix to the detection method (see the companion `docker-auth-detection-fix.md` entry) lands once for every script that needs it, instead of this exact class of bug recurring per script that reimplements the check its own way.
+
 ## Solution
 
 ### Immediate Fix

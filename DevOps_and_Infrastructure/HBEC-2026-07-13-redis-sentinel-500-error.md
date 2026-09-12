@@ -17,6 +17,11 @@ After applying the Redis Sentinel fix (see `2026-07-10-redis-sentinel-failover-r
 ## Root Cause
 When configuring `django_redis.client.SentinelClient`, the default connection factory (`django_redis.pool.ConnectionFactory`) does not know how to handle Sentinel connection pools. It requires `django_redis.pool.SentinelConnectionFactory` to properly instantiate the connection pool with `service_name` and `sentinel_manager`.
 
+## Prevention / Rule
+**Guardrail:** a fail-fast startup check (in `AppConfig.ready()` or the container entrypoint) that performs one real cache `set`/`get` round-trip against the configured Redis/Sentinel backend and crashes the container on boot if it fails, instead of letting a misconfigured connection factory surface only on the first real request.
+
+This is the same "crash on boot rather than silently run broken" principle guide 5b already names for missing secrets — applied here to cache configuration, which is exactly what let this ship without anyone noticing until a real login attempt hit `/api/auth/login/`.
+
 ## Solutions Implemented
 
 ### Config Fix

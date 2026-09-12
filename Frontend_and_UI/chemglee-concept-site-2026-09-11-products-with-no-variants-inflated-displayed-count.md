@@ -23,6 +23,11 @@ No filter on `variants.length` between fetching products and handing them to
 the UI — a product record with zero variants was treated the same as any
 other for counting purposes, even though nothing downstream could render it.
 
+## Prevention / Rule
+**Guardrail:** A single shared `isDisplayable(product)` selector (checking `variants.length > 0`) that every place deriving a product count or list — hero subtitle, category chips, `ProductCard` grid — is required to filter through, rather than each consumer re-deriving "what counts" independently.
+
+Centralizing the displayability check in one place means a future count or listing added anywhere in the app inherits the same rule automatically, instead of needing someone to remember to re-add the same `variants.length > 0` filter at each new call site.
+
 ## Solution
 `frontend/src/hooks/useProducts.ts` now filters to `variants.length > 0`
 before returning products from the hook, so every count derived from

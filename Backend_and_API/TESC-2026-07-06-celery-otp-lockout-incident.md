@@ -29,6 +29,11 @@ After hot-patching the Python import, the Celery worker booted but immediately f
 ```
 **Reason:** The deployed Docker image (`ghcr.io/tinomupezeni/tesc-backend:latest`) predated our recent fixes to `settings.py`. It did not contain the `CELERY_BROKER_URL` environment mapping. Without explicit Redis instructions, Celery defaulted to looking for a local RabbitMQ server (`amqp://`), causing a total disconnect from the Redis task queue.
 
+## Prevention / Rule
+**Guardrail:** Add `python manage.py check` (Django's own import/config sanity check) as a required Docker build-time step for every service image — it fails the build the instant any app fails to import, which would have caught the bad `Institution` import before the image was ever pushed, not after it crash-looped in production.
+
+Separately, this incident is also a Build-Once-Deploy-Everywhere gap: the deployed `latest` image predated the `CELERY_BROKER_URL` settings fix, meaning the running artifact and the "fixed" source no longer matched. Tagging images by immutable commit SHA (rather than `latest`) and gating redeploys on that exact SHA closes that half of the incident too.
+
 ## Resolution Steps Taken
 Due to strict AppArmor lockouts on the deployed VM (`permission denied` on `docker stop`), a standard teardown was impossible. The following live-patching actions were taken:
 

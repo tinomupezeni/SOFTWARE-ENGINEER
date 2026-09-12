@@ -14,6 +14,18 @@ The issue was a **Protocol Header Mismatch** in the multi-tier reverse proxy arc
 3. **Django Backend (Layer 3)**: Has `SECURE_SSL_REDIRECT = True`. It saw the `http` header and issued a redirect to `https`.
 4. **The Loop**: Nginx received the backend's redirect and passed it back to Caddy, which passed it to the browser.
 
+## Prevention / Rule
+**Guardrail:** A standard, shared nginx snippet used at every internal proxy
+hop behind an SSL-terminating edge that always sets
+`proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;` — never
+`$scheme` — enforced by a config lint that flags any `X-Forwarded-Proto`
+line using `$scheme` in a config that itself sits behind another proxy.
+
+`$scheme` only reflects the protocol of the connection nginx itself
+received, not the one the original client used — in any multi-hop chain
+that's the wrong value by construction, which is exactly what produced the
+loop here.
+
 ## 3. Resolution Strategy
 
 ### Solution 2: Protocol Pass-through (Implemented)

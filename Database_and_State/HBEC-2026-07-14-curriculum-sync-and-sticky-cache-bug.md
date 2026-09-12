@@ -43,6 +43,11 @@ Because the user's browser had `CAMBRIDGE` cached in `localStorage`, the UI forc
 ## Root Cause
 A combination of misconfigured admin data (ZIMSEC as draft) interacting with a frontend validation bug that caused it to cling to a deleted/orphaned `CAMBRIDGE` record from `localStorage`.
 
+## Prevention / Rule
+**Guardrail:** Design constraint, enforced at code review: any client-cached selection (`localStorage`, cookies, persisted app state) that references a server-owned entity must be revalidated against the latest fetched canonical list before being trusted — a truthy check on the cached value alone (`if (prev.examBoardCode) return prev;`) is never sufficient.
+
+This is exactly the gap the fix closed (`validCodes.has(prev.examBoardCode)`); the same shape of bug will recur anywhere else a hook short-circuits on "cache exists" instead of "cache is still valid."
+
 ## Solution
 
 ### Immediate Fix

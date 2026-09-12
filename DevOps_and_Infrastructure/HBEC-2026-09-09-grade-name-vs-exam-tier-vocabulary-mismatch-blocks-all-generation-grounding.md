@@ -66,6 +66,21 @@ No translation exists from admin's grade-name vocabulary ("Form 4") to the
 exam-tier vocabulary ("O-Level") that all real content is actually tagged
 with.
 
+## Prevention / Rule
+**Guardrail:** A single canonicalization function (`_normalise_level()`) is
+the only place in the codebase allowed to translate between one service's
+vocabulary and another's — enforce with a code-review/lint rule that no
+other file may compare a locally-computed level/tier-like string directly
+against another service's stored value. Pair it with a test that iterates
+every distinct `Grade.name` value actually present in the admin database
+and asserts each one normalizes to a known tier, so a brand-new grade name
+fails CI immediately instead of silently generating ungrounded content.
+
+This targets the exact failure shape here: two independently-evolving
+vocabularies (admin's grade names, the harness's exam-tier codes) with no
+enforced single point of translation between them, and no test that would
+catch a new value on either side falling through untranslated.
+
 ## Solution
 
 ### Immediate Fix

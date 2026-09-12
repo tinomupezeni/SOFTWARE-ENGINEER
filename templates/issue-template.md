@@ -40,6 +40,16 @@ Steps taken to identify the problem.
 ## Root Cause
 Clear explanation of what caused the issue.
 
+## Prevention / Rule
+**Guardrail:** [One single, specific guardrail — a migration/schema
+constraint, a linting rule, a CI check, a config validator, a code-review
+checklist item, a design constraint — that permanently prevents this exact
+class of bug from showing up in the codebase again. Not "write more tests"
+or "be more careful" — name the actual mechanism that would catch it.]
+
+[1-2 sentences on why this specific guardrail closes this specific gap,
+tied to the Root Cause above.]
+
 ## Solution
 
 ### Immediate Fix

@@ -63,6 +63,11 @@ Undocumented, possibly-intentional design choice that was never confirmed
 or written down, discovered only by comparing two fields that look like
 they should be symmetric.
 
+## Prevention / Rule
+**Guardrail:** A schema-review checklist rule: any two fields that appear symmetric in the requirements doc (here, the PRD's "guarantor, next of kin" phrasing) but are modeled asymmetrically in the schema must have that asymmetry explicitly justified in the design doc before merge — silence about *why* two similar-looking fields differ is itself the defect, independent of whether the asymmetry turns out to be correct.
+
+This is precisely what closed this finding: the asymmetry was fine, but nothing had ever written down why until this review forced the question.
+
 ## Solution
 
 ### Immediate Fix

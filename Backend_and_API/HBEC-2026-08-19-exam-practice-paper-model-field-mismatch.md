@@ -35,6 +35,11 @@ Separately, `ExamPracticePage`'s subject grid rendered `state.user.subjects` (ra
 ## Root Cause
 The mobile `Paper` entity/model's field names were never aligned with the Student backend's actual response shape, so every remote sync threw and silently fell back to an equally-broken cache; and the subject grid screen had no curriculum-sync fallback at all.
 
+## Prevention / Rule
+**Guardrail:** A CI contract test that deserializes a real (or fixture, versioned alongside the backend's spec) `GET /practice/papers/` response through the mobile `PaperModel.fromJson` and fails the build on any missing/renamed field.
+
+Without it, a producer/consumer field mismatch degrades silently into a swallowed exception and a permanently-broken local cache — exactly what happened here, on every single sync, for an unknown period before a user reported the symptom.
+
 ## Solution
 
 ### Immediate Fix

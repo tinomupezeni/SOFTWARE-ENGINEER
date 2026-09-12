@@ -50,6 +50,11 @@ anywhere. The sibling `/papers/manual` endpoint, doing the same
 `app/admin/router.py::generate_admin_paper` called a function that was
 never defined in `upload_pipeline.py`.
 
+## Prevention / Rule
+**Guardrail:** a CI integration test that calls `/papers/generate` end-to-end against a real (or realistically stubbed) DB and asserts a saved `Paper` row with more than zero questions results.
+
+This is the file's own listed-but-unchecked prevention item, formalized as an enforced gate: a broken import or wrong function reference on this exact path would fail CI in seconds instead of failing silently in production for as long as nobody happened to exercise it.
+
 ## Solution
 
 ### Immediate Fix

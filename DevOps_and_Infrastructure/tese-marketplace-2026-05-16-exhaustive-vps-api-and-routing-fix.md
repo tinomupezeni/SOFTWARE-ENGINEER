@@ -53,6 +53,11 @@ This was incorrectly sending frontend requests to the backend store API.
 3. **Mismatched Path Conventions**: Discrepancies between frontend service names (`messaging`) and backend service routes (`chat`).
 4. **Build-Time Variable Omission**: Local deployment scripts and CI/CD workflows were inconsistent in passing `VITE_API_URL` during the `docker build` phase.
 
+## Prevention / Rule
+**Guardrail:** One shared HTTP client module (a single `axios.create({ baseURL })` instance per app) that every feature imports, enforced by an ESLint rule banning a second `axios.create(` call or a hardcoded protocol/host string anywhere else in the codebase.
+
+The recurring failure here wasn't the API URL itself — it was that "the" fix only ever touched one file (`api.ts`) while image upload, analytics, and chat had each quietly rolled their own axios instance. A lint rule that makes a second HTTP client instance a CI failure removes the possibility of a fix being non-exhaustive, rather than relying on a more thorough grep next time.
+
 ## Solution
 
 ### Immediate Fix

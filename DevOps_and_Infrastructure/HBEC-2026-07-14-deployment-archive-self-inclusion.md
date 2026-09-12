@@ -36,6 +36,11 @@ The archive output was created inside the directory being archived. Workflow con
 ## Root Cause
 The deployment archive was generated inside its own source tree without an isolated output path.
 
+## Prevention / Rule
+**Guardrail:** a CI lint check that greps every deployment/release script for `tar`/`zip` invocations and fails if the output path is a descendant of (or equal to) the path being archived — enforced once, at the script-authoring level, rather than relying on each script author remembering to `mktemp -d` first.
+
+This targets the root cause directly: the archive command itself had no isolation between its output and its input, and nothing checked for that before it ran in CI.
+
 ## Solution
 
 ### Immediate Fix

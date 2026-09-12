@@ -51,6 +51,11 @@ design one.
 Design work outpaced implementation for this one entity; nothing enforced
 that all seven documented core objects actually exist in code.
 
+## Prevention / Rule
+**Guardrail:** A CI check that parses `system_design.md`'s "Seven Core Objects" list and asserts each name has a matching class in `backend/app/models.py`, failing the build the moment a documented entity has no ORM counterpart.
+
+This turns "the design doc says Crew exists" into an enforced invariant instead of something only caught by a manual pre-sprint audit.
+
 ## Solution
 
 ### Long-term Fix

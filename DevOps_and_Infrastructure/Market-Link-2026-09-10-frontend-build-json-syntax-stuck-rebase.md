@@ -4,7 +4,7 @@
 **Project:** Market-Link (agromarket)
 **Environment:** Production (agromarketing-vm VPS)
 **Severity:** High
-**Status:** Investigating (root cause confirmed, fix pending owner decision)
+**Status:** Resolved
 
 ## Summary
 The frontend Docker container fails to build/start with an HtmlWebpackPlugin / webpack `ModuleNotFoundError`, ultimately caused by `SyntaxError: Expected double-quoted property name in JSON at position 510` when webpack tries to parse `/app/package.json`. Root cause: the repo on the VPS (`/home/user/Documents/agromarket`) has an **interactive git rebase stuck mid-conflict**, and literal, unresolved git conflict markers (`<<<<<<< HEAD` / `=======` / `>>>>>>>`) are present directly inside `frontend/package.json` and `backend/package.json`, making them invalid JSON. Since docker-compose bind-mounts `./frontend:/app` and `./backend:/app` (live source, not a baked image), the broken working-tree files are exactly what webpack sees inside the container.
@@ -58,15 +58,15 @@ cd /home/user/Documents/agromarket && git status
 ## Root Cause
 An interactive `git rebase` (`main` onto `2c1bbcc`, replaying `9337dfb` and later commits) was started on the VPS and abandoned with conflicts unresolved. Because the frontend/backend containers run against the live bind-mounted working tree, the still-conflicted `package.json` files (containing literal `<<<<<<<`/`=======`/`>>>>>>>` markers) are invalid JSON, which Node's `require`/JSON parser (used internally by webpack/html-webpack-plugin to read the nearest `package.json` as the module "directory description file") rejects — surfacing as the reported `ModuleNotFoundError`/`SyntaxError`.
 
+## Prevention / Rule
+**Guardrail:** A pre-deploy/CI check that fails fast if `git status` shows an in-progress rebase/merge, or a repo-wide grep for `<<<<<<<` finds conflict markers anywhere in the tree — before any build or container recreate is allowed to proceed.
+
+Bind-mounting the live working tree into production containers means a stuck git operation becomes a live application defect, not just an inconvenience — the check needs to run before every deploy, not be discovered by a user-facing build failure.
+
 ## Solution
 
 ### Immediate Fix
-Not applied yet — requires the repo owner to choose how to resolve the rebase, since the conflicts include real semantic differences (React 18 vs 19, differing npm scripts/dependencies) across ~40 files, not just formatting. Options identified:
-1. `git rebase --continue` after manually resolving each conflicted file (correct if both branches' work should be merged).
-2. `git rebase --abort` to return to the pre-rebase state of `main`, if the rebase itself was a mistake or superseded.
-3. `git rebase --skip` the current patch if that specific commit's changes are no longer wanted.
-
-Whichever path is chosen, `frontend/package.json` and `backend/package.json` need `npm install` re-run afterward (to regenerate `package-lock.json` if dependency versions changed) and the containers restarted (`docker compose up -d --build frontend backend`).
+Repo owner (Tino) resolved the conflicts and ran `git rebase --continue` on 2026-09-10 evening. Verified in the 2026-09-11 follow-up session (see `Market-Link-2026-09-11-stale-images-not-rebuilt.md`): `.git/rebase-merge` is gone, no conflict markers remain anywhere in the tree, and both `frontend/package.json` and `backend/package.json` parse as valid JSON. `main` is now a clean fast-forward descendant of `origin/main` (`2c1bbcc`) plus 11 additional local commits.
 
 ### Long-term Fix
 - Never leave an interactive rebase open on a production VPS working tree that is live bind-mounted into running containers — a stuck rebase directly breaks the running app, not just local dev.
@@ -78,7 +78,8 @@ Whichever path is chosen, `frontend/package.json` and `backend/package.json` nee
 - [ ] Document the intended base commit for the `main` rebase so this doesn't get abandoned again
 
 ## Related Issues
-- None on file yet for this project.
+- [[Market-Link-2026-09-11-stale-images-not-rebuilt]] — discovered while investigating a stale-deployment report; confirmed this rebase had completed.
+- [[Market-Link-2026-09-11-react-version-mismatch-frontend-build]] — this rebase's conflict resolution also left `react`/`react-dom` on an incompatible v19, surfaced when the first post-rebase rebuild was attempted.
 
 ## References
 - `docker-compose.yml`: `/home/user/Documents/agromarket/docker-compose.yml`

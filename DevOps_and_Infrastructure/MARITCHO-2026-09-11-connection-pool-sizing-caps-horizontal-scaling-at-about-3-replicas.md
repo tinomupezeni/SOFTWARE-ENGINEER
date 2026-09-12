@@ -66,6 +66,11 @@ existed until now; horizontal scaling wasn't yet a real deployment option
 until this session's containerization work, so the two were never
 reconciled.
 
+## Prevention / Rule
+**Guardrail:** Document the connection-budget formula (`replica_count × (pool_size + max_overflow) ≤ max_connections`) directly alongside the pool-size config, and re-check it explicitly any time either the replica count or the pool size changes.
+
+The original sizing was correct for the single-instance case it was designed for; the gap was that nothing forced a re-check when horizontal scaling became newly possible.
+
 ## Solution
 
 ### Immediate Fix

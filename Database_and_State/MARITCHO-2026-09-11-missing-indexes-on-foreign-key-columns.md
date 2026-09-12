@@ -84,6 +84,11 @@ correctly (types, nullability, FKs, `CheckConstraint`s) but nobody added
 check`, the test suite) would ever catch a missing index, since both only
 verify *correctness*, not query-plan efficiency.
 
+## Prevention / Rule
+**Guardrail:** A migration-review check (a small custom script run in CI, diffing each new `ForeignKey(...)` declaration against `index=True` on the same column) that fails the build when a new FK column ships without an index in the same migration that introduces it.
+
+Postgres never auto-indexes the referencing side of a foreign key — only correctness checks (`alembic check`, tests) existed here, and neither one is capable of catching a missing index, since both verify schema correctness, not query-plan cost.
+
 ## Solution
 
 ### Immediate Fix

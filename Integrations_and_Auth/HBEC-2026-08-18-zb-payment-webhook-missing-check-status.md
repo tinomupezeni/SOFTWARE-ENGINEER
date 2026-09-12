@@ -34,6 +34,11 @@ Reviewed the ZB webhook handler end-to-end: HMAC/signature verification on the i
 ## Root Cause
 Single-source-of-truth-by-webhook: crediting a paid subscription depended entirely on trusting the webhook body's `status` field, with no server-to-server confirmation against ZB.
 
+## Prevention / Rule
+**Guardrail:** A security-review checklist rule, enforced at PR review for any payment integration: no payment/subscription state change may be triggered by a webhook payload field alone — every "paid"-equivalent claim must be independently re-verified via a server-to-server status API call before crediting anything, proven by a synthetic replayed-webhook test (already proposed below).
+
+A signature-valid webhook only proves the request came from the gateway's infrastructure, never that the specific claim inside it is still true — this guardrail is the general form of the fix already applied here.
+
 ## Solution
 
 ### Immediate Fix

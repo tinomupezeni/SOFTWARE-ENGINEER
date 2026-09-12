@@ -41,6 +41,11 @@ Account-level GitHub Actions spending limit/billing issue, external to the codeb
 ## Root Cause
 External: a GitHub account billing/spending-limit block, unrelated to any code in this repository.
 
+## Prevention / Rule
+**Guardrail:** a billing/quota monitoring alert on the GitHub organization account itself (checked proactively, not discovered mid-deploy), paired with a documented, rehearsed manual-deploy runbook as a required deliverable for any project whose only automated deploy path is a single external CI provider.
+
+The code was never the problem here; the gap was having no fallback path ready before the external dependency failed. A runbook written *after* hitting this blind is still valuable, but the guardrail is having it — and the monitoring — in place *before* the provider blocks you.
+
 ## Solution
 
 ### Immediate Fix

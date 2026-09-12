@@ -30,6 +30,9 @@ Confirmed that `chat-api` was using `asyncio.create_task` without importing `asy
 ## Root Cause
 Lack of standardized Python linting and testing across microservices. Developers are adding functionality (like deep health checks or background tasks) without verifying that all symbols are imported, and these errors are not caught until runtime because of a lack of static analysis in the CI/CD pipeline.
 
+## Prevention / Rule
+**Guardrail:** A CI step that runs `ruff check` (unresolved-name/undefined-name diagnostics enabled) against every microservice on every PR, blocking merge on any finding — turning a runtime-only `NameError` into a merge-time failure instead of something only discovered when that exact code path executes in production.
+
 ## Solution
 
 ### Immediate Fix

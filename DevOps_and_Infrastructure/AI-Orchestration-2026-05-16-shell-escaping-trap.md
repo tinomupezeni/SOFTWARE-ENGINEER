@@ -12,6 +12,11 @@ When you run a command via a script that talks to another shell, your command pa
 
 In this incident, the Python code `import urllib.request; ...` contained parentheses and semicolons that were interpreted by **Bash** before they ever reached **Python**. Bash saw the `(` and thought it was a subshell command, leading to the syntax error.
 
+## Prevention / Rule
+**Guardrail:** a code-review/lint checklist item that bans inline multi-line script logic (Python, Bash, etc.) passed as a quoted string across more than one shell boundary (PowerShell → SSH → Bash → Python) in any deployment script — require a checked-in script file inside the target image instead, invoked with a single simple command (`docker exec <container> python healthcheck.py`).
+
+This closes the gap at its source: the failure only exists because logic had to survive translation through four different shells' quoting rules at once. A single in-image script removes three of those four translation layers entirely.
+
 ## The Senior Fix: Standardize the Wrapper
 Avoid passing complex logic through strings across shell boundaries. 
 

@@ -75,6 +75,14 @@ Request failed with status code 502
 
 ---
 
+## Prevention / Rule
+
+**Guardrail:** A CI build step that runs `python manage.py check` (or `python -c "import <project>.settings"`) inside the freshly built image itself, before it's pushed to the registry — failing the build if any import in `settings.py` (or anything it transitively imports) doesn't resolve.
+
+`sentry_sdk` was importable in whatever environment built the previous image and silently absent from the one that replaced it — nothing tied "the image was built successfully" to "the image's own entrypoint can actually import its own settings module." A build-time import check makes that gap fail loudly in CI, long before the container ever reaches production and crash-loops.
+
+---
+
 ## 🔧 Quick Fix Applied (TEMPORARY)
 
 ### What Was Done

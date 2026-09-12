@@ -22,6 +22,11 @@ Immediately following a deployment, both the Admin and Student web frontends sta
    - Additionally, `vps_docker_compose.yml` had hardcoded `test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/')"]` overrides.
 3. **Traffic Routing Failure:** Because the Docker `HEALTHCHECK` received 404s, Docker marked the containers as `unhealthy`. The reverse proxy (Gateway/Traefik) correctly refused to route traffic to unhealthy upstream containers, abruptly closing active connections to the frontends and triggering the browser's `ERR_NETWORK_CHANGED` error.
 
+## Prevention / Rule
+**Guardrail:** whenever a health-check (or any other well-known) path is renamed, grep the entire repository tree for the literal old string — not just the file remembered as "the one that defines it" — as a required step before merging, since a Dockerfile `HEALTHCHECK` instruction and a hardcoded compose override are exactly the kind of pinned literal a normal code search of the application layer misses.
+
+This is the same gap guide 10's gateway-unreachable triage checklist (item 4) was written from — this incident is that item's origin case.
+
 ## Resolution
 1. Updated `ADMIN/adminBackend/Dockerfile` and `STUDENT/hbec_backend/Dockerfile` to hit `/health/live/`.
 2. Updated `STUDENT/Frontend/vps_docker_compose.yml` to hit `/health/live/` in its Python urllib test command.

@@ -69,6 +69,16 @@ proves the caller is the harness, but DRF's throttle machinery doesn't know
 that — it only sees an unauthenticated request from one IP, so it applies
 the same budget meant for public, potentially-abusive anonymous traffic.
 
+## Prevention / Rule
+**Guardrail:** A repo-level test that inspects every DRF view class
+extending `InternalAuthMixin` and asserts it explicitly declares its own
+`throttle_classes`/`throttle_scope` — failing CI if a new internal view is
+added that silently falls through to DRF's default anonymous rate limit.
+
+This turns "HMAC-authenticated views need their own throttle scope" from
+something easy to forget on each new endpoint into something a new
+`InternalAuthMixin` subclass cannot merge without addressing.
+
 ## Solution
 Not applied yet — needs a decision on the right shape (see Prevention).
 Immediate workaround for the bulk-resync task: pace the script well under

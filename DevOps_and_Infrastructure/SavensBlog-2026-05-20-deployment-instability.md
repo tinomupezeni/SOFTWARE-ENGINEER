@@ -24,6 +24,13 @@ VPS QEMU CPU lacks `X86_V2` (SSE4.2). NumPy 1.26+ requires it.
 ### D. PWA Precache Missing Shell
 `vite-plugin-pwa` was configured with `globPatterns: []`, causing the service worker to fail when attempting to serve `index.html` as the app shell.
 
+## Prevention / Rule
+**Guardrail (one per root cause):**
+- **A:** A fail-fast startup check that validates the running container's own hostname/domain is present in `ALLOWED_HOSTS` before accepting traffic, rather than discovering the gap via a live 400.
+- **B:** Pin the base image/CPU target in CI to match the actual deployment host's instruction set (or build against the lowest common denominator), so a library requiring a newer CPU feature fails the build, not the running container.
+- **C:** A lint rule banning `List[str]`-typed `pydantic-settings` fields sourced from plain comma-separated env vars — require either a custom parser or a `str` field parsed manually, decided once per project rather than per service.
+- **D:** A build-time check that fails if `vite-plugin-pwa`'s `globPatterns` doesn't include the app shell (`index.html` plus its core JS/CSS), since an empty precache manifest is a silent, deploy-time-only failure with no local-dev symptom.
+
 ## 3. Resolution Strategy
 
 ### Immediate Live Fix (VPS)

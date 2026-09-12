@@ -74,6 +74,18 @@ apps.curriculum.models.Grade.MultipleObjectsReturned: get() returned more than o
 handled) the moment two exam boards shared a grade code, which is the normal
 case for this platform, not a rare one.
 
+## Prevention / Rule
+**Guardrail:** A code-review/lint rule (grep-based pre-commit check is
+enough) forbidding `Model.objects.get(<field>=...)` on any field that is
+only unique as part of a composite `unique_together`/`UniqueConstraint` —
+route every such lookup through one shared manager method (e.g.
+`Grade.objects.get_scoped(code=..., exam_board=...)`) that requires the
+full constraint's fields.
+
+`Grade.code` is unique only per exam board, by explicit `unique_together`
+design — this guardrail makes that constraint impossible to violate at the
+call site, instead of relying on every future caller remembering it.
+
 ## Solution
 
 ### Immediate Fix

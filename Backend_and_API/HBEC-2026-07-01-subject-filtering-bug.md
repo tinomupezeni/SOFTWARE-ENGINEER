@@ -40,6 +40,11 @@ python manage.py shell -c "from apps.curriculum.models import Subject; print(lis
 ## Root Cause
 Strict filtering by `grade_code` without accounting for level-wide subjects (`grade_code=""`) resulted in an empty queryset for students who had assigned grades, breaking downstream frontend components.
 
+## Prevention / Rule
+**Guardrail:** A CI regression test that seeds one level-wide subject (`grade_code=""`) alongside grade-specific ones and asserts every subject-list code path — authenticated and guest — returns both.
+
+`grade_code=""` acting as a wildcard is a real but non-obvious business rule with nothing in the schema stating it; a test that encodes the rule directly is what stops a future filter rewrite from silently reintroducing strict-equality-only matching.
+
 ## Solution
 
 ### Immediate Fix

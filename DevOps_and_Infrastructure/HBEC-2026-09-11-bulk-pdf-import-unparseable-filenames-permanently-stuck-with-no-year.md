@@ -45,6 +45,7 @@ manually re-trigger extraction themselves.
 Net effect: a file with no parseable year now gets ingested immediately
 like every other file in the batch, flagged in its own title for a
 curator to fix the real year later, instead of sitting untouched.
+
 `launch_ingestion_pipeline`'s year-guard (the previous fix) stays in
 place as a safety net for any other path that might still produce a
 genuinely `None` year (a hand-written CSV/JSON/ZIP row that omits the
@@ -92,6 +93,11 @@ during the original batch review, not a year problem).
 validator's range, not just picked because it "looks obviously fake" —
 1900 reads as an obvious placeholder to a human, but the harness's schema
 doesn't know that, it only knows `1990 <= year <= 2100`.
+
+## Prevention / Rule
+**Guardrail:** Any sentinel/placeholder value substituted for missing data must be validated against every downstream consumer's actual accepted range before being hardcoded — not chosen merely because it "looks obviously fake" to a human reader.
+
+This is the file's own conclusion above: 1900 read as an obvious placeholder, but the harness's schema only accepts 1990–2100, so the first fix failed for a different reason than the bug it was fixing.
 
 ## Related Issues
 - Direct continuation of the two immediately-preceding entries from the

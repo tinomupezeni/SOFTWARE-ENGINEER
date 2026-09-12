@@ -18,6 +18,11 @@ Immediately following the resolution of the Catalog API crash loop, users report
 1. **JWT Secret Mismatch:** The `store-api` Orchestrator was not receiving the `JWT_SECRET_KEY` in its environment. It was using a default dev secret to verify production tokens signed by the `auth-api`, leading to signature verification failures.
 2. **Missing Feature Extraction:** The `/api/addresses` functionality had not yet been implemented in the newly extracted `order-api` microservice, and the Orchestrator lacked a routing entry for the "addresses" service name.
 
+## Prevention / Rule
+**Guardrail (JWT secret):** Every service performs a fail-fast startup check that refuses to boot if `JWT_SECRET_KEY` is unset, empty, or equal to a known dev/placeholder value — instead of silently falling back to a default secret that can't verify tokens signed elsewhere with the real one.
+
+**Guardrail (missing route):** A contract test enumerating every API path called anywhere in the frontend codebase, asserting the Orchestrator's `SERVICE_MAP` has a matching entry for each — so a newly extracted microservice can't ship without its route existing (the file's own note that UATT Sentinel contract testing was integrated afterward is exactly this mechanism).
+
 ## Solution
 
 ### 1. Identity Verification Fix

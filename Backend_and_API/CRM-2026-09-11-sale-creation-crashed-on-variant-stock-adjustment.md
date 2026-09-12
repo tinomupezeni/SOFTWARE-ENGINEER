@@ -18,6 +18,11 @@ While adding backend test coverage for `sales/services.py` and `products/service
 ## Root Cause
 `StockMovement` and `ProductVariant.quantity_in_stock` were added to support per-variant stock tracking, but `ProductService.adjust_stock()` was never updated to accept or act on a variant — only the two call sites (`SaleService.create_sale`, and partially `ProductViewSet.adjust_stock`) were updated to *assume* variant support existed.
 
+## Prevention / Rule
+**Guardrail:** Add static type checking (mypy) over the service layer, with real type hints on functions like `adjust_stock`, as a required (branch-protected) CI check — not just present, but blocking merge.
+
+A call site passing `variant=` to a function that doesn't declare it is exactly what a type checker flags at commit time. The deeper failure here was that an existing regression test (`test_create_sale`) apparently didn't block the merge that shipped this — branch protection on the CI gate matters as much as the test's existence.
+
 ## Solution
 - `ProductService.adjust_stock()` now accepts an optional `variant=None`. When given, it adjusts `variant.quantity_in_stock` (the specific sellable SKU) instead of the parent product's count, and stamps `StockMovement.variant`. Without one, behavior is unchanged.
 - `ProductViewSet.adjust_stock` now resolves the `variant` id from the request into a `ProductVariant` instance and passes it through.

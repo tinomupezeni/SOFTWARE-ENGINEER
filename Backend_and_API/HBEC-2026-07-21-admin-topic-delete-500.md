@@ -47,6 +47,11 @@ The view `TopicDetailView` in `apps/curriculum/views.py` was attempting to optim
 ## Root Cause
 The `TopicDetailView` queryset was misconfigured with invalid related fields (`release` and `objectives`) for Django's ORM optimization methods (`select_related` and `prefetch_related`). When DRF called `self.get_object()` during the `destroy` method, Django attempted to execute the invalid ORM query and crashed with a 500 error.
 
+## Prevention / Rule
+**Guardrail:** A CI test suite that exercises every ViewSet's full CRUD cycle (list, retrieve, create, update, delete) against real model instances.
+
+Django only validates `select_related`/`prefetch_related` field names when the queryset is actually evaluated — a static check can't catch it. A test that actually calls `DELETE` (and every other action) against a real object is what surfaces an invalid ORM field before a real user's delete request does.
+
 ## Solution
 
 ### Immediate Fix

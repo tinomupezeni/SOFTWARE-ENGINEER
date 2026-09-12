@@ -57,6 +57,20 @@ frontend change to actually display the new shape, because the one
 component that *did* handle it (`PracticeQuestion.tsx`) isn't the one
 mounted on the real route.
 
+## Prevention / Rule
+**Guardrail:** Whenever a backend response shape changes (a field
+restructured, a new field populated instead of an old one), require a
+snapshot/contract test in the same PR that feeds a real captured API
+response — not a mock shaped to whatever the frontend already expects —
+through the actual route-mounted component (`QuestionPaper`/`QuestionDisplay`
+here, not any component that happens to implement the right logic), and
+asserts the rendered output is non-empty for every populated field.
+
+This closes the exact gap: the correct rendering logic already existed in
+`PracticeQuestion.tsx`, but nothing proved the component actually mounted
+on `/practice/:paperId` used it — a contract test against the real route
+would have failed immediately instead of shipping to ~27% of papers.
+
 ## Solution
 
 ### Immediate Fix

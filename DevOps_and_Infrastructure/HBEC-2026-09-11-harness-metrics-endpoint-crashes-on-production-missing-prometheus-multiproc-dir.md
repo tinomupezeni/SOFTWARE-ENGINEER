@@ -39,6 +39,18 @@ does, or staging's request pattern doesn't hit this path — the error does
 not appear in staging's logs at all). So every `/metrics` scrape against
 production 500s.
 
+## Prevention / Rule
+**Guardrail:** A unit test that calls the `/metrics` route handler directly
+in both configurations — `PROMETHEUS_MULTIPROC_DIR` set and unset — and
+asserts a 200 in each, run in CI so it covers every environment's actual
+config combination, not just whichever one a developer's local machine
+happens to have set.
+
+This route had never been exercised in the unset-env-var state its own
+docstring describes as safe; a test in that exact configuration would have
+failed immediately instead of shipping a route that only worked by
+accident of which environment happened to test it.
+
 ## Symptoms
 No functional impact confirmed — this is scoped to the `/metrics` route
 handler only, caught by Starlette's error middleware per-request; `/health`

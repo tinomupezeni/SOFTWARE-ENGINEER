@@ -16,6 +16,11 @@
 ## Root Cause
 A partial/corrupted `node_modules` was committed to git despite `.gitignore` excluding `node_modules/`, most likely from a `git add -f` or an editor/tool that bypassed the ignore rule. Because it's tracked, a fresh `npm install` doesn't fully repair it (npm considers already-present tracked files as satisfying the dependency) until those specific package directories are removed and reinstalled individually.
 
+## Prevention / Rule
+**Guardrail:** A pre-commit hook (or CI job) that runs `git ls-files | grep node_modules` and fails the commit/build if it returns anything.
+
+`.gitignore` only stops `git add` from picking a path up on its own — it does nothing once something has been force-added (`git add -f`) or committed by a tool that bypasses it. A check that inspects the tracked file list directly, rather than trusting the ignore rule, catches this regardless of how the stray files got there.
+
 ## Solution
 
 ### Workaround (used this session)

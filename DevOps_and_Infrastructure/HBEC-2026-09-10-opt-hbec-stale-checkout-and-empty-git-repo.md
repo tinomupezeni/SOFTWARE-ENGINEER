@@ -62,6 +62,16 @@ Operational drift: at some point files were placed at `/opt/hbec` (likely an
 early manual setup step) and never cleaned up as the deploy model matured
 into "pull a prebuilt tagged image, no local build context needed."
 
+## Prevention / Rule
+**Guardrail:** A scheduled script that SSHes to each documented deployment
+path and diffs the real directory listing against what `CLAUDE.md` claims
+should be there, alerting on any mismatch instead of relying on someone
+running a manual `ls` during an unrelated audit.
+
+This is a direct instance of docs describing a state that quietly stopped
+being true — an automated check is the only thing that catches that drift
+before the next person trusts the stale description.
+
 ## Solution
 
 ### Immediate Fix

@@ -80,6 +80,18 @@ ingestion pipeline runs asynchronously via Celery with no user-visible
 error surface, this was invisible until someone actually tried to extract
 a paper.
 
+## Prevention / Rule
+**Guardrail:** A pre-flight deploy check that compares every running
+container's build/git-sha label against the migration state of the
+database it connects to, and refuses to consider a deploy complete if any
+service sharing that database is still running code from before the
+migration's introducing commit.
+
+This directly closes the gap: a piecemeal deploy that migrates the schema
+without rebuilding every consumer of that schema would fail the check
+immediately instead of surfacing as a silent Celery retry-loop nobody sees
+until a user notices a stuck draft.
+
 ## Solution
 
 ### Immediate Fix

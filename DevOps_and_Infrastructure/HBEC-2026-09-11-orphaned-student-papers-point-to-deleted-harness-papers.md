@@ -72,6 +72,18 @@ retracting downstream copies; this is about a downstream copy surviving
 after its harness source is already gone, with no mechanism to detect or
 clean it up.
 
+## Prevention / Rule
+**Guardrail:** A scheduled consistency check that queries every student
+`Paper` row with a non-empty `harness_paper_id`, confirms a live row exists
+on the harness side for each, and alerts on any orphan count above zero —
+run on the same cadence as the bulk resync, not discovered only when a user
+happens to spot-check the one paper that regressed.
+
+This is the general cross-service replication gap (see guide 22) in its
+"survives after the source is gone" direction — a periodic reconciliation
+job is what turns "found by a lucky spot-check" into "found automatically,
+every time."
+
 ## Solution
 
 ### Immediate Fix

@@ -129,6 +129,11 @@ The nginx gateway container's configuration was correct on disk but not loaded i
 **Additional Issue:**
 - Registry prefix mismatch: built images with `tinomupezeni/*` prefix but `docker-compose.vps.yml` referenced `tinotenda762/*` images
 
+## Prevention / Rule
+**Guardrail (routing swap):** Make `nginx -t && nginx -s reload` an explicit, logged step in the deploy script every time a config file changes — never assume a file touching disk means it's loaded — followed by a Host-header curl check against each domain that asserts the expected page title before the deploy is considered done.
+
+**Guardrail (Vite env vars):** A CI/build-time check that greps the built frontend bundle for `localhost` immediately after `vite build` and fails the pipeline if found. Since Vite bakes `VITE_*` values in at build time, only inspecting the actual compiled artifact — not the Dockerfile source, which can look correct while a build-arg is still missing — catches a stale build before it ships.
+
 ## Solution
 
 ### Fix 1: Domain Routing Swap

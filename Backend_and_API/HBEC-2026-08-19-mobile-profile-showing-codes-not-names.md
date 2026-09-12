@@ -34,6 +34,11 @@ Separately, `PersonalizationCubit.loadOptions()` had a real, silent bug: `getPer
 ## Root Cause
 Missing fields (`examBoardCode`, `grade`, `gradeName`) on the mobile `User` model meant the profile page only ever had codes to display, and a real silent bug in `PersonalizationCubit.loadOptions` dropped the `grade` parameter needed to resolve grade-scoped subject names even for the one path that did try.
 
+## Prevention / Rule
+**Guardrail:** Make `getPersonalizationOptions`'s parameters required (or wrap them in a dedicated request object with no defaults) instead of optional named parameters that are easy to forget to forward.
+
+An optional param silently defaulting away is exactly how `grade` got dropped on the one call site that needed it — a required parameter turns "forgot to forward it" into a compile error instead of a silently wrong result.
+
 ## Solution
 
 ### Immediate Fix

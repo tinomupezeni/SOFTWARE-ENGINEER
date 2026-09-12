@@ -40,6 +40,11 @@ docker ps -a | grep hbec-admin-frontend
 ## Root Cause
 An interrupted deployment or `docker compose` update left the `hbec-admin-frontend` container in a `Created` state instead of starting it.
 
+## Prevention / Rule
+**Guardrail:** replace `docker compose up -d` with `docker compose up -d --wait` in every deploy script, which blocks and fails the deploy if any service doesn't reach a confirmed `running`/healthy state — instead of returning immediately once containers are merely `Created`.
+
+This directly closes the gap that let the deploy report success while the frontend container never actually started.
+
 ## Solution
 
 ### Immediate Fix

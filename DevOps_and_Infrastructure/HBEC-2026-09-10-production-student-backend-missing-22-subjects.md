@@ -62,6 +62,18 @@ subjects never mirrored to Student Backend. Cause not identified precisely
 (no error trail from whenever it happened), but the effect was silent and
 indefinite — nothing surfaces a missing subject until content references it.
 
+## Prevention / Rule
+**Guardrail:** A scheduled (or pre-promotion-gate) reconciliation job that
+diffs canonical-entity counts (subjects, grades, exam boards) between Admin
+and Student Backend and alerts on any drift, plus a bounded retry on the
+stream consumer instead of an immediate ACK-and-drop on `DoesNotExist`.
+
+Either half alone would have prevented this from staying silent for months:
+the reconciliation job surfaces the gap directly instead of waiting for a
+migration to trip over it, and a bounded retry would have let an
+already-in-flight message self-heal once `republish_canonical` (or the
+missing row) eventually arrived.
+
 ## Solution
 
 ### Immediate Fix

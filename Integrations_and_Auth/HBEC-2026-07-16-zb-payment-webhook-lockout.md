@@ -44,6 +44,11 @@ docker exec hbec-payments curl -s http://admin-backend:8000/_internal/settings/p
 ## Root Cause
 The webhook configuration (`paynowResultUrl`) in the production database was incorrectly pointing to `localhost:7004` instead of the public production domain. This caused ZB Bank to fail when attempting to send the background confirmation webhook, leaving payments permanently in the `PENDING` state.
 
+## Prevention / Rule
+**Guardrail:** A fail-fast startup/config validator that rejects `localhost`/`127.0.0.1`/private-IP values for any externally-facing webhook/callback URL setting whenever the environment is production — refuse to boot rather than silently accept a URL that can never receive real external traffic.
+
+This is the same fail-fast-on-bad-config principle already used elsewhere in HBEC for missing secrets; extending it to "externally-reachable URL, not just present" would have caught this at deploy time instead of at the first paying user's lockout.
+
 ## Solution
 
 ### Immediate Fix

@@ -34,6 +34,11 @@
 - Orchestrator logs show successful JWT validation and request forwarding.
 - Frontend no longer triggers immediate logouts.
 
+## Prevention / Rule
+**Guardrail (JWT secret drift):** A fail-fast startup check in every service that validates JWTs — refuse to boot if `JWT_SECRET_KEY` is unset or empty, rather than silently accepting requests it can never actually verify. This is the same JWT-secret-omission bug already logged in `2026-05-22-production-auth-loop-and-address-fix.md`, recurring days later across a *different* set of services in the same compose file — evidence this needs to be a per-service boot-time check, not something remembered per-service when it's added to Compose.
+
+**Guardrail (remote YAML/env corruption):** Always write remote config files via a quoted heredoc (`cat <<'EOF' > .env`), never an unquoted one — an unquoted heredoc lets the local shell expand `$VARS` before the content ever reaches the remote file, corrupting exactly the kind of placeholder values (`${JWT_SECRET_KEY}`) this incident's root cause depended on.
+
 ## Prevention & Lessons Learned
 - Exhaustive Variable Mapping: Every microservice that validates JWTs MUST have the JWT_SECRET_KEY explicitly passed in the Compose file.
 - TDD for Imports: Ensure all routes are covered by basic startup tests to catch missing imports before deployment.

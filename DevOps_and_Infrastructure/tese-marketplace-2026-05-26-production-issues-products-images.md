@@ -91,6 +91,11 @@ products.primary_image_url: NULL (all rows)
 
 ---
 
+## Prevention / Rule
+**Guardrail:** A framework/ORM cutover (Django → FastAPI, in this case) may not go live until an idempotent, version-controlled migration script has actually moved every legacy table's rows across — gated by a check asserting `SELECT count(*) FROM new_table` matches the legacy table's row count before the old service is decommissioned or its route is repointed.
+
+The two symptoms here (empty products, missing images) were really one root cause: the cutover shipped with no migration mechanism at all, so nothing moved the data — a schema existed, but nothing populated it. A row-count-parity check at cutover time would have failed loudly before this ever reached production, instead of silently serving an empty catalog.
+
 ## ⚠️ Initial Band-Aid Fixes (Applied Temporarily)
 
 These were quick fixes to restore service but would NOT survive a redeploy:

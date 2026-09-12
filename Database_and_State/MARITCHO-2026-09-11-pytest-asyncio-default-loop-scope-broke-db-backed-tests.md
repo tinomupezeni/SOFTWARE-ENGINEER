@@ -53,6 +53,11 @@ No prior test infrastructure existed to surface this; it's an inherent
 conflict between "one shared async engine for the app" and "a fresh event
 loop per test" unless the loop scope is explicitly aligned.
 
+## Prevention / Rule
+**Guardrail:** A config-presence check (lint rule or a one-line CI assertion) that fails if a codebase has a module-level, process-lifetime async engine/connection pool but `pyproject.toml` doesn't explicitly set both `asyncio_default_fixture_loop_scope` and `asyncio_default_test_loop_scope` — never rely on `pytest-asyncio`'s per-function default when a shared async resource exists.
+
+This is the exact structural mismatch that broke every test after the first: one process-lifetime engine, a fresh event loop per test by default, and nothing forcing the two to agree until this session hit it directly.
+
 ## Solution
 
 ### Long-term Fix

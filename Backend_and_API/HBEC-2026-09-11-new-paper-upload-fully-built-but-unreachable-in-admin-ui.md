@@ -69,6 +69,16 @@ this feature area (Bulk Import, Generate AI Paper) has a button on
 `ExamPracticeAdminPage`; the plain single-PDF-upload create flow never
 got one.
 
+## Prevention / Rule
+**Guardrail:** A CI check that greps every exported `use*Create*` hook (or
+equivalent mutation hook) across the frontend and fails the build if it has
+zero callers anywhere in the page tree — exactly the manual `grep -rln
+useCreatePaper` check that surfaced this bug, run automatically on every PR.
+
+A hook with zero callers is definitionally unreachable UI; catching that
+structurally at CI time means a fully-built, never-wired feature can't sit
+undetected until someone happens to ask "where's the button for this."
+
 ## Solution
 
 ### Immediate Fix

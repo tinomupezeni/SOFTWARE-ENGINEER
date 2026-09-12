@@ -25,6 +25,11 @@ The system uses a **Caddy -> Nginx -> Django** architecture.
 4. **Django** (with SECURE_SSL_REDIRECT = True) saw X-Forwarded-Proto: http and issued a 301 Redirect to https.
 5. This created an infinite loop as the redirect was again processed by Nginx and downgraded to http internally.
 
+## Prevention / Rule
+**Guardrail:** A post-deploy smoke test that requests a URL through the full proxy chain (Caddy → Nginx → Django) exactly as a browser would, and asserts the response is not a redirect back to the same URL — with a hard limit (e.g. `curl --max-redirs 2`) so a loop fails the smoke test instead of hanging.
+
+This is the same class of bug the guide's "False-Positive Trap" already names: a shallow, single-hop health check can't see a multi-tier proxy chain silently rewriting `X-Forwarded-Proto` at each hop. Only a check that traverses the whole chain end-to-end would have caught this before users hit it.
+
 ## Resolution
 Implemented **Protocol Transparency** in the Nginx configuration. Instead of hardcoding the local scheme, Nginx now preserves the protocol from the outer proxy (Caddy) while maintaining a fallback for direct access.
 

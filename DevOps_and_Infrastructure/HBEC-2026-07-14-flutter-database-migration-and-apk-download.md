@@ -37,6 +37,11 @@ The Flutter mobile application experienced recurring crashes on Android 15 devic
 - Mobile crashes were caused by native binary incompatibilities in the `isar` NoSQL database package on newer Android versions.
 - The web app download failure was caused by a missing volume mount in `docker-compose.yml`, causing Nginx to fallback to the SPA `index.html` for unknown routes.
 
+## Prevention / Rule
+**Guardrail:** an automated post-deploy check that `curl -I`s every advertised static download link (e.g. `/downloads/*.apk`) and asserts both a non-HTML `Content-Type` and a byte size above a sane floor — catching a missing volume mount immediately instead of waiting for a user's failed download to report it.
+
+This covers the APK-download root cause specifically; the Isar/Android-15 native-binary incompatibility is a separate class of problem (an SDK/dependency choice, not a config gap) that a single guardrail here can't also close — it needs real-device testing before release, not a deploy-time check.
+
 ## Solution
 
 ### Immediate Fix

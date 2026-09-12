@@ -50,6 +50,17 @@ probitasadmin.restksolutions.co.zw {
 ## Root Cause
 The reverse proxy (Caddy) is missing a dedicated handle for the WebSocket path (/ws/*), causing these requests to be incorrectly routed to the frontend service instead of the Daphne ASGI backend.
 
+## Prevention / Rule
+**Guardrail:** A pre-deploy config lint that greps every Caddyfile/nginx
+config block for a service using Django Channels/Daphne (ASGI) and fails if
+that block has no explicit `/ws/*` (or equivalent) handle — reverse-proxy
+routes for a service must be generated from one template that always
+includes the WebSocket path, not hand-added per domain.
+
+This targets the root cause directly: the handle wasn't wrong, it was
+simply absent, and nothing checked that every ASGI-backed domain's proxy
+config actually declared one.
+
 ## Solution
 
 ### Immediate Fix

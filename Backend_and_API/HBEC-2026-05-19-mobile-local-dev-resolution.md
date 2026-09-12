@@ -38,6 +38,11 @@ pm run android command and db logcat. Found the app was successfully installed 
 ## Root Cause
 Configuration defaults were set to production without a local override strategy, combined with missing network bridging between the Android guest and host machine.
 
+## Prevention / Rule
+**Guardrail:** A startup assertion in the app's config loader that fails loudly — printed to the console/crash screen immediately, before any network call — whenever a development build resolves its API base URL to a production domain.
+
+That single check turns "hangs forever at 100% bundling because a dev build is silently pointed at a production endpoint the emulator can't reach" into an instant, obvious error instead of a silent stall someone has to debug from scratch.
+
 ## Solution
 
 ### Immediate Fix

@@ -84,6 +84,19 @@ was never built — the matching/ranking machinery was built assuming the
 data source would eventually be populated by something, and that something
 was never written.
 
+## Prevention / Rule
+**Guardrail:** Any backlog item introducing a "computed" field that another
+system depends on (a ranking score, a reputation value, an aggregate) must
+name its recompute trigger explicitly in its acceptance criteria — on which
+event, via which code path — before it can be marked DONE, and its test
+suite must assert the value actually changes after that triggering event,
+not just that it has a correct default at creation.
+
+CORE-003/CORE-004 both shipped and were verified end-to-end without this
+gap surfacing precisely because no test ever asserted on post-completion
+standing values — only ever on the default. A recompute-trigger
+requirement in the acceptance criteria closes exactly that blind spot.
+
 ## Solution
 
 ### Immediate Fix

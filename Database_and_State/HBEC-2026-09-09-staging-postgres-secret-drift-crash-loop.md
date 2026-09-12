@@ -66,6 +66,11 @@ Postgres only applies `POSTGRES_PASSWORD_FILE` at first `initdb` — never on re
 ## Root Cause
 `.env.staging` was never updated when the real secret files under `docker/secrets/` were generated (2026-08-03), leaving generic placeholder passwords in the env file that no longer matched the actual secrets docker-compose feeds into the database containers via `*_FILE` env vars. This was invisible for weeks because nothing restarted the affected containers. For `harness-db` specifically, the drift is deeper than a config mismatch: the database's own initialized password predates even the secret file's last rotation, so the live role password had to be fixed directly, not just the surrounding config.
 
+## Prevention / Rule
+**Guardrail:** A scheduled probe that connects to each database over the real service network path (not loopback, which `pg_hba.conf` can trust unconditionally) using the current `.env`/secret-file value, alerting on auth failure — plus a hard rule that rotating any file under `docker/secrets/` and updating the corresponding `.env`/`.env.staging` value must land in the same change, including an `ALTER ROLE` for any already-initialized database whose role predates the rotation.
+
+This directly closes the gap that let the drift sit invisible for five weeks: nothing restarted the containers, so nothing ever tried the real credential until this deploy happened to.
+
 ## Solution
 
 ### Immediate Fix

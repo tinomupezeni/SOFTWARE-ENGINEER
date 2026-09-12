@@ -35,6 +35,11 @@ Admins were able to successfully create new Subject Topics from the frontend das
 ## Root Cause
 A copy-paste typo in the Django `TopicListCreateView.get_queryset()` method included `.select_related("release")` for the `Topic` model, which does not have a `release` foreign key.
 
+## Prevention / Rule
+**Guardrail:** Same fix as this bug's sibling incident (`2026-07-21-admin-topic-delete-500.md` — an identical `.select_related("release")` typo on a different view): a CI test suite that exercises every ViewSet action against real model instances.
+
+A single test run covering both `TopicListCreateView` and `TopicDetailView` would have caught both from one source, instead of each being discovered independently, in production, on the same day.
+
 ## Solution
 
 ### Immediate Fix

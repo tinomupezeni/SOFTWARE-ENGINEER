@@ -57,6 +57,21 @@ every other failure path in this function already produces.
 2. `_extract_json()`'s fallback `json.loads()` had no exception handling of
    its own.
 
+## Prevention / Rule
+**Guardrail:** A parametrized test that runs every `question_type` enum
+value through the token-budget estimator and asserts the budget stays under
+the model's real max-output-token ceiling, plus a code-review rule that any
+"best-effort recovery" parser call (a second `json.loads()`, a regex
+fallback, etc.) must be wrapped in its own try/except — a recovery path is
+not exempt from needing its own failure handling just because it already
+lives inside another `except` block.
+
+This closes both halves of the root cause directly: the first guardrail
+would have failed the moment "structured" was added without a
+type-specific budget, and the second would have caught the unguarded
+fallback `json.loads()` before it could crash the ASGI app on a truncated
+response.
+
 ## Solution
 
 ### Immediate Fix

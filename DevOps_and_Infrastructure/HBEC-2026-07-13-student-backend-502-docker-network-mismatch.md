@@ -22,6 +22,11 @@ Similar to the admin backend issue on 2026-07-10, the student backend and harnes
 ## Root Cause
 When the containers were restarted (likely during the recent Redis/PgBouncer fixes), `student-backend` and `harness` were only attached to `hbec_hbec-network`. The `student-frontend` was on `hbec_app-net`. Because they were not on a shared network, Docker DNS failed to resolve the hostnames.
 
+## Prevention / Rule
+**Guardrail:** the same automated post-recreate network-membership check named in the 2026-07-10 admin-backend incident (compare every service's actual attached networks against the production compose file, fail the deploy on mismatch) — but run against **every** service in the compose file on every restart, not just whichever one broke last.
+
+This is the identical defect recurring on a sibling service three days after the first occurrence — proof that fixing it once, for one service, isn't enough; the check has to cover the whole compose file from the start.
+
 ## Solutions Implemented
 
 ### Immediate Fix

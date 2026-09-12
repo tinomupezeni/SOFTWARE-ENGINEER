@@ -61,6 +61,19 @@ Neither student authentication view ever called Django's
 `update_last_login`, so the field was never written regardless of login
 volume or method.
 
+## Prevention / Rule
+**Guardrail:** Centralize token issuance for every successful login (email,
+Google, any future provider) through one shared helper —
+`issue_tokens_for_login(user)` — that itself calls `update_last_login`, so
+no individual auth view can issue tokens without it. Back it with one
+parametrized test that runs against every registered login entry point.
+
+This bug recurred (admin, then student, independently) precisely because
+each auth entry point re-implements "log the user in" from scratch. Routing
+every login path through one chokepoint makes skipping `update_last_login`
+structurally impossible rather than something each new view has to
+remember.
+
 ## Solution
 
 ### Immediate Fix

@@ -43,6 +43,11 @@ The migration from a standalone backend to a monorepo architecture encountered m
 ## Root Cause
 The primary cause was a combination of environment variable parsing ambiguity (special characters in DB passwords), monorepo naming drift between the stack and the global proxy, and platform-specific behavior (line endings and localhost resolution).
 
+## Prevention / Rule
+**Guardrail:** URL-encode every secret/credential through one shared helper function before it's ever interpolated into a connection string or config file — make that helper the *only* sanctioned way to build a `DATABASE_URL`, never a hand-written f-string/concatenation.
+
+The most severe symptom here (`could not translate host name '1234@db'`) came from a raw `@` in a password breaking the URL parser — a class of bug that's silent until someone picks a password containing a reserved URL character. Routing every credential through one encoding helper removes the possibility entirely, rather than relying on remembering to encode it each time.
+
 ## Solution
 
 ### Immediate Fix

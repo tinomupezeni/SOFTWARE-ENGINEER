@@ -47,6 +47,17 @@ broader "dev tooling never installed" finding).
 Missing `[tool.ruff.lint.flake8-bugbear]` configuration; no one had run
 `ruff` against this codebase before to notice.
 
+## Prevention / Rule
+**Guardrail:** Require `ruff check .` to actually run in CI starting from
+the same commit that adds `ruff` to `pyproject.toml` — a lint tool declared
+as a dev dependency but never executed against the codebase provides zero
+signal, whatever its configuration claims.
+
+This is the same "Potemkin tooling" gap named in the companion
+`2026-09-11-dev-tooling-never-installed.md` finding: the missing
+`extend-immutable-calls` entry was invisible for exactly as long as nobody
+ran the tool it belongs to.
+
 ## Solution
 
 ### Long-term Fix

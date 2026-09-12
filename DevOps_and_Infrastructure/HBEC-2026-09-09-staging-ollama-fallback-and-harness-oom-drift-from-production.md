@@ -61,6 +61,17 @@ Staging's `docker-compose.staging.yml` resource limits for `ollama` and
 `UVICORN_WORKERS`/model — plain environment drift, not a deliberate
 "staging is lighter" choice.
 
+## Prevention / Rule
+**Guardrail:** A scheduled (or pre-promotion) script that diffs every
+shared service's resource limits (`mem_limit`, `cpus`) between
+`docker-compose.staging.yml` and `docker-compose.production.yml`, and
+alerts on any gap that isn't explicitly documented as intentional.
+
+This targets the root cause directly: the drift here wasn't a deliberate
+"staging is lighter" decision, it was an update to production that never
+got mirrored to staging — a diff check catches exactly that class of
+silent divergence before it OOM-kills a container under real load.
+
 ## Solution
 
 ### Immediate Fix

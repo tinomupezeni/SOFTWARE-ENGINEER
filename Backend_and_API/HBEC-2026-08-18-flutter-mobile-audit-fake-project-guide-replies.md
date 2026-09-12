@@ -37,6 +37,11 @@ Read every feature package end-to-end under `lib/features/`, comparing what each
 ## Root Cause
 The chat send path was original scaffolding (a `Future.delayed` + hardcoded string) that was meant to be temporary during early UI development and was never wired to the real streaming endpoint before shipping.
 
+## Prevention / Rule
+**Guardrail:** A code-review/PR-template checklist item requiring the author to name the real backend call every new repository/data-source method makes — plus a simple static check flagging any method whose body contains `Future.delayed` with no other async I/O call.
+
+That's the exact shape of a placeholder implementation that can silently ship as "finished" — a mechanical check for it catches what a demo or manual click-through won't, since the mock reply always "succeeds."
+
 ## Solution
 
 ### Immediate Fix

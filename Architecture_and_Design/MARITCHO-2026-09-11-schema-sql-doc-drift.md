@@ -52,6 +52,11 @@ with it.
 No process ties `docs/architecture/schema.sql` to the Alembic migration
 history, so it silently rotted as the real schema evolved.
 
+## Prevention / Rule
+**Guardrail:** Generate `docs/architecture/schema.sql` automatically in CI from `pg_dump --schema-only` against the Alembic-migrated database (or delete the hand-maintained file entirely and point engineers at `alembic history`) rather than hand-maintaining a duplicate.
+
+A generated artifact cannot drift from the migrations that produced it the way a manually-edited reference file did here — the file's own Prevention checklist already floats this as the real long-term answer.
+
 ## Solution
 
 ### Long-term Fix

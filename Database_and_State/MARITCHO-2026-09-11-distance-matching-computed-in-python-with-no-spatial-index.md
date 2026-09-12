@@ -65,6 +65,11 @@ was first built (see the same day's earlier crew-hire/matching work),
 correct for the stated pilot scope, worth flagging now since the user is
 explicitly asking about scalability limits.
 
+## Prevention / Rule
+**Guardrail:** A trackable backlog item with an explicit numeric/scale trigger condition (`BACK-008`), plus an inline comment at the exact decision point, rather than an implicit "we'll remember this is fine for now."
+
+That's what actually converts a silently-expiring judgment call into something that resurfaces on its own terms once the stated condition is met, instead of being rediscovered from scratch — or missed entirely — once real load arrives.
+
 ## Solution
 
 ### Immediate Fix

@@ -44,6 +44,21 @@ No `-beat` or `-worker` container anywhere in the list — not running, not stop
 ## Root Cause
 Whatever process stood up `zchpc-hbca-vps` never deployed the `admin-beat`/`admin-worker`/`student-beat`/`student-worker` services that the replication pipeline requires, and nothing has caught the absence since — the rest of the stack runs fine without them, so there's no crash or error, just permanently stale content.
 
+## Prevention / Rule
+**Guardrail:** A per-environment inventory check — run on a schedule and as
+a pre-promotion gate — that asserts every environment running this
+application shows the full expected set of service roles in `docker compose
+ps` (backend, frontend, beat, worker, for both Admin and Student), not just
+that the containers which exist are healthy. Pair it with an alert on
+`StreamOutbox` backlog age/size so a missing or stalled consumer is visible
+directly, instead of only discoverable as a side effect of an unrelated
+data fix.
+
+This is the exact gap here: nothing ever asserted this host's container
+list was *complete* — only that whatever was running was healthy — so an
+entire missing service class produced no error, no alert, and no crash,
+just silently stale data indefinitely.
+
 ## Solution
 
 ### Immediate Fix (workaround, not a real fix)

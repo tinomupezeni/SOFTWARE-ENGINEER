@@ -66,6 +66,11 @@ categorical columns (`trade`, `status`, etc.) were correctly upgraded to
 real Postgres enums as the schema matured — `grade` was never revisited to
 match.
 
+## Prevention / Rule
+**Guardrail:** A schema-review checklist rule enforced at PR review: any new categorical column that a design doc documents as a fixed taxonomy must use a shared Postgres `ENUM` type or a `CHECK` constraint before merge — a plain `String` column is never acceptable for a documented closed set of values.
+
+This is exactly the gap here: `grade`'s taxonomy was documented in `database_schema_design.md` from the start, but nothing forced the column itself to enforce it, so a typo would have silently scored as the lowest possible standing with no error.
+
 ## Solution
 
 ### Immediate Fix

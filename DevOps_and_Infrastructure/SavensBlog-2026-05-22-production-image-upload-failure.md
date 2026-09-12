@@ -15,6 +15,11 @@ A production outage occurred where users were unable to upload images for blog p
 3. **Internal DNS Block:** savens-backend was missing from ALLOWED_HOSTS, blocking internal service communication.
 4. **Proxy Limits:** The admin dashboard proxy defaulted to a 1MB upload limit.
 
+## Prevention / Rule
+**Guardrail:** A fail-fast startup config validator that runs before the app accepts traffic — diffing `CORS_ALLOWED_ORIGINS`/`ALLOWED_HOSTS` against the actual production domain list and internal service hostnames, and running `makemigrations --check` as a blocking step — refusing to boot (not just log a warning) if either check fails.
+
+All four root causes here are the same underlying gap: production's environment values (CORS origins, allowed hosts, migration state, proxy limits) were free to drift from what the code actually needed, with nothing checking the two against each other before traffic was served. A single startup-time parity check closes the CORS/host/migration cases directly, and forces the proxy-limit case into the same standardized config the check reads from.
+
 ## Resolution
 1. **Infrastructure Fix:** Updated .env and Caddyfile to support the correct production domains and internal hosts.
 2. **Database Sync:** Manually applied missing migrations and implemented a **Migration Gatekeeper** in the startup sequence.

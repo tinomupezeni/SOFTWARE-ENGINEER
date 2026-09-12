@@ -453,6 +453,12 @@ Docker Network: bridge
 
 ---
 
+## Prevention / Rule
+
+**Guardrail (Caddy routing, Issues #1 & #2):** Wire this file's own `validate-caddy-config.sh` sketch into the deploy pipeline itself as a hard gate — not a local script someone has to remember to run — asserting every domain that needs split frontend/API routing actually has a `handle /api/*` block before the deploy is allowed to proceed.
+
+**Guardrail (hardcoded localhost, Issue #3):** A CI check that greps the built frontend bundle for `localhost` immediately after `vite build`, failing the pipeline if found — gated into the pipeline, not left as a manual checklist item. **This is the second time this exact bug class has been found in this repo in ten days** (see `2026-05-15-domain-routing-swap-and-frontend-api-connection.md`), which is itself the evidence that a checklist alone doesn't prevent recurrence — only a CI gate does.
+
 ## Prevention Measures
 
 ### 1. Environment Configuration Template

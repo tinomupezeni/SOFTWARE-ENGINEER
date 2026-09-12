@@ -68,6 +68,19 @@ metrics field nothing writes to) and never finished — and separately, the
 key-storage field was never actually wired to real encryption despite its
 name implying it was.
 
+## Prevention / Rule
+**Guardrail:** (1) A custom model field type (`EncryptedCharField`) that
+performs real encryption/decryption transparently at the ORM layer, so a
+field can never be named "encrypted_*" without actually being encrypted —
+a plain `CharField` can't masquerade as one. (2) A CI check that fails on
+any Celery task, signal receiver, or "integration point" function with zero
+call sites and zero test invocations anywhere in the repo — dead scaffolding
+can't silently ship as a finished integration.
+
+Both clauses map directly onto this bug's two independent causes: a
+misleadingly-named plaintext field, and a fully-built but never-wired
+integration path that nothing forced anyone to notice was inert.
+
 ## Solution
 
 ### Immediate Fix

@@ -19,6 +19,11 @@ Winston ran a field trial with traders today (Record Sale / Record Product flows
 - `Product.category` (`backend/apps/products/models.py`) is a free-text `CharField`. The frontend rendered it as a bare `<Input>` with no visibility into categories that already existed for the org.
 - The backend already had everything needed to fix this — `ProductViewSet.categories` action (`GET /api/v1/products/categories/`) and a matching RTK Query hook `useGetProductCategoriesQuery` in `productsApi.ts` — but neither was ever wired into `ProductForm.tsx`. The capability existed and was simply unused.
 
+## Prevention / Rule
+**Guardrail:** An ESLint rule banning bare `<select>` elements inside `features/**/components/*Form.tsx`, forcing every list-backed field through the shared `Combobox` component instead.
+
+This closes both halves of the root cause at once: it stops a long, unsearchable native picker from shipping in the first place, and because `Combobox` requires an explicit data source prop, wiring it forces whoever builds the form to go looking for (and find) an existing RTK Query hook like `useGetProductCategoriesQuery` rather than leaving it unused.
+
 ## Solution
 
 ### Immediate Fix

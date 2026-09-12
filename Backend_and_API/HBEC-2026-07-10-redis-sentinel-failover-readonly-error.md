@@ -69,6 +69,11 @@ grep -n 'SENTINEL\|sentinel' STUDENT/hbec_backend/config/settings/production.py
 ## Root Cause
 A Redis failover swapped master/slave roles on July 9. Services continued connecting to the same hostname (`redis` → `hbec-redis`) which was now a read-only replica. The sentinel-based discovery was already coded but never activated via `REDIS_SENTINEL_HOSTS`.
 
+## Prevention / Rule
+**Guardrail:** A startup health check that performs a real write-then-delete against the configured Redis connection (not just a `PING`) and refuses to mark the service ready if it fails.
+
+That converts "silently connected to a stale read-only replica after a failover" into an immediate, visible startup failure, instead of a slow-building multi-service crash loop that was only noticed because someone happened to check container status.
+
 ## Solution
 
 ### Immediate Fix

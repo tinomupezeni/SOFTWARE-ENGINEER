@@ -35,6 +35,11 @@ Checked `tese.ps1` output which showed successful local builds and pushes, but r
 1. **Infrastructure:** Intermittent or sustained network outage/packet loss on the VPS (159.198.42.231), causing Docker pull and SSH timeouts.
 2. **Logic Bug:** `tese.ps1` has broken string escaping in the `Verify-Deployment` function, specifically when constructing the Python fallback health check command.
 
+## Prevention / Rule
+**Guardrail:** Eliminate cross-shell string quoting for health checks entirely — bake a single canonical `curl -sf <url>` command into every image's base layer, instead of constructing a Python one-liner that has to survive escaping through PowerShell, then SSH, then the remote shell.
+
+The actual bug here isn't "PowerShell escaping is hard," it's that the health check required a command to pass unmangled through three separate shell-quoting layers at all. Removing the need to construct that command dynamically removes the entire class of escaping bug, rather than fixing this one instance of it.
+
 ## Solution
 
 ### Immediate Fix

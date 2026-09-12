@@ -36,6 +36,11 @@ The available history does not establish which process held the lock. The next i
 ## Root Cause
 Undetermined; contention on the SQLite database file is confirmed.
 
+## Prevention / Rule
+**Guardrail:** Configure `PRAGMA busy_timeout` and `journal_mode=WAL` for any SQLite database file that more than one process or connection touches, and treat any workload with genuine concurrent writers as a signal to migrate to PostgreSQL rather than tuning SQLite further.
+
+SQLite's default locking has no bounded wait and no built-in multi-writer story; a busy-timeout/WAL configuration turns "randomly locked" into a bounded, retryable wait, and makes the real signal — needing PostgreSQL — visible instead of masked by intermittent lock errors.
+
 ## Solution
 
 ### Immediate Fix

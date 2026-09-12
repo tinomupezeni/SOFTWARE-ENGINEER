@@ -58,6 +58,19 @@ litellm's global `router_settings.timeout` (20s) silently overrode the
 harness's own per-call timeout for the admin/GPU path, killing every request
 long before the model could realistically finish.
 
+## Prevention / Rule
+**Guardrail:** A startup or CI check that walks every hop in a multi-layer
+timeout chain (litellm per-model timeout → harness `asyncio.wait_for` →
+Django's `HarnessExtractionClient` timeout) and fails if the values aren't
+strictly decreasing from outermost to innermost — i.e. the layer closest to
+the actual model call must have the longest allowed timeout, never the
+shortest.
+
+This directly prevents recurrence: any future edit to either config (a new
+model, a re-tuned timeout for the fast paid pools) that breaks the ordering
+gets caught before deploy instead of surfacing as a mysterious
+`gpu_unavailable` with every underlying service reporting healthy.
+
 ## Solution
 
 ### Immediate Fix

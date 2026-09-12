@@ -52,6 +52,11 @@ Subject resolution by name alone is ambiguous whenever a subject name
 repeats across grades, and the frontend already had the disambiguating id
 but wasn't sending it.
 
+## Prevention / Rule
+**Guardrail:** Make `subject_id` a required field on the generation request serializer — reject any request that omits it — rather than keeping name-based resolution as a permanent fallback path.
+
+A fallback that "still works" is exactly what let a silent ambiguity ship in the first place; see guide 22 (Multi-Service Data Replication and Consistency) §5 for the general rule this instantiates: resolve cross-service references by id, never by name.
+
 ## Solution
 
 ### Immediate Fix

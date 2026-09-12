@@ -95,6 +95,19 @@ services, remove vectors, cascade derived rows) was scoped to `Content` only.
 dual-replication shape, so it never got a `post_delete` receiver or an
 unpublish branch.
 
+## Prevention / Rule
+**Guardrail:** A CI test that enumerates every model registered in
+`apps.replication.signals` and asserts each one has both a `post_save`
+*and* a `post_delete`/status-transition-retraction receiver — e.g.
+`test_every_replicated_model_has_a_retraction_handler`, failing loudly the
+moment a new dual-replicated content type is added without one.
+
+This turns "audit every sibling model when you fix one" from a step someone
+has to remember into a check that fails on its own — `ExamPaper` shares
+`Content`'s exact replication shape and would have been caught by this test
+the same day `Content`'s fix landed, instead of being found independently
+months later.
+
 ## Solution
 
 ### Immediate Fix

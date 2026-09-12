@@ -41,6 +41,11 @@ Flutter's `TextInputPlugin` calls this AndroidX Core API on focus. `android/buil
 ## Root Cause
 `android/build.gradle.kts` force-pinned `androidx.core`/`core-ktx` to `1.9.0` project-wide. Flutter's `TextInputPlugin` calls `EditorInfoCompat.setStylusHandwritingEnabled`, an API that doesn't exist in that pinned version, so any Android 15 device (whose Flutter engine build expects a newer AndroidX Core) crashed with `NoSuchMethodError` the instant a text field was focused.
 
+## Prevention / Rule
+**Guardrail:** No forced dependency version (`resolutionStrategy.force(...)` in Gradle, or equivalent pin in any package manager) may be merged without an inline comment stating why and a linked issue — enforced at code review.
+
+This exact pin sat silently unexplained for over a month (no commit message context at all) until a specific OS version broke on it. A mandatory "why" comment doesn't prevent the pin, but it means the next person reviewing it can evaluate whether it's still needed instead of treating unexplained code as untouchable.
+
 ## Solution
 
 ### Immediate Fix

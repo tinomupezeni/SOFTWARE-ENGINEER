@@ -72,6 +72,11 @@ building it — Sprint 3 (`APP-00x`) is about the offline-first *client*, not
 a backend worker tier, so the gap fell through a scoping seam between
 sprints.
 
+## Prevention / Rule
+**Guardrail:** A quarterly (or CI-scheduled) doc-audit script that greps the codebase for real usage of any component an ADR or `system_design.md` claims is "in the topology" (e.g. `import celery`/`import arq` for a claimed worker tier) and fails/flags when a claimed component has zero real call sites.
+
+This converts "the docs describe infrastructure that doesn't exist" from something only caught by someone asking "is it scalable" into an automatic, recurring check.
+
 ## Solution
 
 ### Immediate Fix

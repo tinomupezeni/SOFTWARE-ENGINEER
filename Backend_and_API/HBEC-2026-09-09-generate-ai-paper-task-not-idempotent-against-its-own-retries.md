@@ -53,6 +53,11 @@ unconditionally re-attempt generation and, on any failure, unconditionally
 reset status, regardless of whether the paper had already succeeded via a
 different invocation.
 
+## Prevention / Rule
+**Guardrail:** Every retryable Celery task whose failure path mutates shared state must check "is the target already in a terminal/complete state" before mutating it — codified as a required item in this project's task-writing checklist for any new retryable task, not fixed ad hoc per incident.
+
+Retry-safety and idempotency are two different properties; this task had the first without the second, and nothing in the task-authoring process required both.
+
 ## Solution
 
 ### Immediate Fix

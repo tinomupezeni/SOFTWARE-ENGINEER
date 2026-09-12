@@ -76,6 +76,11 @@ The project adopted `strict = true` aspirationally without ever running
 `__init__.py`, `declarative_base()`) is fundamentally incompatible with
 strict mode until this session actually ran it.
 
+## Prevention / Rule
+**Guardrail:** Whenever a stricter static-analysis setting (`mypy strict = true`, a new `ruff` rule set, etc.) is added to a config file for an existing codebase, run it once immediately in the same PR that adds the config — a codebase that can't pass the new setting is blocking evidence the setting doesn't fit yet, not background debt to discover in some later session.
+
+This is distinct from (and a level up from) simply running the tool at all: `strict = true` had been declared since the first commit with nobody ever checking whether the codebase's actual ORM style was even compatible with it.
+
 ## Solution
 
 ### Long-term Fix

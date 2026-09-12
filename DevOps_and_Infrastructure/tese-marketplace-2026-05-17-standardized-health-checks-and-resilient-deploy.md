@@ -23,6 +23,9 @@ The deployment script `tese.ps1` was identified as having fragile health check l
 1. **Scripting Architecture:** The script used complex escaped strings for a Python fallback that is no longer necessary now that all images contain `curl`.
 2. **Lack of Resilience:** The deployment process assumed perfect network conditions for image pulls and service startup.
 
+## Prevention / Rule
+**Guardrail:** Ban any health-check or deploy-script command that must be constructed dynamically across more than one shell/interpreter boundary (PowerShell → SSH → Python, in this case). Enforce a single canonical `curl -sf http://localhost:8000/api/v1/health/deep` baked into every base image instead — code review rejects any deploy script that builds a health-check command as an escaped string.
+
 ## Solution
 
 ### Immediate Fix

@@ -42,6 +42,11 @@ Verified the database container (`tese-db-legacy`) was healthy and accepting con
 2. **Lack of Resilient Reconnect**: The `catalog-api` startup logic (`init_db()`) lacked sufficient retry logic, causing the container to exit when the DB was unreachable.
 3. **Mismatched Error Handling**: The frontend was reporting generic failures for Auth issues because the orchestrator was passing through `422` errors from Pydantic which were being treated as system failures by the client.
 
+## Prevention / Rule
+**Guardrail:** Require every service's DB-connection startup path to use an exponential-backoff retry loop (not a single connect-or-exit attempt), and use Docker Compose's `depends_on: condition: service_healthy` so a service doesn't even attempt to start until the database container reports healthy.
+
+The catalog-api's crash was purely a startup-sequencing/retry gap — the database itself was fine moments later. A retry loop turns "DB had a brief blip" from a full crash loop requiring a manual full-stack restart into a transparent, self-healing reconnect.
+
 ## Solution
 
 ### Immediate Fix

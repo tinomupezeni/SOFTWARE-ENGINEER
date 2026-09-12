@@ -69,6 +69,11 @@ Traced the field to its actual source. `supported_levels` (student side, the nam
 ## Root Cause
 Admin's `ExamBoard.grade_levels` for `ZIM-HBCA` — the only active exam board — is missing `o_level`, almost certainly a hand-edit typo/omission through the Django admin's unvalidated raw-JSON textarea for this field. There was nothing anywhere in the stack (model validator, serializer, admin widget, or a coverage test) that could have caught a level silently disappearing from an active board's configuration. Since Admin is the sole content authority and this field replicates near-verbatim to the student backend, every personalization submission was left able to resolve only to `primary`, `as_level`/`a_level`, or `other` — never O-Level, the platform's documented entry point.
 
+## Prevention / Rule
+**Guardrail:** `ExamBoard.grade_levels` is now a model-and-serializer-validated `ChoiceField` list restricted to `VALID_LEVEL_CODES` (shipped this session), replacing the unvalidated raw-JSON textarea.
+
+A typo or omission like this can no longer be saved at all — not through the Django admin, not through the DRF API, not through a seed script — it 400s/raises immediately instead of silently shipping to every environment that replicates from it.
+
 ## Solution
 
 ### Implemented (code, deployed to staging 2026-09-09)

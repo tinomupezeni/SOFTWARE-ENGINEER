@@ -373,6 +373,12 @@ if !buffered_messages.is_empty() {
 
 ---
 
+## Prevention / Rule
+
+**Guardrail (Issues 1 & 3 — UUID vs. project-name confusion, hit twice in the same session):** Wrap the two identifiers in distinct newtypes (`ProjectId(Uuid)` vs. `ProjectName(String)`) instead of passing both around as `&str`/`String`. Passing a name where an id is expected then becomes a compile error, not a runtime FK-constraint failure or a silent empty-query result — closing both issues with one type-level change instead of two separate runtime fixes.
+
+**Guardrail (Issue 2 — migration checksum mismatch):** A CI check that hashes every already-applied migration file on `main` and fails the build if any of them changed — migrations are append-only once merged; a schema change always ships as a new migration file, never an edit to an old one.
+
 ## Prevention Checklist
 
 - [x] Added comprehensive error messages with SQL details

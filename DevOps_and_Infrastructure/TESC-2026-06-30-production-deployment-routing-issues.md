@@ -50,6 +50,11 @@ After fixing the database connection, the migrations threw a Django error indica
 4. Docker's internal `FORWARD` iptables rules being wiped during forced daemon restarts, isolating containers.
 5. Docker's build cache preserving stale code during rebuilds.
 
+## Prevention / Rule
+**Guardrail:** Always bust the Docker build cache (`--no-cache`, or an explicit cache-invalidating `ARG`) whenever a change touches files a previous `COPY . .` layer might not detect as changed — migrations especially — and verify the file actually exists inside the built image before deploying, not just that the build "succeeded."
+
+`ValueError: Dependency on app with no migrations: users` was caused by the cache silently serving a stale `COPY` layer; catching it required noticing the migration didn't exist inside the running container, which a cache-busted rebuild (or an image-content check) would have surfaced immediately instead.
+
 ## Solution
 
 ### Immediate Fix

@@ -51,6 +51,18 @@ The design doc described the trigger as a future commitment; no backlog
 item or migration ever tracked actually writing it, so it was silently
 skipped.
 
+## Prevention / Rule
+**Guardrail:** For every hard invariant a design doc states as a guarantee
+("immutable," "unique per X," etc.), require a passing CI integration test
+that actively attempts the forbidden operation and asserts the database
+itself rejects it — not a docstring or comment claiming the behavior
+exists, a real `UPDATE`/`DELETE` attempt that must error.
+
+That single test class would have caught this the day the doc was written
+that "will implement" was never converted into an actual migration —
+because until such a test exists and passes, "immutable" is a claim, not a
+fact about the schema.
+
 ## Solution
 
 ### Long-term Fix

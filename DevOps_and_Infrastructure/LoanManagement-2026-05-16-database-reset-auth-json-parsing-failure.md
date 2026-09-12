@@ -73,6 +73,18 @@ The password flowed through multiple systems:
 
 The authentication logic never executed because the JSON request body couldn't be parsed. The special characters `#` and `!` required escaping in JSON, but the frontend/API communication layer didn't handle this correctly.
 
+## Prevention / Rule
+**Guardrail:** An end-to-end auth smoke test that authenticates via a real
+HTTP POST (not the Django test client or a shell-level `authenticate()`
+call) using a password containing common JSON-special characters (`#`,
+`!`, `"`, `\`), run as part of the deployment/seed pipeline — not just
+after a login bug is reported.
+
+This is exactly the gap here: authentication was verified at the Django
+shell layer but never at the actual HTTP/JSON layer the real login flow
+uses, so a real integration failure passed every check that existed while
+failing the one that mattered.
+
 ## Solution
 
 ### Immediate Fix

@@ -175,6 +175,9 @@ test('cart API uses correct auth token', async ({ page }) => {
 
 ---
 
+## Prevention / Rule
+**Guardrail:** An ESLint rule banning a second `axios.create(` call anywhere outside the one designated `axiosInstance` module, enforced in CI. This exact root cause — a service rolling its own axios instance instead of importing the shared one — is the same class of bug already flagged in `2026-05-16-exhaustive-vps-api-and-routing-fix.md`; a checklist item didn't stop it from recurring here, which is itself the evidence that only a lint rule blocking the second instance from existing at all will.
+
 ## The Engineering Fix
 
 ### Changes Made

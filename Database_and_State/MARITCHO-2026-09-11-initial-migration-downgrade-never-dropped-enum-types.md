@@ -54,6 +54,11 @@ Alembic's autogenerate tooling creates enum types as a side effect of
 `create_table` but was never told to reverse that in `downgrade()`; nobody
 had run a full `downgrade base` before this session to notice.
 
+## Prevention / Rule
+**Guardrail:** A CI job that runs a full `alembic downgrade base` → `upgrade head` round-trip on every migration-touching PR — not just `alembic check`, which only diffs current DB state against the models and never exercises the downgrade path at all.
+
+This is the exact gap that let the bug sit unnoticed since the initial migration: `alembic check` would never have caught it, and nobody had run the real round-trip until this session did it by hand.
+
 ## Solution
 
 ### Long-term Fix

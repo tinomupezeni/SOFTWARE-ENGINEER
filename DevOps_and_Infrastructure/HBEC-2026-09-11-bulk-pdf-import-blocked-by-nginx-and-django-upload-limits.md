@@ -42,6 +42,19 @@ intended use case. The Django file-count limit was simply never set at
 all — its default happened to be smaller than the new feature's own
 advertised cap.
 
+## Prevention / Rule
+**Guardrail:** Any feature that accepts "many files/a batch in one request"
+must ship with an explicit audit of every layer between the browser and the
+view — proxy body-size limit, framework file-count limit, per-file size
+check — each set to match the feature's own advertised cap, plus a
+regression test at one unit past the framework's *default* for whichever
+limit isn't being explicitly set (as was added here at 105, just past
+Django's default of 100).
+
+The bug here was entirely about limits inherited from a smaller use case
+never being revisited for a new one — an explicit per-layer checklist item
+is what forces that revisit before a real user hits it.
+
 ## Solution
 
 ### Immediate Fix

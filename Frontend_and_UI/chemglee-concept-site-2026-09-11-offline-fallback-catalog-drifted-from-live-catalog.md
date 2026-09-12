@@ -30,6 +30,11 @@ mock data, and nothing ever kept it in sync as the real product range,
 pricing, and imagery were built out in the backend. It was never treated as
 "a snapshot of production" — just as a stand-in shop.
 
+## Prevention / Rule
+**Guardrail:** A scheduled CI job that regenerates `fallbackCatalog.ts` from the live `/api/products/` response and opens a diff/PR if it changed, plus a build-time check that fails if the file's generation timestamp is older than a set threshold (e.g. 30 days).
+
+This turns "someone remembers to refresh the mock data" into an automated, dated artifact — any file meant to be "a snapshot of production" needs a mechanism that actually re-takes the snapshot, not a comment asking a future person to.
+
 ## Solution
 Replaced the entire fallback list with an actual snapshot of the live
 `/api/products/` response (taken 2026-09-11), matching real product names,

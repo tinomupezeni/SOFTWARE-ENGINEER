@@ -63,6 +63,18 @@ module name shared by both environments, not an environment label).
 for any Django service, so `core/logging.py`'s `os.getenv("APP_ENV",
 "production")` silently defaulted to `"production"` on staging.
 
+## Prevention / Rule
+**Guardrail:** A compose-file linter (or a simple diff script run in CI)
+that compares every environment-identifying variable block (`APP_ENV`,
+`DEPLOYMENT_ENV`, etc.) across `docker-compose.staging.yml` and
+`docker-compose.production.yml` for each shared service, and fails if one
+defines it and the sibling doesn't.
+
+A silently-defaulting env var is exactly what let this hide: the guardrail
+doesn't remove the fallback (a sane default is fine), it catches the
+specific case of one environment's compose file simply never setting a
+variable the other one relies on being explicit.
+
 ## Solution
 
 ### Immediate Fix

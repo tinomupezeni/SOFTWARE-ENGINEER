@@ -93,6 +93,11 @@ Not blocking, but noted for future.
    - Missing connection to `proxy-tier` network where Caddy resides
    - Caddy couldn't route external traffic to nginx
 
+## Prevention / Rule
+**Guardrail:** a required, automated post-deploy smoke test — `curl -f -I https://<production-domain>/` run as the last step of the deploy script, failing the deployment (non-zero exit, no "SUCCESS" message) if it doesn't return HTTP 200 — gated before the script can report success.
+
+All three root causes here (permission crash, `set -e` masking a real failure behind a fallback, and the missing network connection) share one symptom: the site doesn't actually respond. A hard smoke-test gate catches every one of them the same way, instead of requiring three separate fixes to be individually anticipated.
+
 ## Solution
 
 ### Immediate Fix (Applied)

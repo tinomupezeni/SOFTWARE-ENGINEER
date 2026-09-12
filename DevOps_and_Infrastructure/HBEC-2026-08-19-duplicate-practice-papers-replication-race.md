@@ -42,6 +42,11 @@ Nothing ever linked or deduplicated these two rows — the "placeholder" was nev
 ## Root Cause
 `on_content_save` fires an immediate empty-questions placeholder and an async Harness extraction for the same content, with nothing linking the two rows together afterward — plus a too-strict subject-name validation regex on the Harness side rejecting real curriculum subject names outright.
 
+## Prevention / Rule
+**Guardrail:** a synchronous placeholder and its later async replacement must write to (or key off) the exact same row identity — enforced with a unique constraint on the natural key (content id) shared by both the sync and async code paths — so it is structurally impossible for two independent rows to represent one logical paper.
+
+This closes the primary root cause at the schema level instead of relying on application code to remember to link them; the subject-name regex is a separate, narrower fix (already broadened) that this guardrail doesn't need to cover.
+
 ## Solution
 
 ### Immediate Fix

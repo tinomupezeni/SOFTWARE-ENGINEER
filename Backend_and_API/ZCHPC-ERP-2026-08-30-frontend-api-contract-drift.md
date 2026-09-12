@@ -37,6 +37,11 @@ The available CLI history confirms contract-mismatch symptoms but not the final 
 ## Root Cause
 Unconfirmed frontend/backend contract drift in the deployed release involving the attendance route and departments service export.
 
+## Prevention / Rule
+**Guardrail:** A CI step that diffs the backend's live route table/OpenAPI spec against every path and export the frontend API client references, failing the build on anything referenced-but-missing — paired with a required post-deploy smoke test hitting each critical route on the exact deployed commit before a promotion is marked complete.
+
+This is precisely the gap the summary names: "a successful frontend build did not prove the backend route existed." A contract diff plus a real post-deploy smoke test proves it before users do.
+
 ## Solution
 
 ### Immediate Fix

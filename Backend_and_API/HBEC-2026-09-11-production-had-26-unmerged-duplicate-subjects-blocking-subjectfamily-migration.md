@@ -74,6 +74,20 @@ migration 0011, but was only ever run against staging's data before the
 accumulated duplicate-entry history, was never given the same treatment
 before today's promotion attempted to bring it the same migration chain.
 
+## Prevention / Rule
+**Guardrail:** Fold the dry-run check directly into the migration's own
+`RunPython` step for every environment, not just as a standalone script run
+once on whichever environment happens to be promoted first — the migration
+already refuses to proceed on unresolved rows (as it correctly did here);
+extend that same refusal to require confirmation that the dry-run has been
+executed and applied *in this specific environment*, not merely that the
+migration file has been merged.
+
+Production's 26 duplicates were its own independently-accumulated mess,
+invisible until the migration itself ran there — a per-environment
+precondition check (not a one-time staging pass) is the only thing that
+generalizes to every future environment this migration chain reaches.
+
 ## Solution
 
 ### Immediate Fix

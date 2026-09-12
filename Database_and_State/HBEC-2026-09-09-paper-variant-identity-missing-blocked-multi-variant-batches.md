@@ -52,6 +52,11 @@ The harness's `Paper` table had no `variant` concept, and Django never
 generated or transmitted a real one — two independent gaps that together
 made any `paper_count > 1` request fail past its first variant, every time.
 
+## Prevention / Rule
+**Guardrail:** A cross-service contract test that fails CI if a field is added to one service's uniqueness/identity tuple (here, the harness's `uq_paper_identity`) without the same field appearing in every payload contract the other service sends toward it — checked automatically, not left as a manual "remember to update both sides" step.
+
+This formalizes the open item already named in this file's own Prevention checklist, and directly targets the root cause: Django and the harness each had half of the `variant` concept, and nothing verified the two halves stayed in sync.
+
 ## Solution
 
 ### Immediate Fix

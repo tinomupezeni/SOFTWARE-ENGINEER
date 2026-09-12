@@ -23,6 +23,11 @@ Even after fixing #2, `QuotationSerializer.create()` creates nested `QuotationIt
 ## Root Cause
 `quotations` is a newer, less-exercised module (no tests existed, and it's plausible no real customer has used it yet since `"quotations"` was made a core/always-enabled module rather than opt-in). Each of the three bugs is a straightforward oversight — a missing import, a `perform_create` override that dropped required behavior from its parent, and a `TenantBaseModel` field left unset in three `*.objects.create()` calls — but together they meant the module could not do anything at all: not list, not create, not create-with-items.
 
+## Prevention / Rule
+**Guardrail:** Give `TenantBaseModel` a manager-level `create()` (or a `full_clean()`-enforced `organization` field with no default) so any subclass row created without an explicit `organization=` fails immediately and loudly, rather than relying on every call site remembering to pass it by convention.
+
+Four separate call sites independently forgot the same required field — a model-level enforcement point turns "forgot it" into a fast, obvious failure in the first unit test that exercises the path, instead of a silent `IntegrityError` shipped to production traffic.
+
 ## Solution
 - Added `from django.db import models` to `apps/quotations/serializers.py`.
 - Fixed `QuotationViewSet.perform_create` to actually pass `organization=self.request.user.organization` (and removed the incorrect comment).

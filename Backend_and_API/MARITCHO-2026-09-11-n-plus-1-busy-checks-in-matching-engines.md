@@ -62,6 +62,17 @@ Reusing a per-row helper function inside a loop, instead of expressing
 "which of these candidates are busy" as one set-based query — an easy
 trap when a working per-row helper already exists and looks reusable.
 
+## Prevention / Rule
+**Guardrail:** A code-review/lint rule flagging any `await`/query call
+made inside the body of a `for` loop iterating a queryset or ID list — the
+N+1 shape — requiring explicit justification or a batched-query rewrite
+before merge.
+
+`app/matching.py` already proved the batched pattern works for the sibling
+engine; a structural check for "DB call inside a loop" would have surfaced
+that `find_top_crew_candidates` didn't reuse it, instead of waiting for a
+dedicated scalability review to notice by inspection.
+
 ## Solution
 
 ### Immediate Fix

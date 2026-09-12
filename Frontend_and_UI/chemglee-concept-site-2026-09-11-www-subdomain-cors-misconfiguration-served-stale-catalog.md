@@ -44,6 +44,11 @@ A second factor made it worse: `useProducts` only retried a failed request
 once (`retry: 1`), so even a transient blip on a patchy mobile connection
 could tip a request into the same fallback path.
 
+## Prevention / Rule
+**Guardrail:** Extend the existing pre-deploy production settings check (the one already added for Postgres, per `chore: harden postgres deployment checks`) to assert that every entry in `CORS_ALLOWED_ORIGINS`/`ALLOWED_HOSTS` has its `www.`/bare-domain twin present.
+
+Since every publicly reachable hostname a site serves needs to be explicitly paired, a config validator that checks for the twin at deploy time catches a one-sided origin list before it ships, rather than relying on a visitor happening to land on the unpaired hostname first.
+
 ## Solution
 - `production.py` now runs every configured CORS origin through a
   `_with_www_twins()` helper that adds the missing `www.`/bare counterpart for

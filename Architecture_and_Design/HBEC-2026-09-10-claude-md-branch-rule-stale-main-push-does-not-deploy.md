@@ -61,6 +61,11 @@ dispatch-only, promoting a specific staging-built tag rather than
 rebuilding on every `main` push) without updating the corresponding rule in
 `CLAUDE.md`.
 
+## Prevention / Rule
+**Guardrail:** A PR template checklist item requiring any change to a workflow's `on:`/`if:` trigger conditions to include a matching update to `CLAUDE.md`'s Cross-Cutting Rules in the same PR — enforced at review, not left to be remembered later.
+
+This is the same class of doc/reality drift as `2026-09-10-opt-hbec-stale-checkout-and-empty-git-repo.md`; pairing the two changes in one PR is cheaper than a later session re-deriving what changed.
+
 ## Solution
 
 ### Immediate Fix

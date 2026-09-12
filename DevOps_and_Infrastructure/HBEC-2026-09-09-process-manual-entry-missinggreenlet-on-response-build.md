@@ -50,6 +50,18 @@ got the same treatment.
 relationships first — unlike the main upload pipeline function right above
 it, which already has this exact fix.
 
+## Prevention / Rule
+**Guardrail:** Extract "re-query a paper with the eager-loading a response
+needs" into one shared helper (`_paper_eager_options()` already exists —
+make it the *only* legal way to build a `PaperResponse`), and add a
+code-review/lint rule that any `PaperResponse.model_validate(...)` call
+site must go through that helper, not a raw ORM return value.
+
+This is exactly the gap here: the fix already existed one function away in
+the same file, but nothing forced every response-building call site to use
+it, so a newer function silently skipped it. A single shared helper — not a
+second copy-pasted fix — is what stops this from drifting apart a third time.
+
 ## Solution
 
 ### Immediate Fix

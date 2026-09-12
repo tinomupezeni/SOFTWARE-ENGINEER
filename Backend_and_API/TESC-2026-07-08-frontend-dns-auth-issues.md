@@ -41,6 +41,11 @@ The TESC production instance experienced multiple interconnected failures. Sever
 2. **Privileges:** Hardcoded legacy field (`level`) in the frontend after it was removed from the backend database schema.
 3. **Routing:** `api.ts` used fragile absolute URL generation instead of relative paths, and public DNS records were incomplete.
 
+## Prevention / Rule
+**Guardrail:** A CI contract check that generates the frontend's expected API shape (fields it reads, functions it imports) and diffs it against the backend's actual current schema/serializer output and model fields — failing the build when the frontend still references a field the backend removed (`level`) or expects a shape the backend no longer sends (flat arrays vs. paginated objects).
+
+Both the pagination TypeError and the missing-privileges bug are the same root shape: the backend's contract changed (pagination enabled, `level` field removed) and nothing forced a corresponding frontend update or even flagged the mismatch. A single automated contract check spanning both sides would catch either class of drift before deploy, rather than as a live dashboard crash.
+
 ## Solution
 
 ### Immediate Fix

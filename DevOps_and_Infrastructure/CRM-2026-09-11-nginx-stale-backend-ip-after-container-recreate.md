@@ -19,6 +19,11 @@ After rebuilding and recreating the `backend`/`celery-worker`/`celery-beat` cont
 
 This means **every backend deploy on this VPS silently breaks the whole API** until someone thinks to also restart nginx — something `deploy.sh` in the repo does not account for (it doesn't run on this VPS's actual setup at all — see the earlier CI/CD drift entry — so it was never actually protecting against this).
 
+## Prevention / Rule
+**Guardrail:** the `resolver 127.0.0.11 valid=10s;` + variable-based `proxy_pass` fix applied below, as a required template/lint rule for every project's nginx config on this VPS — not just this one — since a bare `proxy_pass http://<service>:<port>;` with no resolver is exactly what caches an upstream IP forever across container recreates.
+
+This is guide 10's gateway-unreachable triage checklist item 7 — this incident is that item's origin case.
+
 ## Solution (this deploy)
 `docker compose -f docker-compose.yml restart nginx` immediately after the backend swap. Confirmed fixed: `/health/` → 200, `/api/v1/contacts/` and `/api/v1/sales/` → 401 (correctly reachable, just unauthenticated), migration state clean.
 

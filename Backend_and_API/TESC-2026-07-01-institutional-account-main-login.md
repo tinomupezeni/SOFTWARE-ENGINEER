@@ -36,6 +36,11 @@ Institutional admin accounts created by TESC administrators were able to log in 
 ## Root Cause
 The backend serializers for TESC Main (`CustomTokenObtainPairSerializer` and `VerifyOTPSerializer`) did not check whether a user was associated with an `institution` or had an `inst_admin` role before issuing JWT tokens. This allowed institution users to authenticate successfully against the main API.
 
+## Prevention / Rule
+**Guardrail:** Require a negative-auth test matrix — one test per account type (institution admin, super admin, regular student/user) against every distinct login endpoint — asserting token issuance is explicitly refused for account types not authorized on that endpoint. Gate merge on this matrix existing for any new or modified auth serializer.
+
+The backend never enforced institution-account exclusion at the token-issuance layer; a required negative-auth test would fail immediately without that check, instead of leaving enforcement to the frontend alone.
+
 ## Solution
 
 ### Immediate Fix

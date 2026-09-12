@@ -59,6 +59,11 @@ plausible.
 Either a deliberate (but undocumented) denormalization for read
 convenience, or an oversight — can't be determined from the docs alone.
 
+## Prevention / Rule
+**Guardrail:** Any intentionally denormalized column must ship paired with a database-level trigger or constraint verifying it agrees with its source of truth — never application-code discipline alone. Already implemented here: the `BEFORE INSERT` trigger `check_record_entry_worker_matches_job()` rejects any insert whose `worker_id` doesn't match the referenced job's.
+
+This closes the actual gap found: the one real writer happened to always set the value correctly, but nothing at the database level would have caught a future writer that didn't.
+
 ## Solution
 
 ### Immediate Fix

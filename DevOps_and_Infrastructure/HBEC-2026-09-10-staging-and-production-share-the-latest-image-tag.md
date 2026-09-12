@@ -66,6 +66,15 @@ default tag (`latest`) and no environment-scoped override was ever
 introduced, so "build on staging" and "what production will run next restart"
 became the same action without anyone deciding that on purpose.
 
+## Prevention / Rule
+**Guardrail:** A deploy-time validator that refuses to run `docker compose
+up` against production if `TAG` resolves to the literal string `latest` —
+fail closed and require a pinned commit-sha or dated promotion tag instead.
+
+This turns the root cause into a hard stop rather than an implicit,
+unreviewed side effect: any config that would let production silently
+inherit whatever staging most recently built simply can't execute.
+
 ## Solution
 
 ### Immediate Fix

@@ -156,6 +156,9 @@ Images saved directly to container filesystem.
 
 ---
 
+## Prevention / Rule
+**Guardrail:** A post-deploy smoke test that uploads (or references a known fixture) image and fetches it back through the *public* domain — not directly against the backend container — asserting `200`. `alias` and `proxy_pass` both look like valid, successfully-reloading nginx config locally; only a check that actually walks the real request path (Caddy → gateway → backend) can tell whether the gateway is serving from a directory that happens to be empty in this specific container.
+
 ## The Engineering Fix
 
 ### Changes Made

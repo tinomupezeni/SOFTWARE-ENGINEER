@@ -59,6 +59,18 @@ and some `OutstandingToken` JWT rows from the load test's own login calls.
 Unconfirmed — a load-testing tool created real accounts against production's
 API on 2026-08-31, target environment/config not investigated.
 
+## Prevention / Rule
+**Guardrail:** A fail-closed environment guard built into the load-test
+tool itself: at startup it must resolve its target host and refuse to run
+(non-zero exit, no requests sent) unless it matches an explicit allowlist
+(e.g. `*.staging.*`) or the run is passed an explicit
+`--i-mean-production` flag — never "whatever URL happens to be configured."
+
+Root cause here is unconfirmed precisely because there's no such guard
+today; whatever misconfigured the target, a tool that refuses by default
+to talk to anything but staging can't repeat this regardless of *which*
+config mistake caused it.
+
 ## Solution
 
 ### Immediate Fix

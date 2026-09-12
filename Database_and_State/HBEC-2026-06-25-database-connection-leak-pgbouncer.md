@@ -26,6 +26,11 @@ Even after routing through PgBouncer, long-running Celery workers and beats hold
 ### 3. PgBouncer Auth Mismatch
 Modern psycopg (v3) uses SCRAM-SHA-256 authentication by default, but PgBouncer was not configured to handle it, causing `FATAL: server login failed: wrong password type`.
 
+## Prevention / Rule
+**Guardrail:** Add a config-lint check (a pre-deploy script, or a `docker-compose config` post-process step) that asserts every backend/worker service's `POSTGRES_HOST` value equals the PgBouncer service name — fail the check if any service resolves straight to the raw Postgres container.
+
+This directly targets the root cause: the YAML anchors silently pointed two of three services at raw Postgres instead of the pooler, and nothing short of reading the compose file caught it before connections exhausted `max_connections` in production.
+
 ## Fix Applied
 
 ### docker-compose.yml Changes

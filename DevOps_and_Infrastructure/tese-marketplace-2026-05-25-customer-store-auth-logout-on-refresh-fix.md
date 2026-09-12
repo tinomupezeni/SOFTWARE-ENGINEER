@@ -166,6 +166,9 @@ test('user stays logged in after page refresh', async () => {
 
 ---
 
+## Prevention / Rule
+**Guardrail:** ESLint's `no-undef` rule enforced as a CI-blocking check on every PR — not just a local editor warning. `useAuth()` called without being imported is precisely what `no-undef` flags at lint time; the bug reached production because nothing failed the build over it, not because the mistake was hard to detect.
+
 ## The Engineering Fix
 
 ### Changes Made
