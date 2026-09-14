@@ -4,8 +4,70 @@
 **Project:** HBEC
 **Environment:** Production
 **Severity:** High
-**Status:** Resolved (primary bug, verified live on production); a
-related, deeper gap found and left open — see below
+**Status:** Resolved — both the paper-id bug and a second, deeper
+question-id bug behind the same symptom, verified live on production. A
+third, unrelated gap (Artifact-backed papers) found and left open — see
+below.
+
+## Update (same day): the fix above wasn't sufficient — a second id
+mismatch, one level down
+After deploying the fix below, the user reported the marking 404 was
+**still happening on production**. Re-investigation (log review, direct
+confirmation the deployed container's source genuinely had the fix,
+then a fresh audit of every endpoint that hands the frontend a paper id)
+found the first fix was necessary but not sufficient: it fixed the
+*paper*-id mismatch, but an independent, structurally identical mismatch
+existed one level down, at the *question* id.
+
+**The second root cause:** AI-generated papers get their `Question` rows
+created **natively** in the harness's own database
+(`paper_generator.py`) — the harness never needs to "adopt" a paper it
+already generated itself (adoption in `paper_adoption.py` only runs when
+`db.get(Paper, paper_id)` finds nothing locally, which is never true for
+one the harness created). When that paper is synced to the student
+backend (`_sync_to_student` → `PaperForAdoptionView`'s sibling sync
+endpoint, `apps/internal/views.py`'s `SyncPaperView`), the sync payload
+never included the harness's own per-question id — `PaperQuestion.objects.create()`
+always assigned a fresh, unrelated UUID. `PracticeSetDetailView` then
+serialized that unrelated local id as `"id"`, the frontend submitted it
+as `questionId`, and the harness's `submit_answer`
+(`select(Question.id).where(Question.id == question_id, Question.paper_id
+== paper_id)`) never found a match — 404, for the exact same class of
+paper the first fix targeted, on a different field.
+
+**Fix:** threaded the harness's native question id through the same
+sync channel already carrying `harness_paper_id`:
+- `AGENTIC_HARNESS/app/exam_practice/services/paper_generator.py` —
+  `_sync_to_student`'s `questions_payload` now includes
+  `"harness_question_id": str(q.id)` per question.
+- `STUDENT/hbec_backend/apps/practice/models.py` — new
+  `PaperQuestion.harness_question_id` field (migration `0016`).
+- `STUDENT/hbec_backend/apps/internal/views.py` — `SyncPaperView`
+  stores it: `harness_question_id=q_data.get("harness_question_id")`.
+- `STUDENT/hbec_backend/apps/practice/views.py` — `PracticeSetDetailView`
+  now serializes `"harnessQuestionId": q.harness_question_id`.
+- Frontend (`STUDENT/Frontend/src/features/exam-practice/`) — `Question`
+  type, `examApi.ts`'s `fetchQuestions` mapping, and
+  `useExamPractice.ts:310`'s submission call all thread
+  `harnessQuestionId || id` through, mirroring the exact
+  `harnessPaperId || paperId` pattern the first fix already established.
+
+5 new regression tests (`test_ai_papers.py`'s `QuestionHarnessIdTests`,
+`test_sync_paper.py`'s `TestSyncPaperHarnessQuestionId`) plus the full
+`apps/practice` + `apps/internal` suite (109 tests) all pass. Verified
+live on staging by re-running the sync for a real, already-generated
+22-question AI paper and confirming (a) the stored
+`harness_question_id` genuinely differs from the local `id`, (b) the
+detail endpoint now serializes `harnessQuestionId` correctly, and (c) a
+row with that exact id exists in the harness's own `questions` table for
+that paper — the precise condition `submit_answer`'s query needs, which
+the old local id could never satisfy. Deployed to production the same
+way as the first fix (`sha-3f002af`, `--force-recreate` on
+`student-backend`/`student-worker`/`student-beat`/`student-frontend`/
+`harness`); migration applied cleanly; full host health sweep post-deploy
+showed zero unhealthy or restarting containers.
+
+## Original write-up
 
 ## Summary
 User reported: submitting an answer for marking mid-paper (before
@@ -174,4 +236,6 @@ being bundled into a same-day production hotfix.
 ---
 
 **Resolved By:** Claude Sonnet 5
-**Time to Resolution:** Same session as discovery (primary bug only)
+**Time to Resolution:** Same session as discovery, in two passes — the
+first fix (paper-id) shipped, was reported as not fully resolving the
+issue, and the second, deeper fix (question-id) shipped the same day.
