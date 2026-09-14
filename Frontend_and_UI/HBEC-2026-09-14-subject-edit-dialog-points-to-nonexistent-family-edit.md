@@ -2,9 +2,9 @@
 
 **Date:** 2026-09-14
 **Project:** HBEC
-**Environment:** Staging + source inspection (found during research for a primary-grade bulk-assignment feature design, not yet checked on production)
+**Environment:** Staging only (production intentionally left untouched)
 **Severity:** Low
-**Status:** Investigating (found, not fixed — out of scope; flagged during a research-only task)
+**Status:** Resolved — verified live on staging
 
 ## Summary
 `SubjectForm.tsx`'s edit-mode branch (when the `subject` prop is set) renders
@@ -92,20 +92,31 @@ actually reachable.
 ## Solution
 
 ### Immediate Fix
-Not applied — out of scope for the research task this was found during.
+Added `EditSubjectFamilyDialog.tsx` — a small rename dialog (name +
+description) using the pre-existing `useUpdateSubjectFamily` hook.
+Reached via a pencil icon next to each subject name on `/subjects`
+(`SubjectFamilyListPage.tsx`, visible on row hover), leaving the
+existing family-name button's own click target (open
+`SyllabusManagementModal`) unchanged. `SubjectForm.tsx`'s caption is now
+accurate rather than stale.
+
+3 new tests (`EditSubjectFamilyDialog.test.tsx`): pre-fills the current
+name/description, saves an edit and calls the mutation with the right
+id/payload, rejects a too-short name without calling the mutation.
+
+Verified live: staging's built bundle contains "Edit Subject"; a real
+end-to-end `PATCH /api/curriculum/subject-families/{id}/` against a
+disposable test family on staging renamed it and updated its
+description correctly, then was cleaned up.
 
 ### Long-term Fix
-Add an edit affordance for `SubjectFamily` on `/subjects` (e.g. a pencil icon
-next to the family name opening a small rename/description form that calls
-the existing `useUpdateSubjectFamily` hook), or, if that's intentionally
-deferred, correct the caption in `SubjectForm.tsx` so it doesn't point admins
-at a control that doesn't exist yet.
+None needed beyond the guardrail above.
 
 ## Prevention
 - [ ] Configuration changes needed — n/a
 - [ ] Monitoring/alerts to add — n/a
 - [ ] Documentation to update — n/a
-- [x] Code changes required — add the missing edit UI on `/subjects`, or fix the stale caption
+- [x] Code changes required — done, plus 3 new regression tests
 
 ## Related Issues
 - Found while researching a "bulk-assign a primary subject to all primary
@@ -122,5 +133,7 @@ at a control that doesn't exist yet.
 
 ---
 
-**Resolved By:** Not resolved — logged only
-**Time to Resolution:** N/A
+**Resolved By:** Claude Sonnet 5
+**Time to Resolution:** Same session as discovery — verified live on
+staging (production intentionally left untouched, per explicit
+instruction)
