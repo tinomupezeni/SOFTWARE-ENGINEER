@@ -4,7 +4,7 @@
 **Project:** HBEC
 **Environment:** Development
 **Severity:** Low
-**Status:** Investigating
+**Status:** Resolved
 
 ## Summary
 While removing an unrelated component (`PWAInstallPrompt`) from
@@ -62,10 +62,20 @@ git stash pop
   banner).
 
 ## Root Cause
-Not yet determined why these 3 errors exist when `CLAUDE.md` documents a
-zero-error baseline as of 2026-08-29 — either they were introduced after
-that date without the doc being updated, or the doc's claim was never
-fully accurate. Not investigated further this session.
+- `examApi.ts:171` — `response.data.paper` was accessed without an
+  optional chain. The guard a few lines above (`response.success &&
+  response.data?.questions`) only narrows `response.data` on the property
+  path actually checked (`.questions`); it doesn't propagate to a
+  different property access (`.paper`) later in the same block.
+- `PracticeModePage.tsx:184` — confirmed via reading both call sites in
+  the same file: `onRemix` is a real, correctly-typed prop on
+  `PaperReview` (the end-of-paper review screen, used correctly one call
+  site above at line 113). The line-184 usage passes the identical prop
+  to `<QuestionPaper>` (the live in-progress question view) — copy-paste
+  residue from the review screen's props, not a missing feature.
+  `QuestionPaperProps` never declared `onRemix` and `QuestionPaper` never
+  rendered any remix UI, so this was fully dead at runtime (React silently
+  ignores unrecognized props) — only ever caught by the type checker.
 
 ## Prevention / Rule
 **Guardrail:** A CI check that runs `npm run typecheck` on every push to
@@ -81,24 +91,29 @@ true rather than a point-in-time note nobody re-checks.
 ## Solution
 
 ### Immediate Fix
-None applied — flagged for the user rather than fixing exam-practice code
-unrelated to the actual task at hand.
+- `examApi.ts:171` — changed `response.data.paper` to `response.data?.paper`,
+  and replaced the pre-existing `as any` cast with a minimal typed shape
+  (`{ harnessPaperId?: string } | undefined`) so the `no-explicit-any`
+  lint rule stays clean too.
+- `PracticeModePage.tsx:184` — removed the dead `onRemix` prop from the
+  `<QuestionPaper>` call entirely, rather than adding remix support to a
+  component that was never designed to have it.
+
+Verified: `npm run typecheck` is clean (0 errors), `eslint` on both files
+is clean, and the full vitest suite (993 tests) passes.
 
 ### Long-term Fix
-1. Fix the 3 real errors (likely a `QuestionPaperProps`/`onRemix` drift in
-   `PracticeModePage.tsx` and an unguarded `response.data` access in
-   `examApi.ts`).
-2. Add the CI typecheck gate described above so this can't silently
-   reaccumulate.
-3. Update `CLAUDE.md`'s claim once actually verified true again.
+Add the CI typecheck gate described above so this can't silently
+reaccumulate, and keep `CLAUDE.md`'s "zero errors" claim honest going
+forward now that it's true again.
 
 ## Prevention
-- [ ] Configuration changes needed — none
-- [ ] Monitoring/alerts to add — CI typecheck gate, as above
-- [ ] Documentation to update — `CLAUDE.md`'s "zero errors" claim, once
-      the underlying errors are actually fixed
-- [ ] Code changes required — fix the 2 real call sites in
-      `src/features/exam-practice/`
+- [x] Configuration changes needed — none
+- [ ] Monitoring/alerts to add — CI typecheck gate, as above (not added
+      this session — a repo/CI-level change, not this specific fix)
+- [ ] Documentation to update — `CLAUDE.md`'s claim is accurate again as
+      of this fix, but the file itself wasn't edited
+- [x] Code changes required — done, both call sites fixed
 
 ## Related Issues
 - None yet — first time this drift was noticed.
@@ -112,5 +127,5 @@ unrelated to the actual task at hand.
 
 ---
 
-**Resolved By:** Not yet — flagged only, no fix applied
-**Time to Resolution:** N/A
+**Resolved By:** Claude Sonnet 5
+**Time to Resolution:** Same session as discovery
