@@ -6,6 +6,14 @@
 **Severity:** Low
 **Status:** Resolved — verified live on staging
 
+**Update:** the UI trigger built for this was itself silently
+non-functional end-to-end until a separate fix — see
+`HBEC-2026-09-14-subject-family-rename-never-replicated-to-students.md`.
+A rename saved correctly to the admin DB but never reached the student
+backend, since nothing replicated a `SubjectFamily`-only change (only
+`Subject.post_save` triggered replication, and no `Subject` row is
+touched by a family rename). Fixed the same day, later in the session.
+
 ## Summary
 `SubjectForm.tsx`'s edit-mode branch (when the `subject` prop is set) renders
 the family name as a disabled `<Input>` with a caption telling the admin to
