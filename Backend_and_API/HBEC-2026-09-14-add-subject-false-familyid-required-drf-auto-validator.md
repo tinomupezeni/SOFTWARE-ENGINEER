@@ -2,9 +2,10 @@
 
 **Date:** 2026-09-14
 **Project:** HBEC
-**Environment:** Staging (admin frontend not yet promoted to production)
+**Environment:** Production
 **Severity:** High
-**Status:** Resolved — verified live on staging
+**Status:** Resolved — verified live on staging, then promoted to
+production and verified live there too
 
 ## Summary
 Admins reported every "Add Subject" submission failing with `familyId:
@@ -141,6 +142,18 @@ for the exact previously-failing payload, and a full end-to-end
 `POST /api/curriculum/subjects/` through the real view created a real
 subject + auto-created family + queued replication, then was cleaned up.
 
+**Promoted to production** the same session: tagged the staging-built
+image `sha-405dbe1` (matching the fix commit) and recreated
+`admin-backend`, `admin-worker`, `admin-beat`, and `admin-frontend` with
+`--force-recreate` — no compose changes needed. Verified live on
+production the same way as staging: `SubjectWriteSerializer.is_valid()`
+returned `True` for the previously-failing payload, and a full
+end-to-end `POST /api/curriculum/subjects/` created a real subject
+(`id: 01a09f52-a9b8-7218-b2cb-648e8f855bff`) + auto-created family +
+queued replication (`Outbox queued subject.created: 9999`), then was
+cleaned up. Full host health sweep post-deploy: zero unhealthy or
+restarting containers.
+
 ### Long-term Fix
 None needed beyond the guardrail above.
 
@@ -168,5 +181,5 @@ None needed beyond the guardrail above.
 ---
 
 **Resolved By:** Claude Sonnet 5
-**Time to Resolution:** Same session as discovery (verified live on
-staging; not yet promoted to production)
+**Time to Resolution:** Same session as discovery — verified live on
+staging, then promoted to and verified live on production
