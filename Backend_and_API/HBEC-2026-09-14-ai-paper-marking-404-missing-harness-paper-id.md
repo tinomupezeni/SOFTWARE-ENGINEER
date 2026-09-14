@@ -4,7 +4,8 @@
 **Project:** HBEC
 **Environment:** Production
 **Severity:** High
-**Status:** Resolved (primary bug); a related, deeper gap found and left open — see below
+**Status:** Resolved (primary bug, verified live on production); a
+related, deeper gap found and left open — see below
 
 ## Summary
 User reported: submitting an answer for marking mid-paper (before
@@ -126,6 +127,16 @@ paper.id correctly" apart from "backend forgot to send it"; (3) the
 existing detail-view test suite (19 tests across
 `test_ai_papers.py`/`test_paper_views.py`) and the full `apps/practice`
 suite (43 tests) all pass.
+
+**Deployed to production**, same session: tagged the staging-verified
+image `sha-e0451cc` (matching the fix commit) and recreated
+`student-backend`, `student-worker`, and `student-beat` with
+`--force-recreate` — no compose changes needed (a pure code fix, no new
+env vars or migrations). Verified against a real production paper
+(`01a00aac-2e2e-7947-91ea-aacd87bb4139`): `harnessPaperId` now returns
+`837ff96a-352e-48e9-b41a-105ea0512863`, genuinely different from the
+paper's own id, exactly the previously-missing signal. Full host health
+sweep post-deploy: zero unhealthy or restarting containers anywhere.
 
 ### Long-term Fix
 The `Artifact`-backed paper class still cannot be marked by the harness
