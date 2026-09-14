@@ -4,7 +4,7 @@
 **Project:** HBEC
 **Environment:** Development (`STUDENT/Frontend`, `npm run dev`)
 **Severity:** Low
-**Status:** Identified, Not Fixed — out of scope for the change that surfaced it; local dev is unaffected by the 30s poll fallback
+**Status:** Resolved — fixed the same day, immediately after being logged
 
 ## Summary
 While wiring the student notification bell's new `useNotificationsSocket`
@@ -120,21 +120,18 @@ is a second, independent thing fronting the same prefix.
 ## Solution
 
 ### Immediate Fix
-None applied — left as identified. Fixing `vite.config.ts` was out of
-scope for the task this was found under (student-frontend hook + tests
-only); flagging here per this repo's standing rule to log every
-misconfiguration found, fixed or not.
-
-### Long-term Fix
-Add a `ws: true` proxy entry for `/api/v1/notifications/ws` (and
-`/api/v1/notifications/ws/admin` on the admin frontend's own dev config, if
-it has an equivalent local proxy) in `vite.config.ts`, e.g.:
+Added a more specific `/api/v1/notifications` proxy entry (not just the
+`/ws` sub-path — the plain REST notification calls were equally
+misrouted to the student backend under the generic `/api` catch-all, a
+broader version of this same gap the admin frontend's equivalent fix
+independently found on its own side), placed before the existing `/api`
+entry so it wins Vite's insertion-order string-prefix matching:
 ```js
 proxy: {
-  "/api/v1/notifications/ws": {
-    target: "ws://localhost:8000", // or wherever NOTIFICATIONS runs locally
-    ws: true,
+  "/api/v1/notifications": {
+    target: "http://localhost:7005",
     changeOrigin: true,
+    ws: true,
   },
   "/api": {
     target: "http://localhost:8000",
@@ -142,18 +139,23 @@ proxy: {
   },
 }
 ```
-(more specific entry first, matching the same "longer prefix wins"
-reasoning already applied in `nginx.conf`) — and confirm the
-`NOTIFICATIONS` service's actual local dev port/target before applying.
+Note the target port: **7005**, not the `localhost:8000` this entry's own
+original write-up suggested — that guess was wrong (8000 is the student
+backend's port; the standalone `NOTIFICATIONS` service is a separate
+container, exposed locally at `${PORT_PREFIX:-70}05` per
+`docker-compose.yml`, i.e. 7005). Caught by checking the real compose
+file rather than trusting the placeholder in this same document.
+
+### Long-term Fix
+None needed beyond the fix above.
 
 ## Prevention
-- [ ] Configuration changes needed — `vite.config.ts` dev proxy `ws: true`
-      entry, not yet applied
+- [x] Configuration changes needed — done
 - [ ] Monitoring/alerts to add — n/a, dev-only
 - [ ] Documentation to update — worth a one-line note in `STUDENT/
       Frontend`'s README or `CLAUDE.md` service map that live notification
       push is nginx-only locally until this is added
-- [ ] Code changes required — see Long-term Fix above
+- [x] Code changes required — done
 
 ## Related Issues
 - None yet filed for the backend/nginx portion of this feature (built and
@@ -170,4 +172,8 @@ reasoning already applied in `nginx.conf`) — and confirm the
 ---
 
 **Resolved By:** Claude Sonnet 5
-**Time to Resolution:** N/A — not fixed, documented only
+**Time to Resolution:** Same session as discovery — fixed within minutes
+of being logged, once the admin frontend's parallel fix (`HBEC-2026-09-14-
+admin-frontend-vite-dev-proxy-missing-websocket-upgrade-for-notifications.md`)
+made the broader pattern (REST misrouting too, not just the WS upgrade)
+clear.
