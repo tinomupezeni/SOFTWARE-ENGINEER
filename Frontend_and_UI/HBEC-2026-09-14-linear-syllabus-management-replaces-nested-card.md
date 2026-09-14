@@ -48,6 +48,37 @@ per-grade card is removed entirely.
   hook-construction time the way the old one-card-per-grade design
   needed).
 
+## Update (same day): two UX gaps found once live
+
+After shipping, testing the modal against a real subject with an existing
+syllabus surfaced a real gap: a grade already covered by an existing
+syllabus could still be checked in the upload section — checking it and
+uploading would silently archive the current document (the backend
+already does this on purpose, see `test_reupload_archives_all_linked_grades_not_just_one`
+in `test_subject_syllabus.py`), but the UI gave no indication a replace
+was about to happen. Fixed: grades already covered are now disabled in
+the checklist with an explanatory note ("already has a syllabus, remove
+it above to replace") — replacing one now requires an explicit Remove
+first, not an accidental re-check of the same box.
+
+Second gap: the modal only ever listed grades the family was *already*
+offered at (`offerings`, passed in from the page). Attaching a syllabus
+to a grade the family isn't offered at yet required leaving the modal,
+adding the grade offering elsewhere (`AddGradeOfferingButton`), then
+coming back. Added an "Offer at a new grade" section listing every
+not-yet-offered grade with a code input (mirrors
+`AddGradeOfferingButton`'s exact checkbox+code pattern) — checking one
+creates that grade offering (`useCreateSubject`) as part of the same
+upload, using the newly-created subject's id.
+
+5 new tests cover both: a covered grade's checkbox is disabled with the
+note, clicking a disabled checkbox has no effect on upload, an uncovered
+sibling grade stays checkable when another grade on the same syllabus is
+covered, a new grade offering is created and its id used for the upload,
+and an empty code on a new grade blocks the upload. Full suite (123
+tests) passes; verified live on staging then production the same
+session.
+
 ## Related inconsistency fixed along the way
 `createSubject()`'s Add Subject dialog has an optional "attach a syllabus
 at creation time" file field. It used to upload that file through the
