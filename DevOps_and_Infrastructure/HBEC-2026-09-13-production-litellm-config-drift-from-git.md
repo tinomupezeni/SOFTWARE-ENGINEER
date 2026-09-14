@@ -4,7 +4,7 @@
 **Project:** HBEC
 **Environment:** Production
 **Severity:** High
-**Status:** Investigating
+**Status:** Investigating (partially resolved — see 2026-09-14 update below)
 
 ## Summary
 While diagnosing an "AI not working" report, fixing the Groq model
@@ -163,3 +163,31 @@ tunnel investigation:
 **Resolved By:** Not yet — Groq portion fixed, the rest deferred to the
 ZCHPC follow-up session
 **Time to Resolution:** N/A (partial)
+
+---
+
+## Update — 2026-09-14
+
+Two of the three remaining deferred items are now resolved, by two
+different actors:
+1. **GPU-timeout fix** — deployed to production by a separate tool
+   ("Antigravity") on 2026-09-13; see
+   `HBEC-2026-09-13-zchpc-gpu-timeout-fix-deployed.md`. The tunnel itself
+   (`zchpc.movellasystems.com:32508`) remains unreachable
+   ("Connection refused") — that is a distinct, still-open networking
+   problem, not a config problem.
+2. **Prometheus callback** — added `litellm_settings: callbacks:
+   ["prometheus"]` to production's `/opt/hbec/AGENTIC_HARNESS/litellm_config.yaml`
+   during this session's observability work, restarted `hbec-litellm`, and
+   confirmed `/metrics` now returns `200` with real Prometheus text
+   (previously it 404'd, which is what was driving `ServiceDown` for the
+   litellm scrape target). Note: this only exposes process-level metrics —
+   the per-request litellm metrics (`litellm_request_total`,
+   `litellm_request_duration_seconds_bucket`) are Enterprise-only and still
+   absent; see
+   `HBEC-2026-09-14-highllmlatency-alerts-query-enterprise-only-metrics.md`
+   for that follow-on finding.
+
+**Only the Vision (Gemini) pool item remains genuinely undeployed to
+production** — still needs a decision and a hand-edit of production's
+config the same way the Groq/Prometheus fixes were applied.
