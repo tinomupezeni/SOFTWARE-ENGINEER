@@ -118,7 +118,14 @@ any future "AI not working" report should include a direct
 assumption that a configured model name is still valid.
 
 ## Prevention
-- [ ] Monitoring/alerts to add — the catalog-membership check above
+- [x] Monitoring/alerts to add — the catalog-membership check above is now
+      built: `app/shared/observability/provider_health.py` (harness) polls
+      every provider's live catalog every 5 minutes and the new
+      `ProviderModelRetired` alert
+      (`HBEC-2026-09-14-monitoring-profile-containers-never-started-on-production.md`'s
+      companion observability work) fires when a configured model id
+      disappears from it — see
+      `AGENTIC_HARNESS/app/shared/observability/provider_health.py`
 - [ ] Documentation to update — none beyond the inline config comments
       already added explaining the reasoning-token trap
 - [x] Code changes required — done, in both the repo and production directly

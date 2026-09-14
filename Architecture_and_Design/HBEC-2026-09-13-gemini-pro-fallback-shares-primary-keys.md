@@ -109,10 +109,19 @@ Options to discuss with the user before choosing:
 ## Prevention
 - [ ] Configuration changes needed — one of the three options above, per
       the user's choice
-- [ ] Monitoring/alerts to add — an alert specifically for "all Gemini
-      keys returned 429/RESOURCE_EXHAUSTED within the same minute" would
-      distinguish this failure mode (account depleted) from an ordinary
-      per-key rate limit, which today looks identical in the logs
+- [x] Monitoring/alerts to add — built as a generalized, per-provider
+      version rather than a Gemini-specific one:
+      `app/shared/observability/provider_health.py` re-authenticates every
+      configured key on every provider every 5 minutes, and the new
+      `ProviderAllKeysDead` alert
+      (`harness_provider_key_live` all reading 0 for one `provider` label)
+      fires exactly when every key on an account fails at once —
+      distinguishing this from an ordinary single-key rate limit, which
+      LiteLLM's own cooldown already absorbs transparently and shouldn't
+      page anyone. This gives visibility into the failure mode; it does
+      **not** by itself fix the underlying design gap (the three keys
+      still share one billing account) — that's still the open decision
+      above.
 - [ ] Documentation to update — the config's own comments, once a
       decision is made
 - [ ] Code changes required — none yet, pending the decision above
