@@ -139,14 +139,20 @@ confirmed gone from the served bundle; the new Model Settings routing-flow
 UI is confirmed present in the admin frontend bundle.
 
 ### Long-term Fix
-Schedule the periodic prune described in the Guardrail above; decide
-whether to remove the 6 orphaned `hbec-prod/*:current` images; separately
-decide whether to provision `MODEL_SETTINGS_ENCRYPTION_KEY` on production
-(still open, unrelated to this promotion) and finish deploying the
-still-deferred Vision (Gemini) pool to production's `litellm_config.yaml`
-(confirmed still absent — `vision/gemini-flash` doesn't appear in
-production's `ModelAdapter` list post-promotion, consistent with the
-already-logged, already-known drift).
+Separately decide whether to provision `MODEL_SETTINGS_ENCRYPTION_KEY` on
+production (still open, unrelated to this promotion) and finish deploying
+the still-deferred Vision (Gemini) pool to production's
+`litellm_config.yaml` (confirmed still absent — `vision/gemini-flash`
+doesn't appear in production's `ModelAdapter` list post-promotion,
+consistent with the already-logged, already-known drift).
+
+**Update:** the 6 orphaned `hbec-prod/*:current` images were removed in a
+follow-up pass — `docker image inspect` showed they carried Docker
+Compose's own internal `com.docker.compose.replace` bookkeeping labels
+(with `org.opencontainers.image.revision: "unknown"`), not this project's
+real `sha-`/`promoted-` naming convention, confirming they were leftover
+Compose-internal artifacts from an old recreate operation rather than a
+deliberate rollback snapshot. `docker rmi` on all 6 succeeded cleanly.
 
 ## Prevention
 - [ ] Configuration changes needed — a scheduled host-level prune (see
