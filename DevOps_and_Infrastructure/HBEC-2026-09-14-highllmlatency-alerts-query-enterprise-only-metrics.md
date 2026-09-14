@@ -4,7 +4,7 @@
 **Project:** HBEC
 **Environment:** Production
 **Severity:** High
-**Status:** Investigating
+**Status:** Resolved
 
 ## Summary
 While verifying the observability stack after the 2026-09-13 AI outage,
@@ -98,29 +98,41 @@ it just quietly does nothing forever.
 ## Solution
 
 ### Immediate Fix
-None yet — flagged for the user rather than unilaterally deciding which
-path to take (see options below).
+Chose option 2 (rewrite against the harness's own metrics — free, reuses
+already-proven-live infrastructure):
+- `HighLLMLatency` now queries `harness_llm_latency_seconds_bucket`
+  (`app/shared/llm_client.py:90` records this on every real call, already
+  scraped and working), grouped `by (model)` instead of being a single
+  job-wide check.
+- `HighLLMErrorRate` was dropped outright rather than rewritten — it would
+  have duplicated `HarnessLLMErrorRate`, which already computes the exact
+  same signal per-model off `harness_llm_calls_total`.
+
+Validated with `promtool check rules` before deploying, then applied
+directly to both `/opt/hbec/monitoring/alerts.yml` (production) and
+`/home/winstontino/HBEC/monitoring/alerts.yml` (staging), each backed up
+first, and reloaded via each Prometheus's `/-/reload` (`--web.enable-lifecycle`
+is set on both, so no container restart needed for production).
+
+A second, unrelated bug surfaced on staging while verifying this fix —
+logged separately as
+`HBEC-2026-09-14-staging-prometheus-stale-bind-mount-ignored-reload.md`.
+
+Verified via each Prometheus's `/api/v1/rules` that `HighLLMLatency` is
+now live with `health: ok` and `HighLLMErrorRate` is gone, on both
+environments.
 
 ### Long-term Fix
-Three options, not yet decided:
-1. Set `LITELLM_LICENSE` and pay for LiteLLM Enterprise to get real
-   per-request latency/error metrics from litellm itself.
-2. Rewrite `HighLLMLatency`/`HighLLMErrorRate` to query
-   `harness_llm_calls_total`-family metrics instead (the harness already
-   emits real, working per-model call/status/latency data) — likely the
-   cheaper fix, since `HarnessLLMErrorRate` proves the harness-side metric
-   already carries the signal these two rules were trying to get from
-   litellm.
-3. Remove the two dead rules outright rather than leave alert rules in the
-   file that can never fire and could be mistaken for real coverage during
-   a future incident review.
+None needed beyond the guardrail above — this is now closed.
 
 ## Prevention
-- [ ] Configuration changes needed — decide among the three options above
+- [x] Configuration changes needed — done (option 2)
 - [ ] Monitoring/alerts to add — a metric-existence check as described in
-      the Guardrail
+      the Guardrail above would still be worth adding generally (this
+      instance is fixed, but nothing prevents a future rule being written
+      against a metric that doesn't exist)
 - [ ] Documentation to update — none yet
-- [ ] Code changes required — depends on option chosen
+- [x] Code changes required — done
 
 ## Related Issues
 - `HBEC-2026-09-13-production-litellm-config-drift-from-git.md` — the
@@ -137,5 +149,5 @@ Three options, not yet decided:
 
 ---
 
-**Resolved By:** Not yet — flagged for a decision, no fix applied
-**Time to Resolution:** N/A
+**Resolved By:** Claude Sonnet 5
+**Time to Resolution:** Same session as discovery
