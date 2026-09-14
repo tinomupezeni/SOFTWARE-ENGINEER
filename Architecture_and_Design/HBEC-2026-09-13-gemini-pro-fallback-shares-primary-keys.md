@@ -4,7 +4,7 @@
 **Project:** HBEC
 **Environment:** Production
 **Severity:** Medium
-**Status:** Investigating
+**Status:** Resolved
 
 ## Summary
 `litellm_config.yaml`'s router fallback chain sends a failed
@@ -93,38 +93,70 @@ just "is there a fallback configured," would surface.
 ## Solution
 
 ### Immediate Fix
-None applied yet — flagged for the user's decision. Two independent knobs it doesn't currently have. Left as Investigating for that reason.
+Chose option 3, and went further than pure relabeling: removed
+`google/gemini-pro` entirely rather than keep it and just fix the comments.
+Reordering (the original option 2) turned out to already be moot — the
+live fallback chain already tries Groq before cycling back to Gemini
+(`{"google/gemini-flash": ["fast/llama3.1-70b", "google/gemini-pro", ...]}`),
+so there was no reorder left to do.
+
+Before removing, confirmed via direct research against the pinned proxy
+source (`litellm` v1.55.8, matching every deployed compose file) that this
+wasn't sacrificing real capacity: LiteLLM's usage-based-routing tracks
+RPM/TPM per **deployment id** (`Router._generate_model_id`, which hashes in
+the `model_name` group label itself, not just the underlying `litellm_params`),
+so `google/gemini-flash` and `google/gemini-pro` — despite sharing the
+identical real API key values — each got their own independent RPM/TPM
+counter inside LiteLLM's own bookkeeping. That means `google/gemini-pro`
+was never providing genuine extra throughput on those 3 keys; it let
+LiteLLM believe it had roughly double the real per-key headroom (e.g. 28
+RPM tracked internally vs. Google's actual ~15 RPM per-key server-side
+limit), which could have caused real 429s from Google at exactly the
+moment it was used as a fallback under load. Removing it costs nothing
+real and closes a latent risk of over-driving the real per-key quota.
+
+Removed:
+- The 3-entry `google/gemini-pro` model_list pool from both
+  `AGENTIC_HARNESS/litellm_config.yaml` and `.local.yaml`.
+- `google/gemini-pro` from both `router_settings.fallbacks` entries in
+  both files.
+- The harness's own parallel fallback mechanism had the identical flaw:
+  `MODEL_ROUTES["fallback_cloud"] = "google/gemini-pro"` in
+  `app/shared/llm_client.py`'s `_build_fallback_chain` — removed that key
+  and its entry in the `for key in (...)` loop, and updated the routing
+  table's own comments.
+- Also hand-patched the same removal directly into `/opt/hbec` (production)
+  and `/home/winstontino/HBEC` (staging)'s live `litellm_config.yaml`
+  copies, since neither is auto-updated by a git-tracked deploy for this
+  file (see `HBEC-2026-09-13-production-litellm-config-drift-from-git.md`).
+
+Verified: `yaml.safe_load` + a manual model-list/fallback dump on both
+edited files, `ruff check` clean, and the provider-health parser
+(`_parse_model_list`) correctly reports only 2 Gemini model ids now
+instead of 3. Also hand-patched and verified live on both `hbec-litellm`
+(production) and `hbec-litellm-staging`: recreated both containers with
+`--force-recreate` (not a bare `up -d` — same bind-mount staleness risk
+found and documented in
+`HBEC-2026-09-14-staging-prometheus-stale-bind-mount-ignored-reload.md`),
+and confirmed via `docker logs` on each that LiteLLM's own startup
+"Set models:" list no longer includes `google/gemini-pro` while every
+other pool (Groq, Gemini Flash, Vision, GPU, CPU) is intact.
 
 ### Long-term Fix
-Options to discuss with the user before choosing:
-1. Provision the three Gemini keys under separate billing accounts/projects
-   so a single account's depletion doesn't take out the whole pool.
-2. Reorder the fallback chain so a truly independent provider (Groq, now
-   fixed — see the companion entry) is tried before cycling back to a
-   same-account Gemini fallback, rather than after.
-3. Accept the current shape as "rate-limit redundancy only" and stop
-   calling `google/gemini-pro` a fallback in the config's own comments,
-   so a future reader doesn't assume protection that isn't there.
+None needed — the design flaw no longer exists in the config. If real
+cross-account Gemini redundancy is ever wanted later, that's a fresh
+decision (provisioning a genuinely separate Google Cloud/AI Studio
+project), not a fix to this entry.
 
 ## Prevention
-- [ ] Configuration changes needed — one of the three options above, per
-      the user's choice
-- [x] Monitoring/alerts to add — built as a generalized, per-provider
-      version rather than a Gemini-specific one:
-      `app/shared/observability/provider_health.py` re-authenticates every
-      configured key on every provider every 5 minutes, and the new
-      `ProviderAllKeysDead` alert
-      (`harness_provider_key_live` all reading 0 for one `provider` label)
-      fires exactly when every key on an account fails at once —
-      distinguishing this from an ordinary single-key rate limit, which
-      LiteLLM's own cooldown already absorbs transparently and shouldn't
-      page anyone. This gives visibility into the failure mode; it does
-      **not** by itself fix the underlying design gap (the three keys
-      still share one billing account) — that's still the open decision
-      above.
-- [ ] Documentation to update — the config's own comments, once a
-      decision is made
-- [ ] Code changes required — none yet, pending the decision above
+- [x] Configuration changes needed — done, in git, production, and staging
+- [x] Monitoring/alerts to add — `ProviderAllKeysDead` (built earlier this
+      session) still gives visibility into the "every key on a provider
+      dead at once" failure mode generally
+- [x] Documentation to update — inline comments explain the removal and
+      link back to this entry
+- [x] Code changes required — done, in both `litellm_config.yaml` and
+      `app/shared/llm_client.py`
 
 ## Related Issues
 - Found during the same investigation as
@@ -132,11 +164,14 @@ Options to discuss with the user before choosing:
   `HBEC-2026-09-13-production-litellm-config-drift-from-git.md`.
 
 ## References
-- `AGENTIC_HARNESS/litellm_config.yaml` — `google/gemini-flash`,
-  `google/gemini-pro` model entries and `router_settings.fallbacks`
+- `AGENTIC_HARNESS/litellm_config.yaml`, `.local.yaml` — `google/gemini-flash`
+  model entries and `router_settings.fallbacks` (the `google/gemini-pro`
+  pool referenced throughout this entry is now removed)
+- `AGENTIC_HARNESS/app/shared/llm_client.py` — `MODEL_ROUTES`,
+  `_build_fallback_chain`
 
 ---
 
-**Resolved By:** Not yet — identified only, awaiting a decision on which
-long-term fix to apply
-**Time to Resolution:** N/A
+**Resolved By:** Claude Sonnet 5
+**Time to Resolution:** Same session as discovery (fix applied on a
+later session date, 2026-09-14, after the user chose option 1/3)
