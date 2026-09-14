@@ -4,8 +4,9 @@
 **Project:** HBEC
 **Environment:** Production
 **Severity:** Low (best-effort enrichment, never surfaced to a student)
-**Status:** Resolved for the majority case; a smaller residual gap
-(genuinely fuzzy topic labels) documented and left open
+**Status:** Resolved for the majority case, verified live on production;
+a smaller residual gap (genuinely fuzzy topic labels) documented and
+left open
 
 ## Summary
 Found incidentally while investigating an unrelated marking 404: the
@@ -128,11 +129,12 @@ previously-failing production request
 200 with the correct topic. `topic_id=SOIL SCIENCE&subject=Agriculture`
 still 404s — documented below as the residual gap.
 
-Deployed to staging only so far (student-backend, student-worker,
-student-beat, tag `sha-3e21974`); production promotion pending — this is
-a low-severity, best-effort-only fix with no user-facing symptom, so it
-does not need the same urgency as the marking-404 work above, but should
-still go out in the next normal promotion window.
+Deployed to staging, then promoted to production the same session
+(student-backend, student-worker, student-beat, tag `sha-3e21974`).
+Verified live on production with the exact real, previously-failing
+request (`topic_id=Paper 1: History of Zimbabwe&subject=History`) — now
+returns 200 with the correct topic. Full host health sweep post-deploy:
+zero unhealthy or restarting containers.
 
 ### Long-term Fix
 Genuinely fuzzy topic labels (no exact match even after prefix-stripping,
@@ -167,5 +169,5 @@ justified until this is shown to matter for note quality.
 ---
 
 **Resolved By:** Claude Sonnet 5
-**Time to Resolution:** Same session as discovery (verified live on
-staging; production promotion pending, low urgency)
+**Time to Resolution:** Same session as discovery — verified live on
+staging, then promoted to and verified live on production
