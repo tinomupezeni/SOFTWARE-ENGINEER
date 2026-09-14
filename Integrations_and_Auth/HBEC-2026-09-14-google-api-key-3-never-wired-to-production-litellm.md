@@ -4,7 +4,7 @@
 **Project:** HBEC
 **Environment:** Production
 **Severity:** Medium
-**Status:** Resolved (repo fixed; production hand-patch still pending explicit deploy permission)
+**Status:** Resolved
 
 ## Summary
 While building the new provider-health-check capability (see the
@@ -86,25 +86,27 @@ capacity.
 Added `GOOGLE_API_KEY_3: ${GOOGLE_API_KEY_3:-}` to the `litellm` service's
 `environment:` block in the git-tracked `docker-compose.production.yml`
 (and, for consistency, confirmed `docker-compose.yml`/`docker-compose.staging.yml`
-already had it). Not yet hand-patched into `/opt/hbec`'s disconnected
-production copy — that requires the same explicit-permission,
-backup-first process used for the earlier Groq/Prometheus production
-edits, not done unilaterally as part of this observability work.
+already had it). Hand-patched into `/opt/hbec`'s disconnected production
+copy the same way (backup first, `sed -i`, recreate just the `litellm`
+container) — the user ran the exact commands directly per the
+credential-handling permission boundary. Also replaced staging's
+placeholder `GOOGLE_API_KEY_3=your_third_gemini_key_here` in
+`.env.staging` with production's real value, the same way staging already
+shares `GOOGLE_API_KEY`/`GOOGLE_API_KEY_2` with production.
+
+Verified both fixes directly: the real key authenticates against Google's
+live `v1beta/models` endpoint (`gemini-flash-lite-latest` present in the
+returned catalog), and both `hbec-litellm` and `hbec-litellm-staging`
+restarted cleanly with no errors after the env var change.
 
 ### Long-term Fix
-- Provision a real (non-placeholder) `GOOGLE_API_KEY_3` value in
-  `.env.staging`.
-- Apply this same compose fix to `/opt/hbec`'s production copy.
-- Structural fix already covered by the litellm-config-drift entry's own
-  guardrail proposal (bake config into the image / CI-diff check) would
-  have caught this too, since it's the same class of "hand-maintained
-  production file silently missing something git has."
+Structural fix already covered by the litellm-config-drift entry's own
+guardrail proposal (bake config into the image / CI-diff check) would
+have caught this too, since it's the same class of "hand-maintained
+production file silently missing something git has."
 
 ## Prevention
-- [x] Configuration changes needed — fixed in git
-- [ ] Configuration changes needed — production's live compose file still
-      needs the same hand-patch; staging's `.env.staging` still needs a
-      real key value
+- [x] Configuration changes needed — fixed in git, production, and staging
 - [x] Monitoring/alerts to add — covered by the new provider-health check
 - [ ] Documentation to update — none
 - [x] Code changes required — done
@@ -124,6 +126,6 @@ edits, not done unilaterally as part of this observability work.
 
 ---
 
-**Resolved By:** Claude Sonnet 5
-**Time to Resolution:** Same session as discovery (repo fix); production
-hand-patch pending
+**Resolved By:** Claude Sonnet 5 (with the user running the production/
+staging hand-patch commands directly)
+**Time to Resolution:** Same session as discovery
