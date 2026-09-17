@@ -1,37 +1,45 @@
-# Cambridge Subjects Silently Duplicated Under Typo'd Subject-Family Names — No De-Duplication Check Anywhere in the Stack
+# Cambridge Subjects Silently Duplicated Under Typo'd/Reordered Subject-Family Names — No De-Duplication Check Anywhere in the Stack
 
 **Date:** 2026-09-17
 **Project:** HBEC
 **Environment:** Production
 **Severity:** Medium (no user-facing incident — found via a routine dashboard lookup — but real curriculum-catalog pollution with a confirmed structural cause)
-**Status:** Resolved (the 5 empty duplicate rows found this session removed; root cause not fixed — see Prevention)
+**Status:** Resolved (13 empty duplicate rows found across two rounds this
+session removed; the twin families holding real content were deliberately
+left alone; root cause not fixed — see Prevention)
 
 ## Summary
-Asked to look up four CAIE (Cambridge) subjects on production (Divinity, ICT,
-Humanities, Environmental Management), two turned out to not exist under
-their correct names at all — they were filed under a **typo'd
-`SubjectFamily`** instead, invisible to anyone searching or filtering by the
-correct spelling:
+Asked to look up seven CAIE (Cambridge) subjects on production for deletion
+(Divinity, ICT, Humanities, Environmental Management, Combined Science,
+English as a Second Language, First Language English), several turned out
+to not exist under their correct/expected names at all — they were filed
+under a **typo'd or reordered `SubjectFamily`** instead, invisible to
+anyone searching or filtering by the expected name:
 
 - **"Humanites"** (missing an "i") — no "Humanities" family exists at all.
 - **"Enviromental Management"** (missing an "n") — exists *alongside* the
   correctly-spelled "Environmental Management" family, which already has
-  real, published syllabus content for Form 3/4/5. The typo'd twin had one
-  extra, syllabus-less Form 5 offering.
+  real, published syllabus content for Form 3/4/5.
+- **"Science-Combined"** (word order swapped) — exists *alongside* "Combined
+  Science", and has real published syllabus content for Form 3/4.
+- **"English (First Language)"** (different naming convention) — exists
+  *alongside* "First Language English", and has real published syllabus
+  content for Form 3/4.
+- **ICT** is split across **three** distinct `SubjectFamily` rows that all
+  represent the same real-world subject — "ICT", "Information and
+  Communication Technology", and "Information Technology" — with
+  overlapping/near-duplicate codes (`0417` vs `0417-1`, `9626` vs `9626-5`).
 
-Separately, **ICT** turned out to be split across **three** distinct
-`SubjectFamily` rows that all represent the same real-world subject — "ICT",
-"Information and Communication Technology", and "Information Technology" —
-with overlapping/near-duplicate codes (`0417` vs `0417-1`, `9626` vs
-`9626-5`) and syllabus coverage scattered unevenly across the three.
-
-All 5 of the specifically-flagged rows (2 Divinity offerings, the literal
-"ICT" family's one offering, the "Humanites" offering, and the typo'd
-"Enviromental Management" offering) were confirmed to have **zero** topics,
-zero content, and zero exam papers before deletion — genuinely empty,
-duplicate-name entries with nothing to lose. Deleted along with their now-
-empty parent `SubjectFamily` rows; verified the deletion replicated
-correctly to the student backend.
+In every pair above, only the literally-named family the user specified was
+deleted — the differently-named twin holding real syllabus content was
+deliberately left untouched, confirmed with the user first given the very
+different stakes (destroying real content vs. removing empty duplicates).
+13 confirmed-empty `Subject` rows were deleted across two rounds, along with
+their now-empty parent `SubjectFamily` rows; one row a first-pass check
+missed (a real published past-paper document on "First Language English"
+Form 4) was caught by a second, independent pre-delete check and excluded
+from deletion. Every deletion's replication to the student backend was
+verified.
 
 ## Symptoms
 - A subject a user expects to exist under its correct name (e.g.
@@ -73,9 +81,24 @@ at creation time.
 ### 3. Key Findings
 - Confirmed via `Topic.objects.filter(subject=s).count()`,
   `Content.objects.filter(subject=s).count()`, and
-  `ExamPaper.objects.filter(subject=s).count()` that all 5 targeted rows
-  were completely empty — this was pure duplicate-entry pollution, not a
-  case of content living on the "wrong" row.
+  `ExamPaper.objects.filter(subject=s).count()` that all 5 Round-1 targeted
+  rows were completely empty — this was pure duplicate-entry pollution, not
+  a case of content living on the "wrong" row.
+- The same duplicate-name pattern recurred at larger scale in Round 2:
+  "Combined Science" (empty) vs. "Science-Combined" (has a published
+  syllabus for Form 3/4), and "First Language English" (mostly empty) vs.
+  "English (First Language)" (has a published syllabus for Form 3/4) — two
+  more pairs of the exact same typo/reordering-duplication bug, this time a
+  word-order swap and a punctuation/ordering variant rather than a
+  misspelling.
+- Round 2's own investigation step repeated a subtler version of the same
+  mistake this bug class causes: it checked "does this row have a
+  **published syllabus**" (matching the session's dashboard-driven framing)
+  rather than "does this row have **any** Content row at all" — which
+  missed a real published *past-paper* document on one row. Caught only
+  because a second, independent check (a pre-delete assertion inside the
+  same transaction) re-verified emptiness immediately before deleting,
+  rather than trusting the earlier read. No data was lost.
 - `apps/curriculum/management/commands/merge_duplicate_subjects.py` already
   exists as precedent for a narrower version of this exact bug shape (double-
   entered `Subject.code` values differing only by a trailing `-5`/`-6`
@@ -114,27 +137,73 @@ warranted.
 ## Solution
 
 ### Immediate Fix
-Deleted the 5 confirmed-empty duplicate `Subject` rows and their 4 resulting
-empty `SubjectFamily` rows directly via Django shell on production, inside
-one transaction, after confirming zero topics/content/exam-papers on each:
+Deleted 13 confirmed-empty duplicate `Subject` rows across two rounds,
+directly via Django shell on production, inside a transaction each time,
+after confirming zero topics/exam-papers/**Content (all types and
+statuses, not just published syllabi)** on every row:
+
+**Round 1** — Divinity, ICT, Humanites, Enviromental Management:
 - Divinity — Form 5 (`9011-5`), Form 6 (`9011`)
 - ICT (the literally-named "ICT" family only — leaving "Information and
   Communication Technology" and "Information Technology," which have real
   published syllabus content, untouched) — Form 4 (`0417`)
 - "Humanites" (typo) — Grade 6 (`0065`)
 - "Enviromental Management" (typo) — Form 5 (`8291-5`)
+- Their 4 now-empty parent `SubjectFamily` rows also deleted.
 
-Verified: the correctly-spelled/real-content families (Environmental
-Management Form 3/4/5, Information Technology, Information and
-Communication Technology) are untouched; the replication `post_delete`
-signal fired for all 5 (`Outbox queued subject.deleted: <code>` logged for
-each); the student backend no longer has any of the 5 deleted codes.
+**Round 2** — Combined Science, English as a Second Language, First
+Language English (again literal-name families only — "Science-Combined"
+and "English (First Language)," both of which have real published
+syllabus content for Form 3/4, were deliberately left untouched):
+- Combined Science — Form 3 (`0653-3`), Form 4 (`0653`)
+- English as a Second Language — Form 1 (`0876-1`), Form 3 (`0510-3`),
+  Form 4 (`0510`), Grade 1 (`0057-1`), Grade 6 (`0057`)
+- First Language English — Form 3 (`0500-3`) only. **Form 4 (`0500`) was
+  deliberately excluded** — see Key Findings below.
+- Combined Science and English as a Second Language's now-empty parent
+  families deleted; First Language English's family was correctly left
+  alone (still has 1 real offering).
+
+A pre-delete assertion (re-checking `subject.contents.count() == 0` inside
+the same transaction, immediately before calling `.delete()`) caught a real
+miss in Round 2's read-only investigation: "First Language English" Form 4
+(`0500`) has one **published `past_paper`-type `Content` row** ("FIRST
+LANGUAGE ENGLISH Paper 2 — Directed Writing and Composition," created
+2026-09-10) that the investigation step had missed, because that step only
+checked for published **syllabus**-type content (matching the session's
+running "does it have a syllabus" framing) rather than *any* Content row
+regardless of type/status. The assertion raised, the whole transaction
+rolled back with zero rows touched, and the user was asked how to handle
+that one row specifically before re-running with it excluded.
+
+Verified after both rounds: every correctly-spelled/real-content family
+(Environmental Management, Information Technology, Information and
+Communication Technology, Science-Combined, English (First Language))
+is untouched; the replication `post_delete` signal fired for all 13
+deleted codes (`Outbox queued subject.deleted: <code>` logged each time);
+the student backend no longer has any of the 13 deleted codes; First
+Language English Form 4 (`0500`) and its past-paper document are still
+present on both sides.
 
 ### Long-term Fix
-Not done this session — see Prevention/Rule above. The ICT three-way split
-specifically still needs a human-judgment merge decision (which family
-survives, how to reconcile the differently-coded Form 4/5 offerings) rather
-than a mechanical delete, since two of the three families have real content.
+Not done this session — see Prevention/Rule above. The ICT three-way split,
+and now the Combined Science / "Science-Combined" and First Language
+English / "English (First Language)" pairs, still need a human-judgment
+merge decision (which family survives, how to reconcile the differently-
+coded offerings) rather than a mechanical delete, since each pair has a twin
+with real content.
+
+**Process guardrail worth carrying forward regardless of the fuzzy-match
+fix:** when auditing a `Subject` row as "safe to delete," check for *any*
+`Content` row (`Content.objects.filter(subject=s).count()`), not just a
+published syllabus — a subject can hold real, published, non-syllabus
+material (a past paper, a worked solution, etc.) that a syllabus-scoped
+check will miss entirely. This session's read-only investigation missed
+exactly that on one row; only a second, independent re-check immediately
+before the actual delete (inside the same transaction, asserting emptiness
+again right before `.delete()`) caught it before any data was lost. Treat
+that double-check as the standard shape for any future "delete these
+subjects" cleanup, not a one-off precaution.
 
 ## Prevention
 - [ ] Configuration changes needed — n/a
