@@ -4,7 +4,7 @@
 **Project:** chemglee-concept-site
 **Environment:** Production + Development
 **Severity:** Medium (real credentials at rest, unencrypted — no known exploitation, found proactively)
-**Status:** Found, not yet fixed (out of scope for the session that found it)
+**Status:** Resolved (2026-09-18)
 
 ## Summary
 Found while building admin-managed Paynow sandbox/live credentials (which
@@ -55,29 +55,44 @@ case by inspection.
 ## Solution
 
 ### Immediate Fix
-None applied in this session — flagged for a separate, deliberate pass since
-it touches an existing production table and needs a real data migration
-(encrypt the two existing plaintext values in place, not just change the
-field type going forward), which is a different shape of change than the new
-`PaynowConfig` model this session was actually asked to build.
+Done, 2026-09-18 (deferred from the original 2026-09-17 finding, then fixed
+the same week rather than left queued):
+
+1. `email_host_password`/`whatsapp_access_token` changed to
+   `apps.common.crypto.EncryptedCharField` (`backend/apps/notifications/models.py`).
+2. `backend/apps/notifications/migrations/0002_encrypt_stored_secrets.py` —
+   a data migration that captures each row's plaintext value *before* the
+   field-type change (via the historical pre-migration model), then
+   re-writes it *after* via `.update()` — encrypting it in place rather
+   than losing it. Caught a real bug in the first draft of this migration
+   while testing it: writing the captured value back via `.get()` +
+   `.save()` fails, because fetching the row through the now-changed field
+   tries to decrypt the still-plaintext bytes sitting in the column and
+   raises before the overwrite ever happens. `.update()` issues a direct
+   UPDATE without reading first, avoiding that. Verified against a
+   simulated pre-existing production row (inserted via raw SQL under the
+   old schema, migrated, then read back through the ORM): original
+   plaintext values survive the migration exactly, and the raw column
+   holds ciphertext throughout.
+3. `NotificationSettingsForm` (`admin.py`) no longer uses
+   `render_value=True` — the two fields are now explicitly declared,
+   always render blank, and a blank submission keeps the previously saved
+   value (`clean_email_host_password`/`clean_whatsapp_access_token`) — the
+   same "blank means unchanged" convention `AdminNotificationSettingsView`
+   already used.
+4. 4 new tests (`apps/notifications/tests/test_admin.py`): raw-column
+   ciphertext check, "the change page never renders the saved secret in
+   its HTML," blank-keeps-existing, and new-value-overwrites-old. Full
+   suite (363 tests) green; `makemigrations --check` clean.
 
 ### Long-term Fix
-1. Change `email_host_password`/`whatsapp_access_token` to
-   `apps.common.crypto.EncryptedCharField`.
-2. A data migration that reads each existing plaintext value with the old
-   field type and re-writes it through the new one (so it's encrypted in
-   place, not silently dropped).
-3. Drop `render_value=True` from `NotificationSettingsForm`'s
-   `PasswordInput` widgets, and accept the same "blank stays unchanged"
-   convention the React admin API already uses, so the Django-admin surface
-   stops rendering the live secret into page HTML at all.
+None needed beyond the above — this is the complete fix.
 
 ## Prevention
-- [ ] Configuration changes needed — n/a
+- [x] Configuration changes needed — n/a
 - [ ] Monitoring/alerts to add — n/a
 - [ ] Documentation to update — n/a
-- [ ] Code changes required — field type change + data migration +
-      `render_value=True` removal, as above
+- [x] Code changes required — done (see Solution)
 
 ## Related Issues
 - `chemglee-concept-site-2026-09-17-paynow-sandbox-live-admin-config.md`
@@ -96,5 +111,6 @@ field type going forward), which is a different shape of change than the new
 
 ---
 
-**Resolved By:** Not yet — found and logged by Claude Sonnet 5, fix deferred
-**Time to Resolution:** N/A
+**Resolved By:** Claude Sonnet 5
+**Time to Resolution:** Found 2026-09-17, fixed 2026-09-18 (one day, deferred
+deliberately rather than rushed into the original session)
