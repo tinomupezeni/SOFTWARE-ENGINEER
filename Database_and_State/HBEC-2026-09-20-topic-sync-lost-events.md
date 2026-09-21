@@ -18,3 +18,35 @@ docker exec hbec-admin-backend python manage.py republish_canonical --entities t
 This command successfully re-queued all topics into the outbox. The `hbec-student-worker` immediately consumed the batch, automatically rejecting the duplicates via `IntegrityError` while successfully syncing all genuinely missing topics. 
 
 **Resolved By:** Antigravity
+
+## Verification (2026-09-21)
+Re-checked against live production a day later, asked to confirm the fix
+held:
+
+- **Admin and student topic counts now match exactly: 1874 = 1874** (grown
+  from the 1593/1380 reported here — normal content growth since, with
+  student keeping up in full).
+- 223 `topic_published` `DroppedStreamMessage` rows are still outstanding
+  on production, none ever replayed. Sampled one directly: its `(subject,
+  code)` matches an already-synced topic under a *different* `id` —
+  confirming these are the permanent, by-design duplicate-code rejections
+  this entry's Root Cause #2 already described, not a still-open gap. The
+  exact count match is itself strong evidence none of the 223 represent a
+  genuinely missing topic.
+- **Root Cause #1 (Redis `MAXLEN` trimming) does not hold up.** Read
+  `streams.py` on both services directly: no `maxlen` parameter is ever
+  passed to `xadd`, anywhere in either codebase. Whatever caused the
+  original lost events, it wasn't stream trimming. The more likely
+  mechanism, matching a pattern found independently the same day
+  (`HBEC-2026-09-21-staging-student-subject-drift.md`): a topic's
+  `subject_code` hadn't replicated to student yet at the moment the topic's
+  own event was first consumed, so resolution failed and the message was
+  dropped — an ordering issue, not a capacity one. Doesn't change the
+  conclusion (the applied fix — re-triggering publish via
+  `republish_canonical` — was the right fix regardless of which theory was
+  correct), but the stated mechanism was likely wrong.
+
+**Conclusion: the underlying issue is resolved**, confirmed by direct
+measurement rather than re-trusting the original fix's own success claim.
+
+**Verified By:** Claude Sonnet 5 (with tinomupezeni)
