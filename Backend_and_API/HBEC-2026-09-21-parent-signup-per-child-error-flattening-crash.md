@@ -4,7 +4,7 @@
 **Project:** HBEC
 **Environment:** Development (found via local test run; not yet confirmed against production traffic)
 **Severity:** Medium (turns a normal 400 validation response into an unhandled 500 on signup)
-**Status:** Investigating — root-caused, not fixed (flagged, deliberately deferred; see Prevention / Rule)
+**Status:** Resolved (2026-09-21, same day — fixed on request shortly after being flagged)
 
 ## Summary
 Found while writing and regression-testing the family-plan resize change in
@@ -93,27 +93,29 @@ of handling it, and the fallback `else` branch is not a safe default for a
 field whose known possible shapes were only partially handled.
 
 ## Prevention / Rule
-**Guardrail:** none applied yet — this is a "found, not fixed" entry per the
-project's issue-logging convention. The right fix (deferred, for the next
-touch of this function) is to widen `_flatten_signup_errors`'s `"children"`
-branch to accept `dict` as well as `list` (iterating `.items()` instead of
-`enumerate()`), and to add a test case shaped like this one — first child
-valid, later child invalid — as a permanent regression guard, since that is
-precisely the shape the existing tests didn't cover.
+**Guardrail:** `_flatten_signup_errors`'s `"children"` branch now accepts
+both `list` and `dict` (iterating `.items()` for the dict case instead of
+`enumerate()`), so both shapes DRF can emit for a `many=True` field are
+handled the same way rather than one of them falling through to an unsafe
+default. `test_parent_signup_reports_which_child_failed` — already present
+and already correctly written, previously failing — is the permanent
+regression guard; no new test was needed.
 
 ## Solution
 
 ### Immediate Fix
-None applied — out of scope for the session this was found in (family-plan
-billing work); flagged here instead of silently patched mid-unrelated-change,
-per this repo's convention for issues found but deliberately deferred.
+Applied 2026-09-21 (same day, on request): widened the `isinstance` guard to
+`(list, dict)`, built the iterator as `enumerate(error_list)` or
+`error_list.items()` depending on which shape arrived, and cast the dict
+case's key to `int()` before using it in the `Child {index + 1}: ...`
+message (dict keys from DRF here are already `int`, but the list branch's
+`enumerate()` also yields `int`, so this keeps the message-formatting code
+identical regardless of which shape produced it). Full
+`apps.accounts.tests.test_parent_auth` suite: 26/26 passing, including the
+previously-failing test.
 
 ### Long-term Fix
-Widen the `"children"` branch in `_flatten_signup_errors` to handle both the
-`list` and sparse `dict` shapes DRF can return for a `many=True` field, and
-add `test_parent_signup_reports_which_child_failed`-style coverage for the
-"failure is not on the first item" case specifically (already present as a
-failing test in this repo — just needs the implementation fixed to pass it).
+None needed beyond the above — this is the complete fix.
 
 ## Prevention
 - [ ] Configuration changes needed — n/a
@@ -121,7 +123,7 @@ failing test in this repo — just needs the implementation fixed to pass it).
       `/api/auth/signup/parent/` specifically, since this turns a routine
       validation failure into a server error a real parent could hit
 - [ ] Documentation to update — n/a
-- [x] Code changes required — fix identified, not yet applied (see Long-term Fix)
+- [x] Code changes required — done (see Solution)
 
 ## Related Issues
 - None found in this repo for DRF `ListSerializer` error-shape assumptions.
@@ -137,5 +139,5 @@ failing test in this repo — just needs the implementation fixed to pass it).
 
 ---
 
-**Resolved By:** Claude Sonnet 5 (found only, not fixed)
-**Time to Resolution:** N/A — deferred
+**Resolved By:** Claude Sonnet 5
+**Time to Resolution:** Found and fixed same day, 2026-09-21
