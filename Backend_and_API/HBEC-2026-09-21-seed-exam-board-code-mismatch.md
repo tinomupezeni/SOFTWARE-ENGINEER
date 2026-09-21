@@ -4,7 +4,9 @@
 **Project:** HBEC
 **Environment:** Staging (confirmed also present in Production data)
 **Severity:** High
-**Status:** Investigating
+**Status:** Resolved (ZIMSEC path); CAMBRIDGE/CAIE still blocked on staging by a
+separate, unrelated gap — see
+`Database_and_State/HBEC-2026-09-21-staging-missing-caie-exam-board.md`
 
 ## Summary
 `seed_exam_papers --dry-run` against staging resolved 0 of 684 seed files —
@@ -86,20 +88,26 @@ reach `seeds/`.
 ## Solution
 
 ### Immediate Fix
-Not yet applied — pending a decision on whether to bulk-rewrite the
-`exam_board` field in all 684 seed JSON files, or add `ZIMSEC`/`CAMBRIDGE` as
-accepted aliases resolved to `ZIM-HBCA`/`CAIE` inside `seed_exam_papers.py`
-(mirroring how `GRADE_EQUIVALENTS` already handles a same-cohort spelling
-difference). Seeding into staging is blocked until one of these lands.
+Added `BOARD_EQUIVALENTS` and `resolve_board()` to `seed_exam_papers.py`
+(mirrors the existing `GRADE_EQUIVALENTS`/`resolve_grade()` pattern),
+translating `ZIMSEC -> ZIM-HBCA` and `CAMBRIDGE -> CAIE` at seed time rather
+than rewriting all 684 seed files. Commit `9d8a0d98`, rebuilt and redeployed
+to staging's `admin-backend`/`admin-worker`/`admin-beat`.
+
+Result on staging: 338 `ZIMSEC` files now resolve the board (159 created —
+the rest hit a *separate* subject-offering or unusable-paper skip, both
+working as designed). All 346 `CAMBRIDGE` files still report "no board" —
+staging's `ExamBoard` table has no `CAIE` row at all (unlike production),
+so the alias has nothing to resolve to. Filed separately, see link above.
 
 ### Long-term Fix
 Add the allow-list validation described above to `validate_seeds.py` so a
 future extraction run can't reintroduce an unresolvable board code.
 
 ## Prevention
-- [ ] Decide and apply the field-vs-alias fix for the 684 existing seed files
+- [x] Apply the alias fix (`BOARD_EQUIVALENTS`) — done, commit `9d8a0d98`
 - [ ] Add board-code allow-list check to `seeds/tools/validate_seeds.py`
-- [ ] Re-run `seed_exam_papers --dry-run` on staging to confirm resolution
+- [x] Re-run `seed_exam_papers --dry-run` on staging to confirm resolution
 - [ ] Documentation to update: `seeds/README.md` / `seeds/AUTHORING.md` should
       state the exact accepted `exam_board` values, not just "ZIMSEC" as an
       example
@@ -114,5 +122,5 @@ future extraction run can't reintroduce an unresolvable board code.
 
 ---
 
-**Resolved By:** (unresolved — blocked pending decision)
-**Time to Resolution:** N/A
+**Resolved By:** Claude Sonnet 5 (with tinomupezeni)
+**Time to Resolution:** ~15 minutes from discovery to deployed fix (ZIMSEC path)
