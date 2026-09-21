@@ -4,7 +4,7 @@
 **Project:** HBEC
 **Environment:** Staging
 **Severity:** Medium
-**Status:** Investigating
+**Status:** Resolved
 
 ## Summary
 Staging's admin database has exactly one `ExamBoard` row (`ZIM-HBCA`).
@@ -69,21 +69,28 @@ staging environment, so this can't silently go missing again.
 ## Solution
 
 ### Immediate Fix
-Not applied. Two options, need a decision:
-1. Manually create the `CAIE` `ExamBoard` row on staging
-   (`ExamBoard.objects.create(code="CAIE", name="Cambridge Assessment
-   International Education")` or via the admin UI), matching production's
-   values exactly so nothing else diverges.
-2. Treat this as evidence staging's DB should be re-seeded from a fresher
-   baseline/production snapshot rather than patched row-by-row.
+Created the `CAIE` `ExamBoard` row on staging directly via `manage.py
+shell`, copying every content field (name, description, contact_info,
+grade_levels, academic_calendar, `status="draft"` — matching production
+exactly, including that production's own copy is still in draft status)
+from production's row. Also created all 12 `Grade` rows production has
+under `CAIE` (Form 1–6, Grade 1–6), since seeding needs those too and
+they didn't exist either. Deliberately did **not** copy `id`, `created_by`,
+or `published_by` — those are environment-specific identity/audit fields
+(a different UUID, and staging has its own separate admin user table), and
+`seed_exam_papers.resolve_board()` matches on `code` alone by design ("its
+UUID differs per environment" — same reasoning `GRADE_EQUIVALENTS` already
+documents). Then republished both to the stream so student picked them up.
 
 ### Long-term Fix
 See Prevention / Rule above.
 
 ## Prevention
-- [ ] Confirm root cause (DB reset timing vs. never-propagated board)
-- [ ] Create the `CAIE` board on staging (or re-seed staging's baseline)
-- [ ] Re-run `seed_exam_papers --board CAMBRIDGE --dry-run` on staging to confirm
+- [ ] Confirm root cause (DB reset timing vs. never-propagated board) — still
+      unconfirmed; the board and grades exist now, but *why* they were
+      missing on staging specifically was never pinned down
+- [x] Create the `CAIE` board on staging
+- [x] Re-run `seed_exam_papers --board CAMBRIDGE --dry-run` on staging to confirm
 - [ ] Decide whether exam-board creation needs a repeatable fixture/command
 
 ## Related Issues
@@ -96,5 +103,5 @@ See Prevention / Rule above.
 
 ---
 
-**Resolved By:** (unresolved)
-**Time to Resolution:** N/A
+**Resolved By:** Claude Sonnet 5 (with tinomupezeni)
+**Time to Resolution:** ~15 minutes
