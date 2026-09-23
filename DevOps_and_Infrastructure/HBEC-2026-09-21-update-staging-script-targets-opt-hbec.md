@@ -5,7 +5,12 @@
 **Environment:** Production + Staging (hbca-vps, same Docker host)
 **Severity:** High (latent — not run this session, found while deploying a
 routine feature manually)
-**Status:** Identified, not fixed (flagged to the user; no code/script change made)
+**Status:** Resolved (2026-09-23) — see Update below. Left unfixed for 2 days
+after being flagged; a production outage in that window
+(`HBEC-2026-09-23-production-gateway-502-outage.md`) had its own postmortem
+recommend `./update_staging.sh` by name as the safe canonical script to use
+instead of raw `docker compose` — which would have pointed the next operator
+straight at this one.
 
 ## Summary
 While manually deploying the new Student Sync Status panel to staging (per
@@ -116,11 +121,45 @@ Audit and consolidate the four scripts down to one per environment; the
 survivor should explicitly pass `--env-file .env.staging` (or `.env` for
 prod) rather than relying on the default the CWD happens to pick up.
 
+## Update (2026-09-23) — the three scripts removed
+
+Re-verified each script's content fresh (not trusting this entry's own
+2-day-old description) before deleting anything, since a raw
+`docker compose` outage in the interim
+(`HBEC-2026-09-23-production-gateway-502-outage.md`) made this more urgent,
+not less — that outage's own postmortem named `./update_staging.sh` as the
+recommended safe script, which would have sent the next operator straight
+into this bug, likely worse: a `sudo git reset --hard` on production's
+checkout, not just an orphaned container.
+
+Confirmed all three matched or exceeded the original description:
+- `update_staging.sh` — `cd /opt/hbec`, `sudo git reset --hard origin/master`,
+  then staging compose build/up. Exactly as described.
+- `deploy_staging.sh` — also targets `/opt/hbec`, via `scp` + `tar` extraction
+  instead of git reset, same net effect.
+- `deploy_staging_fix.sh` — a third copy of the same `/opt/hbec` bug, via
+  `tar` extraction, not previously fully read in the original pass.
+
+`deploy_staging_proper.sh` re-verified correct: `cd /home/winstontino/HBEC`
+(the real staging directory), plain `git pull origin master`, no `sudo`. Its
+missing `--env-file .env.staging` flag (noted in Root Cause Analysis above)
+was **not** fixed in this pass — flagged again here since it's still true,
+kept as its own follow-up rather than silently expanding this fix's scope.
+
+Checked for cron jobs or other scripts referencing any of the three by name
+before deleting — none found. Removed all three:
+```bash
+rm /home/winstontino/HBEC/update_staging.sh \
+   /home/winstontino/HBEC/deploy_staging.sh \
+   /home/winstontino/HBEC/deploy_staging_fix.sh
+```
+`/home/winstontino/HBEC/` now has exactly one staging-deploy script.
+
 ## Prevention
-- [ ] Configuration changes needed — remove/rename the three unverified scripts
+- [x] Configuration changes needed — the three unverified/incorrect scripts removed
 - [ ] Monitoring/alerts to add — n/a
 - [x] Documentation to update — this entry
-- [ ] Code changes required — n/a
+- [ ] Code changes required — n/a (script content, not application code)
 
 ## Related Issues
 - `HBEC-2026-09-21-staging-prod-shared-docker-tag-near-miss.md` — same
@@ -128,13 +167,15 @@ prod) rather than relying on the default the CWD happens to pick up.
   (image tag namespace rather than script scope).
 
 ## References
-- `/home/winstontino/HBEC/update_staging.sh`,
-  `/home/winstontino/HBEC/deploy_staging_proper.sh` (VPS, not in the git
-  repo mirror checked out locally — read via SSH)
+- `/home/winstontino/HBEC/deploy_staging_proper.sh` (VPS, not in the git
+  repo mirror checked out locally — read via SSH; the sole survivor)
 - `HBEC/docs/DEPLOYMENT.md` §"Manual Backup"/staging deploy flow
 - `HBEC/.github/workflows/cd.yml` (staging job's `--env-file .env.staging` usage)
+- `HBEC-2026-09-23-production-gateway-502-outage.md` — the incident whose
+  own postmortem made this fix urgent
 
 ---
 
-**Resolved By:** N/A — flagged, not fixed
-**Time to Resolution:** N/A
+**Resolved By:** Claude Sonnet 5 (flagged 2026-09-21 by Claude Sonnet 5;
+resolved 2026-09-23)
+**Time to Resolution:** 2 days from flagged to fixed
