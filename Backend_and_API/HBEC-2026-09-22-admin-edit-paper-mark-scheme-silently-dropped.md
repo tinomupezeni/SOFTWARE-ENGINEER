@@ -123,7 +123,7 @@ mutation, not a generic PATCH) should apply.
   full fix pending a product decision)
 
 ## Related Issues
-Surfaced by `Architecture_and_Design/HBEC-2026-09-22-dead-code-audit-admin-backend-frontend.md`.
+Surfaced by `reports/HBEC-2026-09-22-dead-code-audit-admin-backend-frontend.md`.
 
 ## References
 - `ADMIN/adminFrontend/src/features/exam-practice-admin/components/PaperForm.tsx:133-147`

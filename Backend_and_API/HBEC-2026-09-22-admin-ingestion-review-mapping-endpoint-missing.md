@@ -93,7 +93,7 @@ Removed the whole dead chain rather than building the endpoint it called:
 - [ ] Monitoring/alerts to add — n/a
 
 ## Related Issues
-Surfaced by `Architecture_and_Design/HBEC-2026-09-22-dead-code-audit-admin-backend-frontend.md`.
+Surfaced by `reports/HBEC-2026-09-22-dead-code-audit-admin-backend-frontend.md`.
 Same session as the sibling fix in
 `Backend_and_API/HBEC-2026-09-22-admin-edit-paper-mark-scheme-silently-dropped.md`.
 
