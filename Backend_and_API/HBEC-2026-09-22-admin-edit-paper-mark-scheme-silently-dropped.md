@@ -1,14 +1,15 @@
 # Editing an Existing Exam Paper Silently Drops a New Mark Scheme File
 
-**Date:** 2026-09-22
+**Date:** 2026-09-22 (found) / 2026-09-23 (fixed)
 **Project:** HBEC
 **Environment:** Discovered during a dead-code audit of admin backend/frontend
 (verifying `AttachMarkSchemeView` was actually unused before proposing its
 removal)
-**Severity:** Medium — a real admin action fails with no error and no
+**Severity:** Medium — a real admin action failed with no error and no
 feedback to the user
-**Status:** Investigating (found, not yet fixed — logged per the
-found-or-fixed rule; fix is follow-up work, not part of this session's scope)
+**Status:** Resolved (mark scheme file); paper PDF replacement on an existing
+paper remains unsupported by design, now surfaced honestly instead of
+silently dropped — see Long-term Fix
 
 ## Summary
 `AttachMarkSchemeView` (`/exam-practice/papers/<pk>/attach-mark-scheme/`)
@@ -59,6 +60,14 @@ not, because it was written assuming edits are metadata-only.
   (`AttachMarkSchemeView` → `attach_marking_scheme_via_harness` →
   `finalise_paper_ingestion`, a real Celery chain) — it was never dead, it
   was simply never called from the edit flow.
+- `paperFile` (the paper's own PDF, not the mark scheme) has the identical
+  silent-drop bug in the same form, but **no equivalent backend capability
+  exists to fix it the same way**: `ExtractQuestionsView` re-extracts from
+  whatever `paper_file` is already stored, it doesn't accept a new upload.
+  Building a "replace paper file + re-extract" endpoint is new
+  infrastructure (does it discard previously-extracted questions? does it
+  need its own review step?), not a mechanical wiring fix — out of scope
+  here.
 
 ## Root Cause
 `PaperForm.tsx` is shared between create and edit mode and presents the same
@@ -76,22 +85,42 @@ returns 200.
 ## Solution
 
 ### Immediate Fix
-None yet — out of scope for the dead-code cleanup session that surfaced this.
-`AttachMarkSchemeView` was deliberately left in place, unremoved, because of
-this finding.
+1. **Mark scheme**, fully fixed: `PaperFormPage.tsx`'s `handleUpdate` now
+   strips `markSchemeFile` out of the JSON metadata payload and, when
+   present, calls a new `attachMarkScheme(id, file)` (`examPracticeApi.ts`)
+   → `POST /exam-practice/papers/${id}/attach-mark-scheme/` as `FormData`,
+   via a new `useAttachMarkScheme()` mutation. This reuses the existing,
+   already-correct pipeline rather than teaching the generic PATCH to also
+   trigger extraction.
+2. **Paper PDF**, contained not fixed: `PaperForm.tsx`'s Paper PDF dropzone
+   is now disabled in edit mode with an explicit note ("Replacing the paper
+   PDF isn't supported from this form") instead of silently accepting a file
+   it can't process. Prevents the deceptive success case; doesn't add the
+   missing capability.
 
 ### Long-term Fix
-Needs: either (1) `updatePaper()` gains the same file-detection branch
-`createPaper()` already has and calls `AttachMarkSchemeView` (or an
-equivalent update-with-file endpoint) when a new mark scheme is present, or
-(2) the edit form is changed to route mark-scheme replacement through its own
-explicit action rather than bundling it into the general metadata PATCH.
+Needs a product decision before paper-PDF replacement can be built the same
+way: does replacing `paper_file` on a paper with existing extracted
+questions discard them, version them, or require a review step first? Once
+decided, the same pattern (a dedicated endpoint + a dedicated frontend
+mutation, not a generic PATCH) should apply.
+
+## Verification
+- `npm run typecheck` clean, full vitest suite 242/242 passing.
+- Traced the fixed path by code: `handleUpdate` → metadata PATCH (unchanged
+  shape, file field removed) → conditional `attachMarkSchemeMutation` call →
+  same Celery chain (`attach_marking_scheme_via_harness` +
+  `finalise_paper_ingestion`) create mode already exercises.
+- Not verified via a live browser session in this pass — static
+  verification only (typecheck, test suite, code trace). Flagging this
+  explicitly rather than claiming a UI click-through that didn't happen.
 
 ## Prevention
 - [ ] Configuration changes needed — n/a
 - [ ] Monitoring/alerts to add — n/a
 - [x] Documentation to update — this entry
-- [ ] Code changes required — pending
+- [x] Code changes required — done (mark scheme fixed; paper PDF contained,
+  full fix pending a product decision)
 
 ## Related Issues
 Surfaced by `Architecture_and_Design/HBEC-2026-09-22-dead-code-audit-admin-backend-frontend.md`.
@@ -105,5 +134,5 @@ Surfaced by `Architecture_and_Design/HBEC-2026-09-22-dead-code-audit-admin-backe
 
 ---
 
-**Resolved By:** Not yet resolved
-**Time to Resolution:** N/A
+**Resolved By:** Claude Sonnet 5
+**Time to Resolution:** Found 2026-09-22, fixed 2026-09-23 (same audit thread).
