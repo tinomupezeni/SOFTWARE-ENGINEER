@@ -116,16 +116,40 @@ empty on staging before touching anything, then reverse-migrated
 old container — the only point at which `manage.py migrate <app> zero` is
 possible, since it requires the app still registered in `INSTALLED_APPS`.
 
-### Not removed (deliberately left for follow-up, not silently dropped)
-- `apps/governance/`'s own duplicate `AuditLogListView`/`ReleaseListView`
-  (superseded by `system_settings`'s copy, but not verified deletion-safe in
-  this pass)
-- `apps/artifacts/views.py`'s two endpoints (models are alive; whether these
-  specific views are a safe-to-drop duplicate of `replication`'s own
-  `ArtifactDownloadView` was not resolved)
+### Follow-up pass (2026-09-23) — the two deferred items resolved
+- **`apps/governance/`'s own `AuditLogListView`** — confirmed true duplicate:
+  `system_settings/views.py`'s `AuditLogsView` queries the identical
+  `AuditEvent` model with a *superset* of filtering plus a detail view
+  governance lacked. Admin frontend calls only the `system_settings` copy.
+  **Removed**, along with its now-unused `AuditEventSerializer`. Governance's
+  9 release-workflow views (`ReleaseListView` and siblings) were left
+  untouched — confirmed a real, substantial state-machine service
+  (`ReleaseWorkflowService`) with no frontend built for it yet, the same
+  built-but-unwired pattern as the curriculum endpoints below, not dead code.
+- **`apps/artifacts/views.py`'s two endpoints** — confirmed superseded:
+  `apps/replication/views.py` has its own `ArtifactDownloadView`, mounted at
+  `/_internal/artifact/download/<key>/`, the codebase's established
+  convention for cross-service (Harness/Student) reads. Zero external caller
+  of admin's own `/api/artifacts/lookup|download/`. **Removed** `views.py`,
+  `urls.py`, and `serializers.py` (`ArtifactSerializer`/
+  `PrecomputeJobSerializer`, both exclusive to the removed views) — the
+  `Artifact`/`PrecomputeJob` models stay, still alive via replication's own
+  queries.
+- Also found and removed while re-auditing the ingestion feature further:
+  `ReviewQueueList`/`ReviewItemCard`/`ReviewItemDetail`/`ReviewStatusBadge`
+  and their exclusive hooks/API functions (`useIngestionJob`, `useReviewItem`,
+  `useBulkReviewAction`, `getIngestionJob`, `getReviewItem`,
+  `bulkReviewAction`) — the rest of the same retired standalone
+  `/ingestion/review` page that the mapping-editor sibling entry already
+  found part of.
+
+### Still not removed (deliberately left, not silently dropped)
 - `CurriculumTreeView`/`CurriculumUnitListCreateView`/`MarkingStandardListCreateView`
   — real backend capability with no frontend, a product gap not a bug
-- `AttachMarkSchemeView` — see the sibling bug entry
+- `AttachMarkSchemeView` — see the sibling bug entry (now fixed, wired to the
+  edit flow instead of removed)
+- Governance's 9 release-workflow views — a product gap, not a bug; would
+  need its own frontend to become reachable
 
 ### Verification
 - Full admin backend suite: 731/731 passing (throwaway Postgres,
@@ -156,7 +180,13 @@ possible, since it requires the app still registered in `INSTALLED_APPS`.
   (`build_ai_payload`, `build_harness_questions_payload`, removed)
 - `ADMIN/adminBackend/apps/dashboard/views.py`, `urls.py`
   (`DashboardLLMUsageSeriesView`, removed)
+- `ADMIN/adminBackend/apps/governance/views.py`, `serializers.py`, `urls.py`
+  (`AuditLogListView`, `AuditEventSerializer`, removed)
+- `ADMIN/adminBackend/apps/artifacts/views.py`, `serializers.py`, `urls.py`
+  (removed entirely; models untouched)
 - `ADMIN/adminFrontend/src/components/ui/`, `src/hooks/` (unused files removed)
+- `ADMIN/adminFrontend/src/features/ingestion/` (remaining retired
+  review-page components/hooks removed)
 
 ---
 
