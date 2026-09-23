@@ -117,9 +117,10 @@ feature using the verified-correct manual invocation instead
 directly, matching `deploy_staging_proper.sh` and `cd.yml`'s staging job).
 
 ### Long-term Fix
-Audit and consolidate the four scripts down to one per environment; the
+~~Audit and consolidate the four scripts down to one per environment; the
 survivor should explicitly pass `--env-file .env.staging` (or `.env` for
-prod) rather than relying on the default the CWD happens to pick up.
+prod) rather than relying on the default the CWD happens to pick up.~~ Done
+— see Update below.
 
 ## Update (2026-09-23) — the three scripts removed
 
@@ -143,8 +144,12 @@ Confirmed all three matched or exceeded the original description:
 `deploy_staging_proper.sh` re-verified correct: `cd /home/winstontino/HBEC`
 (the real staging directory), plain `git pull origin master`, no `sudo`. Its
 missing `--env-file .env.staging` flag (noted in Root Cause Analysis above)
-was **not** fixed in this pass — flagged again here since it's still true,
-kept as its own follow-up rather than silently expanding this fix's scope.
+was fixed in a follow-up pass the same day: both `docker compose build` and
+`up -d` invocations now pass `--env-file .env.staging` explicitly, matching
+`docs/DEPLOYMENT.md` and `cd.yml`'s own staging job rather than relying on
+whichever `TAG` the bare `.env` happens to default to. Confirmed
+`.env.staging` exists at the expected path before wiring it in; permissions
+(`-rwxrwxr-x`) preserved on rewrite.
 
 Checked for cron jobs or other scripts referencing any of the three by name
 before deleting — none found. Removed all three:
