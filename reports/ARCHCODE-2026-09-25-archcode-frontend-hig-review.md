@@ -103,7 +103,8 @@ reserved for verdict.
 Zero `focus-visible` / `focus:ring` / `ring-ring` in product code, while `--ring` is defined
 in **both** palettes (`styles.css:94`, `:131`) and mapped at `:48`. The affordance exists
 and is unused. Compounded by zero keyboard shortcuts on an app that is entirely
-keyboard-driven, against a PRD that specifies `⌘↵` / `⌘⇧↵` / `⌘1`–`⌘4`.
+keyboard-driven, with `⌘↵` / `⌘⇧↵` / `⌘1`–`⌘4` proposed by this review as a way to close
+that gap. (Correction: the PRD specifies no shortcuts; see the correction block below.)
 
 **Decision:** global `:focus-visible` rule off the existing token, plus a row-fill variant
 for lists per `focus-and-selection.md`.

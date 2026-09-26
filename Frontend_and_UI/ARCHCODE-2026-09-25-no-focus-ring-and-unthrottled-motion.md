@@ -8,7 +8,8 @@
 
 ## Summary
 
-ArchCode is an entirely keyboard-driven tool — the PRD specifies `⌘↵` to run, `⌘⇧↵` to
+ArchCode is an entirely keyboard-driven tool — a design review (not the PRD) proposed
+`⌘↵` to run, `⌘⇧↵` to
 submit and `⌘1`–`⌘4` for telemetry tabs — and it shipped with no visible focus indicator on
 any interactive element, while defining a `--ring` token in both colour palettes and never
 using it. Separately, an infinite 2-second pulse on the "Engine: Ready" dot was the only
@@ -107,7 +108,8 @@ declared but never applied is otherwise indistinguishable from one that is genui
 
 ### Long-term Fix
 
-- Keyboard shortcuts from the PRD (`⌘↵`, `⌘⇧↵`, `⌘1`–`⌘4`) are still unimplemented. The
+- Keyboard shortcuts proposed by the design review (`⌘↵`, `⌘⇧↵`, `⌘1`–`⌘4`) are still
+  unimplemented. The
   focus ring is necessary but not sufficient for keyboard operability; a keyboard user can
   now see focus but still cannot run or submit.
 - The new conflict region is a `<button>` with `aria-pressed`, so it is focusable and
@@ -118,7 +120,7 @@ declared but never applied is otherwise indistinguishable from one that is genui
 
 - [x] Global `:focus-visible` using the existing `--ring` token
 - [x] `prefers-reduced-motion` guard with a static status alternative
-- [ ] Implement the PRD's keyboard shortcuts — this remains the larger open gap
+- [ ] Implement the review's proposed keyboard shortcuts — this remains the larger open gap
 - [ ] Add a CI check that fails when a new infinite animation is introduced without a
       reduced-motion alternative
 

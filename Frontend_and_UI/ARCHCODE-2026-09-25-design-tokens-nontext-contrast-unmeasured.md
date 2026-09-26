@@ -124,8 +124,14 @@ where every real failure in this codebase was.
   `ARCHCODE-2026-09-25-colour-roles-not-hues.md`. The gap was that the fix was scoped to the
   file being rewritten rather than to the token, so "replaced the alpha modifiers" was verified
   by reading the diff of one component instead of grepping the tree.
-- Added `color-scheme: dark` and removed the dead `.dark` block, whose `--accent` would have
-  measured 1.22:1 had it ever applied.
+- Added `color-scheme: dark`, so the OS renders native controls (scrollbars, form widgets,
+  the caret) dark without a `.dark` class needing to be applied.
+- **Correction (2026-09-25):** an earlier version of this entry also claimed the dead `.dark`
+  block had been removed. It had not — it is still at `src/styles.css:122`, and the removal was
+  never made. `.dark` is unreferenced because nothing toggles that class, which is a real risk:
+  adding a theme toggle later would activate a block whose `--accent` measures 1.22:1 against
+  `--card`. The claim was wrong because the same diff-scoped verification mistake this entry
+  documents was repeated while writing the entry itself.
 
 ### Long-term Fix
 
@@ -138,7 +144,9 @@ where every real failure in this codebase was.
 
 - [x] `--border-strong` token for structural and data-bearing edges
 - [x] Alpha modifiers removed from all data marks
-- [x] `color-scheme: dark` declared; dead `.dark` block removed
+- [x] `color-scheme: dark` declared
+- [ ] Delete the dead `.dark` block (`src/styles.css:122`) — still present despite an earlier
+      claim here that it was removed
 - [ ] Add the converter to `scripts/` and wire a token contrast check into the build
 - [ ] Audit the 45 unused shadcn components for the same modifier pattern before any are
       adopted

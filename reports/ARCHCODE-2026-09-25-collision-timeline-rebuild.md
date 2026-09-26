@@ -152,7 +152,8 @@ Per the sequencing, steps 2–5:
 
 2. Complete the semantic pass; step 1 covered only the timeline's colours and the `Pill`
    collision.
-3. Accessibility: the PRD's `⌘↵` / `⌘⇧↵` / `⌘1`–`⌘4` shortcuts are still unimplemented. The
+3. Accessibility: the `⌘↵` / `⌘⇧↵` / `⌘1`–`⌘4` shortcuts proposed by the design review (the
+   PRD specifies none) are still unimplemented. The
    focus ring makes focus visible but a keyboard user still cannot run or submit — this is
    now the largest open accessibility gap.
 4. Remove scaffolding: the "Toggle Pass / Fail State" control, the editor's
