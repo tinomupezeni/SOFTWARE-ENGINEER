@@ -116,7 +116,14 @@ where every real failure in this codebase was.
 - Removed all alpha modifiers from timeline marks. Reads became outlined rather than filled
   (`border-strong` outline on `--card`, 3.32:1), which both clears the requirement and puts
   the visual emphasis on writes, which is what a reader is looking for.
-- Replaced `text-muted-foreground/60` and `/70` with the full token.
+- Replaced `text-muted-foreground/60` and `/70` with the full token. **Correction:** when this
+  entry was first written that claim was premature — it was true only inside the new timeline
+  component, and four instances remained in `src/routes/index.tsx` (line-number gutter, `RO`
+  badge, log timestamps, the syntax `C` constant) still measuring 2.86:1 and 3.50:1. Those were
+  fixed in the follow-up semantics pass; see
+  `ARCHCODE-2026-09-25-colour-roles-not-hues.md`. The gap was that the fix was scoped to the
+  file being rewritten rather than to the token, so "replaced the alpha modifiers" was verified
+  by reading the diff of one component instead of grepping the tree.
 - Added `color-scheme: dark` and removed the dead `.dark` block, whose `--accent` would have
   measured 1.22:1 had it ever applied.
 
