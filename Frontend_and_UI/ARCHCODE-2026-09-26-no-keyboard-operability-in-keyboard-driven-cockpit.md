@@ -133,7 +133,9 @@ npx vite build
   `⌘⇧↵` fire and do nothing visible. This is the same scaffolding debt as the "Toggle Pass/Fail
   State" button, and it is called out in the report as a UX regression risk if shipped as-is:
   a dead primary shortcut is worse than no shortcut. The keyboard *plumbing* is verified; the
-  action behind it is step 4 of the review sequence.
+  action behind it is step 5 of the review sequence (*wire the missing product surface*);
+  step 4 is *remove the scaffolding*. (Correction: an earlier version of this entry said
+  step 4.)
 - PRD §5.2 requires "Run never touches the score" to be stated in the UI. It currently appears
   in the Run button's `title` and the shortcuts overlay, which is technically UI but not
   persistently visible. **Still open.**

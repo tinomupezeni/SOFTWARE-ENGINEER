@@ -40,8 +40,10 @@ pushed documents that repeated it.
 - **Native menu-bar command registration.** Blocked on the Tauri/Electron-vs-web shell
   decision. Web `keydown` is the only layer available today, so the shortcuts are not
   discoverable from the OS menu yet.
-- **Any real Run/Submit behaviour.** That is the execution engine (review step 4). This work
-  bound the keys and verified they fire; it did not build a runner. See Follow-ups.
+- **Any real Run/Submit behaviour.** Not part of the review's sequenced work at all -- the
+  review's step 4 is *remove the scaffolding*, and the runner is step 5 (*wire the missing
+  product surface*). This work bound the keys and verified they fire; it did not build a
+  runner. See Follow-ups.
 - **Visible, persistent "Run never touches the score" copy.** Required by PRD §5.2. It exists
   in the Run button `title` and the overlay, which does not satisfy "stated in the UI" in
   spirit. Flagged rather than half-solved.
@@ -138,8 +140,11 @@ real key events reaching the listener, and the sub-1024px layout are all unconfi
 
 ## Follow-ups / Deferred
 1. **Run/Submit are bound but inert** — pressing `⌘↵` does nothing visible. A dead primary
-   shortcut is worse than none, so this must land together with the runner (step 4) or the
+   shortcut is worse than none, so this must land together with the runner (step 5) or the
    bindings should be withheld. This is the main open risk in the current state.
+   (Correction: an earlier version of this report called the runner "step 4". The review's
+   step 4 is removing the pass/fail toggle, the RO/editable overclaim, and the dead `zinc`
+   tone; the runner is step 5.)
 2. **PRD §5.2 copy** — "Run never touches the score" needs a persistent visible treatment,
    not a tooltip.
 3. **Focus containment** in the shortcuts overlay (cycle Tab within the dialog).
