@@ -4,9 +4,15 @@
 **Project:** ArchCode (pixel-perfect-replication scaffold)
 **Environment:** Development
 **Severity:** High
-**Status:** Open — blocked on bun not being installed
+**Status:** Resolved
 
 ## Summary
+**Resolved 2026-09-26 (later the same day):** bun 1.4.2 was installed, `bun install`
+regenerated `bun.lock`, and the full verification suite was re-run green against the
+bun-installed tree. `react-resizable-panels` resolved to 4.12.2 under the release-age guard
+rather than the 4.13.3 npm had picked, so the re-verification was not a formality -- the
+resolution genuinely differed. Details in "Resolution" below.
+
 The repo is bun-managed: `bun.lock` is tracked and `bunfig.toml` enforces a 24-hour
 `minimumReleaseAge` supply-chain guard. Step 5 added eight CodeMirror dependencies to
 `package.json`, and every one of them is absent from `bun.lock`. Because bun is not installed
@@ -94,14 +100,38 @@ verification against a bun-installed tree. This also re-applies the 24h release-
 the resolution may legitimately differ from the npm-installed one and the suite must pass
 again afterwards.
 
-Blocked pending a decision on installing bun (or explicitly shipping with the drift documented).
+## Resolution
+Installed bun 1.4.2 via the official installer (`curl -fsSL https://bun.sh/install | bash`),
+which added `~/.bun/bin` to PATH in `~/.zshrc`. `bun install` then resolved and saved the
+lockfile under the repo's own `minimumReleaseAge = 86400` policy. All eight step-5
+dependencies now appear in `bun.lock`:
+
+```
+@codemirror/state 11   @codemirror/view 8   @codemirror/language 7
+@codemirror/search 3   @codemirror/lang-python 2   @codemirror/commands 3
+@codemirror/lang-sql 2  codemirror 2
+```
+
+Two things the re-verification caught that the npm run had not:
+
+1. **`react-resizable-panels` resolved to 4.12.2, not the 4.13.3 npm chose.** The release-age
+   guard is a real constraint, not decoration. This is precisely why "it built locally" was
+   never sufficient evidence.
+2. **Two latent defects in the verification tooling surfaced only on the first clean run** --
+   a `ReferenceError` in the honesty-failure reporter, and a false positive on a generated
+   file. Both are logged separately; both had been masked while the suite was green.
+
+Green after resolution: `bun run verify` rc 0 (101 assertions, including the 25-case guardrail
+mutation suite), `vite build` rc 0, ESLint clean, and the capture harness PASS at 1440/1280/
+1024/900px with zero overflow and no console errors.
 
 ## Prevention
 - [x] All eight dependencies declared directly in `package.json`
 - [x] `package-lock.json` removed
-- [ ] Install bun and regenerate `bun.lock`
-- [ ] Re-run `verify`, typecheck, ESLint, build, and the CDP suites on the bun-installed tree
+- [x] Install bun and regenerate `bun.lock`
+- [x] Re-run `verify`, typecheck, ESLint, build, and the capture harness on the bun-installed tree
 - [ ] Add the package.json↔bun.lock drift check and the foreign-lockfile check
+- [x] `package.json` gained `test:guardrails` and `capture` scripts
 - [ ] Confirm the four `minimumReleaseAgeExcludes` entries are still needed
 
 ## Related Issues

@@ -55,17 +55,27 @@ Explicitly excluded, with reasons:
   anything, and checked the review's own sequence rather than inventing a scope.
 - Preferred the platform over a dependency where the dependency was dead weight: the
   CodeMirror packages are imported directly instead of through a wrapper.
-- Verified by driving the real app. Built a zero-dependency Chrome DevTools Protocol harness in
-  `/tmp/opencode` (no test-runner dependency was added to the project for this), including a
-  `waitForApp` that waits for hydration — early interaction attempts failed because
-  `Input.dispatchKeyEvent` was landing on a server-rendered DOM that React had not hydrated
-  yet, and the corrected harness waits for the real interactive state.
+- Verified by driving the real app. Built a zero-dependency Chrome DevTools Protocol harness on
+  Node 22's built-in `WebSocket`, so verifying the UI adds no test-runner dependency
+  (now tracked as `scripts/capture.mjs`). It includes a hydration wait: early interaction
+  attempts failed because `Input.dispatchKeyEvent` was landing on a server-rendered DOM React
+  had not hydrated yet, and dispatching into a not-yet-hydrated tree is silently dropped,
+  which is indistinguishable from a broken interaction.
 - Cross-checked every claim against the DOM or a measured number: widths, focus movement, ARIA
   state, drag results, computed styles. No assertion rests on a screenshot.
 - **Mutation-tested the guardrails.** This was the decisive methodological step. A check that
-  has never failed is not known to work, so each of the 19 product-surface invariants was
-  broken deliberately and the suite was required to go red. The first run caught 15 of 19;
-  triaging the four escapes produced the most valuable findings in this report.
+  has never failed is not known to work, so each product-surface invariant was broken
+  deliberately and the suite was required to go red. The first run caught 15 of 19; triaging
+  the four escapes produced the most valuable findings in this report. The suite now lives in
+  the repo as `scripts/verify-guardrails.ts` and runs as part of `verify`, and it enforces two
+  rules on itself: every mutation must be **verified to have applied** (a `sed` that matches
+  nothing exits 0 and looks exactly like a pass), and the baseline must be re-verified green
+  after every probe so a crashed run cannot leave the tree mutated.
+- **Moved the harnesses out of `/tmp`.** The first versions lived there and were lost to a tmp
+  cleanup, taking four review screenshots with them. `scripts/capture.mjs` (dependency-free
+  CDP) and `scripts/verify-guardrails.ts` are now tracked files.
+- **Re-verified on a bun-installed tree.** See "Second pass" below: switching package managers
+  surfaced three further defects that the npm run had masked.
 
 ## Decisions & Findings
 **Editing model.** Buffers are `Record<ProblemFileId, string>` rather than
@@ -111,6 +121,22 @@ stays reachable.
 `grid-cols-[minmax(280px,30%)_1fr]`. Now `minSize={280}`, verified by dragging far past the
 limit and reading the resulting width: it stops at exactly 280px.
 
+**Switching package managers was the most productive bug hunt of the session.** `bun install`
+resolved `react-resizable-panels` to 4.12.2 where npm had chosen 4.13.3, so the re-run was
+not a formality. The first clean `bun run verify` then exposed three latent defects: the
+honesty-failure reporter crashed on its first finding instead of reporting it; a generated
+OpenAPI declaration was scanned as hand-written UI; and the step-5 refactor had silently
+dropped the narrow state's 1024px explanation, which the guardrail for it had failed to catch
+because it was coupled to a component name that no longer existed. All three are logged
+separately. None of them could have been found while the suite was green.
+
+**The brief was never lost, only mis-grepped.** `CompactWorkspace` renders the brief by
+reusing `SpecPane`, so `BRIEF_BODY` is declared once and appears in both surfaces — exactly
+what the hoisting was for. A literal grep for `{BRIEF_BODY}` inside the old component name
+could not follow the indirection and reported it as missing. Two of the three narrow-state
+failures were artefacts of checking *how* the code is written rather than *what* the user
+sees.
+
 **My verification overclaimed.** I reported the layout as visually verified on the basis of
 headless screenshots that I cannot view. Logged as its own entry and reclassified as an open
 item. The structural evidence is genuine but is evidence of geometry, not of appearance.
@@ -129,7 +155,13 @@ New, uncommitted in `pixel-perfect-replication`:
 - `src/components/arch/split.tsx` — `react-resizable-panels@4` used directly; px-or-percent
   sizes; orientation-aware handles; required `label`; double-click reset.
 - `src/components/arch/shortcut-help.tsx` — **focus trap added** (see entry).
-- `scripts/verify-semantics.ts` — step-5 product-surface block rewritten.
+- `scripts/verify-semantics.ts` — step-5 product-surface block rewritten; generated sources
+  excluded (visibly) from source-text checks; narrow-state guards made rename-proof; the
+  honesty reporter's undeclared counter removed.
+- `scripts/verify-guardrails.ts` *(new)* — 25-case mutation suite; wired into `verify` as
+  `test:guardrails`.
+- `scripts/capture.mjs` *(new)* — dependency-free CDP screenshot + structure capture; wired in
+  as `capture`.
 
 Modified:
 - `src/routes/index.tsx` (+736/−552; +589/−405 ignoring whitespace) — editor, picker, Plan/Trace
@@ -137,7 +169,9 @@ Modified:
   because prettier reformatted pre-existing lines; the whitespace-insensitive figure is the
   honest measure of the change.
 - `src/styles.css` (+58/−3) — **dead `--color-border-strong` token mapped** (see entry).
-- `package.json` (+15) — eight direct CodeMirror dependencies.
+- `package.json` — eight direct CodeMirror dependencies; `test:guardrails` and `capture`
+  scripts; `verify` now includes the mutation suite.
+- `bun.lock` — regenerated by `bun install` under the repo's 24h release-age guard.
 
 Deliberately not modified: `src/components/ui/resizable.tsx` (generated code; avoided instead
 of patched, see entry), and the remaining `bun.lock`.
@@ -145,9 +179,10 @@ of patched, see entry), and the remaining `bun.lock`.
 Per `AGENTS.md`, none of this is committed — the frontend tree is left dirty for review.
 
 ## Verification
-- `npm run verify` — rc 0, **100 assertions passed** (semantics + timeline + shortcuts + tsc).
-- `npx tsx scripts/verify-semantics.ts` — green, including the rewritten product-surface block.
-- Mutation suite — **19 caught, 0 escaped** (was 15/19 before the gaps were closed).
+- `bun run verify` — rc 0, **101 assertions passed**, including the mutation suite
+  (semantics + timeline + shortcuts + guardrails + tsc).
+- Mutation suite — **25 caught, 0 escaped, 0 wrong-reason, 0 no-op**, baseline restored green.
+  (Was 15/19 before the gaps were closed; 25 after adding the narrow-state cases.)
 - `npx vite build` — rc 0.
 - ESLint on `src/routes/index.tsx`, `src/components/arch/`, `scripts/` — clean. The 8
   remaining Prettier warnings are all in untouched pre-existing files
@@ -163,17 +198,24 @@ Per `AGENTS.md`, none of this is committed — the frontend tree is left dirty f
   document overflow at every width**, no runtime errors.
 - Confirmed every `@codemirror/*` package imported by the editor is declared in
   `package.json` (no undeclared transitive reliance).
-- A throwaway `__probe.html` in the repo was removed; all harnesses live in `/tmp/opencode`.
+- `node scripts/capture.mjs` — **ALL PASS** at 1440x900, 1280x800, 1024x768 and 900x800:
+  cockpit rendered at >=1024px, compact workspace below it, **zero horizontal and vertical
+  overflow at every width**, no console errors or exceptions.
+- Screenshots regenerated and stored **outside /tmp** at
+  `Club Zero/review-shots/shot-{1440x900,1280x800,1024x768,900x800}.png`, verified as valid
+  PNGs at the stated dimensions.
+- A throwaway `__probe.html` in the repo was removed.
 
 ## Follow-ups / Deferred
 - **Visual review of four screenshots is outstanding** and is the reason this report's status
-  is not "signed off". Needs a human or vision-capable reviewer.
-- **Regenerate `bun.lock`.** All eight step-5 dependencies are absent from it; npm was used
-  because bun is not installed, which also bypassed `minimumReleaseAge = 86400`. Needs the
-  user's decision, then a full re-verification on a bun-installed tree.
-- **Move the mutation harness into `scripts/`** so "every guardrail can fail" is enforced on
-  every run rather than re-run by hand from `/tmp`.
+  is not "signed off". The user elected to review them personally; they are at
+  `Club Zero/review-shots/`.
+- **Move `tsc --noEmit` to the front of the `verify` chain** and give `scripts/` its own
+  tsconfig. The undeclared-variable bug in the honesty reporter was a type error that the
+  typechecker could have caught, but the typechecker ran after the script that crashed.
 - Add a `package.json` ↔ `bun.lock` drift check, and a check that rejects a foreign lockfile.
+- Audit the remaining guardrails for symbol-name coupling, which is what let the narrow-state
+  regression through.
 - Mechanically reject the `|| true` / inverted-ternary shapes in assertions.
 - Add "every `aria-modal` traps focus" to `pre_deploy_verification.md`, plus the rule against
   perceptual language for structural checks.
@@ -192,6 +234,9 @@ Bug entries raised by this work:
 - `Frontend_and_UI/ARCHCODE-2026-09-26-dead-problem-selector-affordance.md`
 - `Frontend_and_UI/ARCHCODE-2026-09-26-screenshot-visual-verification-claim.md`
 - `DevOps_and_Infrastructure/ARCHCODE-2026-09-26-bun-lock-stale-missing-step5-dependencies.md`
+- `Frontend_and_UI/ARCHCODE-2026-09-26-honesty-reporter-crashed-on-first-failure.md`
+- `Frontend_and_UI/ARCHCODE-2026-09-26-generated-types-scanned-as-hand-written-ui.md`
+- `Frontend_and_UI/ARCHCODE-2026-09-26-narrow-state-lost-1024px-explanation.md`
 
 Earlier ArchCode entries: `reports/ARCHCODE-2026-09-26-narrow-window-state.md`,
 `reports/ARCHCODE-2026-09-26-execution-availability.md`,
@@ -200,8 +245,8 @@ Earlier ArchCode entries: `reports/ARCHCODE-2026-09-26-narrow-window-state.md`,
 Source: `ARCHCODE-PRD.md` §§5, 5.1, 8, 9; `ARCHCODE-DESIGN-REVIEW.md` finding 6 and the step
 sequence; `ARCHCODE-pressure-test.md` (Plan view);
 `src/routes/index.tsx`; `src/lib/problem.ts`; `src/components/arch/*`;
-`scripts/verify-semantics.ts`; `/tmp/opencode/{cdp,interact,measure-widths}.mjs`;
-`/tmp/opencode/negtest.sh`.
+`scripts/verify-semantics.ts`; `scripts/verify-guardrails.ts`; `scripts/capture.mjs`;
+`Club Zero/review-shots/*.png`.
 
 ---
 
