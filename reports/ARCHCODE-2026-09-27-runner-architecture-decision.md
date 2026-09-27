@@ -3,7 +3,18 @@
 **Date:** 2026-09-27
 **Project:** ArchCode
 **Type:** Architecture Decision
-**Status:** Proposed — awaiting confirmation of the runtime fork
+**Status:** Confirmed (Python + WebSockets) — amended by the measured latency budget
+
+> **Amended 2026-09-27 by `reports/ARCHCODE-2026-09-27-run-latency-budget.md`.**
+> The runtime fork below is now settled: the user confirmed **Python** and **WebSockets**, and
+> **Django (content authoring) + FastAPI (run API, WebSockets)** with Django owning the schema
+> and the verifier kept outside both. The user additionally required that runs feel
+> *near-instant*, that the admin oversee everything, and that AI-engineering scenarios be
+> included. Measurement then overturned two assumptions carried in this report: a fresh
+> container per attempt costs ~92 s (so the §10 "warm pool" is load-bearing, not a detail), and
+> "500 concurrent buyers" exceeds Postgres' default `max_connections = 100` (so buyers must be
+> logical workers over a bounded pool). Read this report together with the latency budget; the
+> transport, boundary, and CLI-first conclusions here still stand.
 
 ## Summary
 The runner decision is pre-answered in outline by PRD §10 (orchestrator → sandbox → verifier,
