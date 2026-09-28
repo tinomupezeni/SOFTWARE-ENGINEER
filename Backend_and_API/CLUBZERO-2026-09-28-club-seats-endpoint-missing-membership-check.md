@@ -4,7 +4,7 @@
 **Project:** Club Zero
 **Environment:** Development
 **Severity:** High (direct violation of the project's own stated NFR: "Users must only be able to query check-in/club data for their own Club members")
-**Status:** Investigating (found during a codebase read; not yet fixed)
+**Status:** Resolved
 
 ## Summary
 `GET /clubs/{club_id}/seats` in `club-zero-backend/app/routers/clubs.py`
@@ -86,24 +86,22 @@ access silently.
 ## Solution
 
 ### Immediate Fix
-Not yet applied — logging this during a read-only codebase review.
+Added the same `ClubMember` membership check used in `checkins.py` to
+the top of `get_seats` in `club-zero-backend/app/routers/clubs.py`,
+returning `403 Not a member of this club` before any query runs.
+Verified manually: a club creator's token gets `200` from
+`/clubs/{club_id}/seats`; a second, non-member user's token against the
+same club gets `403 {"detail": "Not a member of this club"}`.
 
 ### Long-term Fix
-Add a membership check to `get_seats` identical in shape to
-`checkins.py`'s:
-```python
-member_check = await db.execute(
-    select(ClubMember).where(ClubMember.club_id == club_id, ClubMember.user_id == current_user.id)
-)
-if not member_check.scalars().first():
-    raise HTTPException(status_code=403, detail="Not a member of this club")
-```
+Add a `test_clubs.py` regression test asserting the 403 (not done in
+this pass — logged as a follow-up below).
 
 ## Prevention
-- [ ] Add membership check to `get_seats`
+- [x] Add membership check to `get_seats`
 - [ ] Add a regression test for non-member access to `/seats`
 - [ ] Documentation to update
-- [ ] Code changes required
+- [x] Code changes required
 
 ## Related Issues
 - None filed yet.
@@ -115,5 +113,5 @@ if not member_check.scalars().first():
 
 ---
 
-**Resolved By:** Found by Claude (Sonnet 5) during a full codebase read for tinotendamupezeni@thuthuka.tech; not yet fixed.
-**Time to Resolution:** N/A — open
+**Resolved By:** Claude (Sonnet 5), found and fixed same-session for tinotendamupezeni@thuthuka.tech.
+**Time to Resolution:** Same session as discovery, 2026-09-28.

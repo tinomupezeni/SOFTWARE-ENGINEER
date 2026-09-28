@@ -4,7 +4,7 @@
 **Project:** Club Zero
 **Environment:** Development
 **Severity:** Critical (this is the app's single core action — the entire "multiplayer habit tracker" product has no working check-in path)
-**Status:** Investigating (found during a codebase read; not yet fixed)
+**Status:** Resolved
 
 ## Summary
 `ClubService.checkIn()` in the Flutter client posts to
@@ -90,21 +90,24 @@ check closes this gap.
 ## Solution
 
 ### Immediate Fix
-Not yet applied — logging this during a read-only codebase review.
-Fix is a one-line change in `club_zero_mobile/lib/services/club_service.dart:85`,
-changing `checkin` to `check-in`.
+Changed `club_zero_mobile/lib/services/club_service.dart:85` from
+`'$baseUrl/clubs/$clubId/checkin'` to `'$baseUrl/clubs/$clubId/check-in'`.
+Verified with a manual end-to-end run against the FastAPI app (SQLite
+in-memory DB, real Redis) hitting the exact hyphenated path the client
+now uses: `POST /clubs/{club_id}/check-in` returned `201` with the
+expected `CheckInResponse` body.
 
 ### Long-term Fix
 Consider generating the Flutter API client from the FastAPI OpenAPI
 schema (or centralizing all route path strings in one shared constants
 file on each side) so this class of drift is structurally prevented
-rather than caught by inspection.
+rather than caught by inspection. Not done in this pass.
 
 ## Prevention
-- [ ] Fix the path in `club_service.dart`
+- [x] Fix the path in `club_service.dart`
 - [ ] Add a mobile-to-backend integration test for the check-in flow
 - [ ] Documentation to update
-- [ ] Code changes required
+- [x] Code changes required
 
 ## Related Issues
 - None filed yet.
@@ -116,5 +119,5 @@ rather than caught by inspection.
 
 ---
 
-**Resolved By:** Found by Claude (Sonnet 5) during a full codebase read for tinotendamupezeni@thuthuka.tech; not yet fixed.
-**Time to Resolution:** N/A — open
+**Resolved By:** Claude (Sonnet 5), found and fixed same-session for tinotendamupezeni@thuthuka.tech.
+**Time to Resolution:** Same session as discovery, 2026-09-28.

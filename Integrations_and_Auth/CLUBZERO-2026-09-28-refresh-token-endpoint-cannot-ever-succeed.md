@@ -4,7 +4,7 @@
 **Project:** Club Zero
 **Environment:** Development
 **Severity:** Medium (dead/broken code path — not currently called by the mobile client, but would fail immediately if wired up)
-**Status:** Investigating (found during a codebase read; not yet fixed)
+**Status:** Resolved
 
 ## Summary
 `club-zero-backend/app/routers/auth.py`'s `/auth/refresh` endpoint
@@ -94,18 +94,39 @@ actually mints a new access token, which forces the two sides to agree.
 ## Solution
 
 ### Immediate Fix
-Not yet applied — logging this during a read-only codebase review.
+- Added `create_refresh_token()` in `security.py` (30-day expiry,
+  `type: "refresh"` claim) alongside `create_access_token()`, which now
+  also sets `type: "access"`.
+- `TokenResponse` (`schemas.py`) and `POST /auth/login` now return both
+  `access_token` and `refresh_token`.
+- `POST /auth/refresh` now calls `create_access_token()` **and**
+  `create_refresh_token()` to mint a genuinely new token pair, instead
+  of echoing the submitted refresh token back as the access token.
+
+While wiring this up, found and fixed a second, independent bug in the
+same code path that would have kept `/auth/refresh` broken even with
+the above in place: `auth.py` redefined its own `SECRET_KEY` with a
+*different* fallback default (`"your-fallback-secret-key"`) than
+`security.py`'s (`"supersecret-dev-key"`), which is what actually signs
+every token. With no `SECRET_KEY` env var set, `/auth/refresh` verified
+signatures against the wrong key and 401'd on every call regardless of
+token validity. Fixed by having `auth.py` import `SECRET_KEY`/
+`ALGORITHM` from `security.py` instead of redeclaring them. Logged
+separately: [[CLUBZERO-2026-09-28-auth-secret-key-fallback-drift]].
+
+Verified with a manual end-to-end run: register → login (returns both
+tokens) → `POST /auth/refresh` with the real refresh token → `200` with
+a fresh access/refresh pair; `POST /auth/refresh` with an *access*
+token → `401 Invalid token type`, confirming the `type` claim check now
+actually discriminates.
 
 ### Long-term Fix
-- Add a second `create_refresh_token()` (longer-lived, `type: "refresh"`
-  claim) in `security.py`.
-- Return both `access_token` and `refresh_token` from `POST /auth/login`.
-- Have `POST /auth/refresh` call `create_access_token()` for a genuinely
-  new access token instead of echoing the input back.
+Done — see Immediate Fix. A login→refresh round-trip test is a
+reasonable follow-up but wasn't added in this pass.
 
 ## Prevention
-- [ ] Implement a real refresh-token factory and return it from `/login`
-- [ ] Fix `/auth/refresh` to mint a new access token
+- [x] Implement a real refresh-token factory and return it from `/login`
+- [x] Fix `/auth/refresh` to mint a new access token
 - [ ] Add a login→refresh round-trip test
 - [ ] Documentation to update
 
@@ -119,5 +140,5 @@ Not yet applied — logging this during a read-only codebase review.
 
 ---
 
-**Resolved By:** Found by Claude (Sonnet 5) during a full codebase read for tinotendamupezeni@thuthuka.tech; not yet fixed.
-**Time to Resolution:** N/A — open
+**Resolved By:** Claude (Sonnet 5), found and fixed same-session for tinotendamupezeni@thuthuka.tech.
+**Time to Resolution:** Same session as discovery, 2026-09-28.
