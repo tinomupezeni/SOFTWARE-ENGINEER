@@ -113,6 +113,18 @@ split the compose var per frontend (`VITE_API_URL_FRONTEND`,
 - `DEPLOYMENT-STANDARDS.md` (Vite build-arg section — this incident is
   exactly the failure it describes)
 
+## Recurrence (same day)
+
+Regressed during the PR #37 deploy: staging was rebuilt via plain
+`docker compose up -d --build` (no explicit `--build-arg`), baking
+`localhost:8000` again, and the bundle-grep guardrail from this entry
+was not re-run before promoting. Same CORS login failure on prod.
+
+Systemic fix: `~/promote-frontends.sh` on erp-vm now owns the whole flow
+— rebuild both frontends with prod origins, **abort on any localhost
+leak**, retag, recreate prod, health-check. Future promotes must go
+through it, not manual tag/up.
+
 ---
 
 **Resolved By:** Muse Spark (opencode)
