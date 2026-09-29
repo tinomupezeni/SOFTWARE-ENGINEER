@@ -1,4 +1,4 @@
-# `deploy_master.sh` and `deploy.sh` Survived the 09-23 Cleanup — Both Still Hard-Target `/opt/hbec` (Production) From the Staging Checkout
+# `deploy_master.sh` and `deploy.sh` Survived the 09-23 Cleanup — Both Committed to Git, Both Hard-Target `/opt/hbec` (Production)
 
 **Date:** 2026-09-29
 **Project:** HBEC
@@ -12,14 +12,22 @@ material for a new staging→production promotion runbook)
 2026-09-23) removed three scripts sitting in the staging checkout
 (`/home/winstontino/HBEC/`) that actually deployed to production's directory
 (`/opt/hbec`): `update_staging.sh`, `deploy_staging.sh`,
-`deploy_staging_fix.sh`. That cleanup verified only those three by name and
-declared `/home/winstontino/HBEC/` down to "exactly one staging-deploy
-script" (`deploy_staging_proper.sh`).
+`deploy_staging_fix.sh`. Those three were VPS-local, never committed to git.
+That cleanup verified only those three by name and declared
+`/home/winstontino/HBEC/` down to "exactly one staging-deploy script"
+(`deploy_staging_proper.sh`).
 
-That was wrong. Two more scripts with the *same* bug, under different names,
-are still sitting in that exact directory today: `deploy_master.sh` and
-`deploy.sh`. Neither was read in the 09-21/09-23 investigation. Both are
-worse than any of the three that were removed.
+That was wrong, and worse than the original finding: two more scripts with
+the *same* `/opt/hbec`-targeting bug exist under different names —
+`deploy_master.sh` and `deploy.sh` — and unlike the three that were removed,
+**these are actually committed to the HBEC git repository itself**
+(`git ls-files` confirms both; last touched by real commits `d653b78c`
+"fix(payments): resolve ZB Bank webhook lockout..." and `4e8763a0` "chore:
+push full codebase for testing"). They sit at the repo root and are present
+in **every checkout** — this machine's local clone, the staging VPS
+directory, and presumably anyone else's clone — not just one VPS directory.
+Deleting them from the VPS alone would not fix this: the next `git pull`
+brings them right back. The actual fix has to be a commit.
 
 ## Symptoms
 None observed — not run. Found by reading every `*.sh` file in the staging
@@ -27,7 +35,9 @@ checkout while building a general deploy runbook, rather than assuming the
 09-23 cleanup was exhaustive.
 
 ## Environment Details
-- **Server/Host:** hbca-vps, `/home/winstontino/HBEC/` (staging checkout)
+- **Server/Host:** the HBEC git repository itself (root path) — present on
+  hbca-vps in both `/home/winstontino/HBEC/` and (via `.gitignore` not
+  excluding it) potentially `/opt/hbec` too, plus every local clone
 - **Services Affected:** would be all of production, if either script is run
 - **Related Components:** `deploy_master.sh`, `deploy.sh`,
   `docker-compose.production.yml`, `/opt/hbec`
@@ -94,58 +104,71 @@ any kind.
 - The 09-23 cleanup checked for cron jobs/references to the *three named
   scripts it removed* — it did not enumerate every `.sh` file in the
   directory, so these two were never in scope of that check.
-- Both scripts require `sudo` to actually reach `/opt/hbec` (root-owned),
-  same incidental (not designed) barrier the original entry noted for
-  `update_staging.sh`. `winstontino`'s sudo access was still not checked.
+- **The "requires sudo" mitigation the 09-21 entry relied on for
+  `update_staging.sh` does not apply here.** `ls -la /opt/hbec/deploy_master.sh
+  /opt/hbec/deploy.sh` on the live VPS shows both owned by
+  `winstontino:winstontino`, `-rwxrwxr-x` — the *staging* user, not root.
+  `winstontino` can read, overwrite, or execute either file in
+  `/opt/hbec` with no `sudo` at all. Whether the `docker`/`git` commands
+  *inside* them need `sudo` is a separate question the file permissions
+  don't answer.
+- **`/opt/hbec` itself does not match `HBEC/CLAUDE.md`'s description**
+  ("Container-only — 5 files... root-owned"). The live directory has a full
+  git checkout (`.git`, world-writable: `drwxrwxrwx`), complete source
+  trees for every service, and >200 stray files (patch scripts, `.env.bak-*`
+  secret backups, screenshots, multi-hundred-KB logs) — the overwhelming
+  majority owned by `winstontino`, not root. This is a large enough gap from
+  its own documentation that it's filed as its own, separate, higher-severity
+  entry: see `HBEC-2026-09-29-opt-hbec-is-not-container-only-winstontino-owns-most-of-it.md`.
 - `deploy_master.sh` in particular reads as a *more* complete, more
   professional-looking pipeline than the real one (it has retries, rollback,
   a health gate) — which makes it the more dangerous of the two to stumble
   on: it looks like "the good one," not an obvious mistake.
 
 ## Root Cause
-Same root cause as the 09-21 entry, restated because it recurred: nothing
-enforces that a script sitting in the staging checkout only ever touches
-staging. The 09-23 fix addressed the three scripts a targeted grep/review
-found, not the actual invariant ("no script in this directory may reference
-`/opt/hbec`").
+Same root cause as the 09-21 entry, restated because it recurred and is now
+known to be worse: nothing enforces that a script referencing `/opt/hbec`
+can't exist in the repository at all. The 09-23 fix addressed the three
+VPS-local scripts a targeted review found; it never checked whether the git
+repo itself carried the same bug, so these two were invisible to that
+cleanup by construction, not by oversight.
 
 ## Prevention / Rule
-**Guardrail:** `/home/winstontino/HBEC/` should contain exactly one deploy
-script, full stop — audited by listing every `*.sh` file in the directory
-tree (not by name-matching against a known-bad list) and confirming none of
-them reference `/opt/hbec`, `docker-compose.production.yml`, or
-`origin/main`. A one-line CI-adjacent check (a pre-commit hook or a cron job
-on the VPS itself: `grep -rl '/opt/hbec' /home/winstontino/HBEC/*.sh
-/home/winstontino/HBEC/scripts/*.sh`, alert if non-empty) would have caught
-both of these the same way it would have caught the original three.
+**Guardrail:** `git grep -l '/opt/hbec'` (or equivalent) should be a CI
+check on this repo — any `.sh` file matching it outside `docker-compose.production.yml`/
+`deployment/`/`docs/` itself is almost certainly a script that must never be
+run from anywhere but a deliberate, reviewed production-deploy context. A
+one-line pre-commit or CI grep would have caught both of these at the commit
+that introduced them (`d653b78c`, `4e8763a0`), long before they reached
+staging or production checkouts at all.
 
-This closes the gap the 09-23 fix left open: a name-based audit only ever
-proves the names you checked are safe.
+This closes the gap the 09-23 fix left open twice over: a name-based audit
+only proves the names you checked are safe, and a VPS-only audit can't see
+a hazard that's actually committed to the repository.
 
 ## Solution
 
 ### Immediate Fix
-None — not run, nothing deleted. Per the same judgment call the 09-21 entry
-made: removing files outside the git repo on a shared production host is the
-operator's call, not something to do silently while researching an unrelated
-task.
+None yet — flagged to the user rather than deleting unilaterally, since this
+is a real commit to shared history, not an ad-hoc VPS file. Removing them
+needs a real `git rm` + commit (and then re-pulling on both the staging VPS
+checkout and any other clone), not a one-off `rm` on the VPS — that would
+only mask the problem until the next `git pull`.
 
 ### Long-term Fix
-Delete or move `deploy_master.sh` and `deploy.sh` out of
-`/home/winstontino/HBEC/` (same remedy as 09-23's three), and run the
-directory-wide grep above as a one-time full audit rather than trusting any
-prior "down to one script" claim — including this entry's own, until that
-grep comes back empty.
+`git rm deploy.sh deploy_master.sh`, commit, push, and re-pull on both VPS
+checkouts. Add the CI grep guardrail above so a reintroduction is caught
+before merge, not found again by manual audit.
 
 ## Prevention
-- [ ] Configuration changes needed — delete/move the two scripts (awaiting
-  operator decision)
-- [ ] Monitoring/alerts to add — a `/opt/hbec` grep across
-  `/home/winstontino/HBEC/*.sh` as a periodic check
+- [ ] Configuration changes needed — `git rm` both scripts (awaiting
+  operator decision — this is a real commit, not a VPS file cleanup)
+- [ ] Monitoring/alerts to add — CI grep for `/opt/hbec` outside the
+  expected config/docs paths
 - [x] Documentation to update — this entry; the new staging→production
   runbook (`HBEC/docs/STAGING_TO_PRODUCTION_RUNBOOK.md`) names both scripts
   explicitly as DO NOT RUN
-- [ ] Code changes required — n/a (script content, not application code)
+- [ ] Code changes required — the `git rm` above, once approved
 
 ## Related Issues
 - `HBEC-2026-09-21-update-staging-script-targets-opt-hbec.md` — the original
@@ -153,10 +176,15 @@ grep comes back empty.
   wasn't as exhaustive as it concluded.
 - `HBEC-2026-09-21-staging-prod-shared-docker-tag-near-miss.md` — the
   `:latest`-tag collision `deploy.sh` would reproduce if ever run.
+- `HBEC-2026-09-29-opt-hbec-is-not-container-only-winstontino-owns-most-of-it.md`
+  — checking these two files' permissions on the live VPS is what surfaced
+  this broader, more severe finding.
 
 ## References
-- `/home/winstontino/HBEC/deploy_master.sh`, `/home/winstontino/HBEC/deploy.sh`
-  (VPS only, not in the git repo mirror — read via SSH)
+- `deploy_master.sh`, `deploy.sh` — tracked at the HBEC repo root; present
+  in this local clone, `/home/winstontino/HBEC/`, and `/opt/hbec/`
+- `HBEC-2026-09-29-opt-hbec-is-not-container-only-winstontino-owns-most-of-it.md`
+  — the broader finding this one surfaced
 - `HBEC/docs/MANUAL_DEPLOY_PROMOTION.md`, `HBEC/docs/DEPLOYMENT.md` — the
   actual, safe promotion path
 
