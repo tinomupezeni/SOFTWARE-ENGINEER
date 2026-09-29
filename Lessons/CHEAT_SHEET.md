@@ -3,7 +3,7 @@
 > Plain-language versions of the recurring lessons pulled from this repo's
 > dev-logs (May–Sept 2026). Memorize these six. Full technical detail,
 > stack-specific rules, and checklists live in
-> `PRINCIPAL ENGINEER/engineering-guides/` — this file is the fast version.
+> `Principal_Engineer/engineering-guides/` — this file is the fast version.
 
 **The one-line summary:** it doesn't count until you've actually watched it
 happen — not the config file, not the doc, not the green checkmark, the real
@@ -96,6 +96,6 @@ mistakes.
 
 ---
 
-*Full guide library: `PRINCIPAL ENGINEER/engineering-guides/MANIFEST.md`.
+*Full guide library: `Principal_Engineer/engineering-guides/MANIFEST.md`.
 Raw incident evidence: the technical-area folders at the repo root
 (`Backend_and_API/`, `DevOps_and_Infrastructure/`, etc.).*

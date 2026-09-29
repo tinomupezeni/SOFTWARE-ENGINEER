@@ -1,9 +1,14 @@
 # Development Issues & Solutions Log
 
+**For an agent:** start at [`index.md`](./index.md) — it maps this whole
+repo so you don't have to read everything to find what you need.
+
 A centralized repository for tracking production issues, bugs, and their
 solutions across all projects — and, separately, reports on completed
 engineering initiatives and decisions that weren't a bug but are still
-worth a future reader knowing about.
+worth a future reader knowing about. It also holds a stack-agnostic
+engineering guide library and general working-process notes — see
+`index.md` for the full map.
 
 ## Purpose
 - Document critical issues and their resolutions
@@ -16,18 +21,21 @@ worth a future reader knowing about.
 ## Structure
 
 ```
-dev-logs/
-├── Architecture_and_Design/
+SOFTWARE-ENGINEER/
+├── index.md                  # map of this repo, for an agent
+├── WORKING-PROCESS.md         # general session/task discipline
+├── Architecture_and_Design/   # bug/issue logs, by technical area
 ├── Backend_and_API/
 ├── Database_and_State/
 ├── DevOps_and_Infrastructure/
 ├── Frontend_and_UI/
 ├── Integrations_and_Auth/
 ├── Mobile_Apps/
-├── reports/
-└── templates/
-    ├── issue-template.md             # Template for bugs/misconfigurations
-    └── report-template.md            # Template for engineering reports
+├── reports/                   # completed-initiative reports
+├── templates/                 # issue/report templates
+├── Principal_Engineer/        # stack-agnostic engineering guide library
+├── Lessons/                   # general cross-project lessons + cheat sheet
+└── References/                # vendored third-party reference material
 ```
 *(Bug/issue logs are stored in the technical-area directories above and
 named `[PROJECT]-YYYY-MM-DD-issue-name.md`. Reports live flat in `reports/`,
@@ -46,36 +54,23 @@ technical area.)*
 
 ## Projects Tracked
 
-- [Shipwright](./shipwright/) - DevOps deployment automation tool
-- CRM Professional
-- SMEPULSE
-- HBEC
-- Market-Link
-- chemglee-concept-site
+ARCHCODE, CANOPYRX, chemglee-concept-site, CLUBZERO, CRM, crucible,
+Email-Sender, event-spark, FRUGAL_CORE, HBEC, LoanManagement, MARITCHO,
+Market-Link, SavensBlog, shipwright, TESC, tese-marketplace, ZCHPC,
+ZCHPC-ERP, ZCHPC-WEB, ZIMDASH — one bug-log/report prefix per project, not
+a subfolder per project (see Structure above). This list is generated from
+the actual filenames in use; if you add a new project's first entry, add
+its prefix here too.
 
 ## How to Use
 
 ### Automatic (Recommended)
-Claude Code and Gemini CLI are configured to automatically create issue logs when debugging production problems. Just work normally - they'll create logs for:
-- Production outages
-- Deployment failures
-- Container/Docker issues
-- SSH debugging sessions
-- Critical errors
+Claude Code is configured (via `/home/shadowe/.claude/CLAUDE.md`, the
+global rules file) to automatically create issue logs and reports when it
+finds or fixes a bug, or completes an engineering initiative — in any
+project, without being asked. Just work normally.
 
-### Manual Logging
-Use the helper script for quick manual logging:
-
-```powershell
-# Auto-detect project from current directory and prompt for Category
-cd C:\Users\Dell\Documents\projects\CRM\crm
-C:\Users\Dell\Documents\projects\dev-logs\log-issue.ps1 -Title "backend-crash" -Severity Critical
-
-# Or specify project and category explicitly
-C:\Users\Dell\Documents\projects\dev-logs\log-issue.ps1 -Project CRM -Title "nginx-down" -Severity High -Category DevOps_and_Infrastructure
-```
-
-### Manual (Traditional)
+### Manual
 **Bug/issue:**
 1. Copy template: `templates/issue-template.md`
 2. Name it: `[TECHNICAL_CATEGORY]/[PROJECT]-YYYY-MM-DD-brief-description.md`
@@ -90,12 +85,13 @@ C:\Users\Dell\Documents\projects\dev-logs\log-issue.ps1 -Project CRM -Title "ngi
 
 ## Quick Links
 
+- [Repo map for an agent](./index.md)
 - [Issue Template](./templates/issue-template.md)
 - [Report Template](./templates/report-template.md)
 - [Reports](./reports/)
-- [Recent Backend Logs](./Backend_and_API/)
-- [Recent DevOps Logs](./DevOps_and_Infrastructure/)
+- [Engineering Guide Library](./Principal_Engineer/engineering-guides/MANIFEST.md)
+- [Working Process](./WORKING-PROCESS.md)
 
 ---
 
-**Last Updated:** 2026-05-17
+**Last Updated:** 2026-09-29
