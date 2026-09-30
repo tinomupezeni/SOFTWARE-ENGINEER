@@ -148,14 +148,40 @@ rediscovered the same class of drift already live on staging's own data
   the 21 stale production papers) was already applied directly; this new
   guardrail should go through the normal staging→production promotion
   once GitHub Actions recovers or another manual promotion is done.
-- **Staging independently has its own 21-of-25 drift right now**, found as
-  a side effect of verifying this build — not remediated in this pass
-  (out of scope: this task was building the detector, not re-running the
-  incident's remediation a second time on a second environment). Worth a
-  follow-up pass applying the same backup-then-delete remediation to
-  staging's drifted papers.
 - GitHub Actions remains account-wide billing-blocked — third report this
   week to note it; still needs the account owner to act.
+- **A single pass can silently under-report.** Cleaning up staging's own
+  drift (below) took three successive runs to converge on zero, not one —
+  each pass surfaced one or two *additional* genuinely-missing papers the
+  previous pass hadn't flagged. Root cause: `check_adopted_paper_consistency`'s
+  "one bad lookup must not stop the pass" handling (deliberate, mirrors
+  `remark_pending`'s own per-attempt try/except) means a paper whose
+  upstream lookup transiently errors is silently *skipped* that pass —
+  neither reported as drifted nor confirmed clean. It never produces a
+  false positive (nothing was deleted that wasn't independently confirmed
+  missing via direct ORM query first), but a single "0 drifted" run isn't
+  a strong guarantee on its own. Worth a small follow-up: add a
+  `skipped_count` to the report so an operator can see when a pass wasn't
+  fully conclusive, rather than that being invisible.
+
+### Staging cleanup (completed same session)
+Re-ran the same backup-then-delete remediation used for production,
+directly on staging's harness DB:
+- Cross-checked the FK cascade rules there first — identical to
+  production (`attempts`/`marking_points`/`question_assets` all `ON DELETE
+  CASCADE`).
+- Backed up every affected paper/question/marking-point/attempt to JSON
+  before deleting, same as production. Found and backed up 19 real
+  attempt rows across 8 of the 21 originally-flagged papers, plus 1 more
+  against a paper the third confirmation pass surfaced.
+- Deleted in three passes as new genuinely-missing papers surfaced each
+  time (see "single pass can silently under-report" above) — verified
+  each one directly against the Student Backend's own `Paper` table via
+  the ORM (not just the harness's client) before deleting, so no deletion
+  in this cleanup relied on the consistency check's report alone.
+- **Converged**: three consecutive re-runs now report `checked: 1,
+  drifted_count: 0` — staging's one remaining adopted paper is genuinely
+  consistent, not just unflagged.
 
 ## References
 - `HBEC-2026-09-30-harness-adopted-papers-stale-after-question-reingest-404-on-marking.md`
