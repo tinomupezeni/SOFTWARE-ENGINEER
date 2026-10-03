@@ -1064,6 +1064,14 @@ Comprehensive Merge & Integration Checklists
 
 [ ] Are edge cases and potential error conditions handled correctly?   
 
+[ ] **Idempotency**: Are background workers and async task retries idempotent to prevent silent data corruption?
+
+[ ] **Exception Handling**: Is the code avoiding `assert` for runtime validation, using proper Exceptions instead?
+
+[ ] **UI/UX & Accessibility**: Have frontend interactions been audited for accessibility (focus rings, trapped focus in modals, appropriate ARIA, loading feedback on primary actions)?
+
+[ ] **CI Safety**: Are all smoke tests, CI steps, and DB seed scripts read-only/transactional to guarantee they won't mutate or corrupt live data?
+
 [ ] Does the change include comprehensive unit and integration tests?   
 
 [ ] Is system observability maintained with appropriate logs and metrics?   
