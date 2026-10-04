@@ -4,7 +4,7 @@
 **Project:** Attendance
 **Environment:** Development
 **Severity:** Medium
-**Status:** Investigating
+**Status:** Resolved
 
 ## Summary
 Selecting a Photon search result on the workplace-create map runs `document.getElementById('address').value = label` unconditionally, but the form has no `#address` input, throwing a null-reference TypeError on every place search.
@@ -43,7 +43,7 @@ This closes the gap directly: the root cause is an unguarded `getElementById` on
 ## Solution
 
 ### Immediate Fix
-Add hidden `address` input (or guard the lookup) and verify no console error on Photon select.
+Applied 2026-10-04 (Phase 0): added hidden `<input name="address" id="address">` so the Photon handler's assignment resolves and the address flows to `WorkplaceController@store` instead of silently defaulting.
 
 ### Long-term Fix
 Workplace create E2E: search → select → polygon present → submit enabled → stored workplace returned.
@@ -63,5 +63,5 @@ Workplace create E2E: search → select → polygon present → submit enabled �
 
 ---
 
-**Resolved By:** N/A (flagged, not yet fixed)
-**Time to Resolution:** N/A
+**Resolved By:** Phase 0 fix session
+**Time to Resolution:** Same day (audit → fix)

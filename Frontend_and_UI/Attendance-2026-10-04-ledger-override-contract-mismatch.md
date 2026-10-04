@@ -4,7 +4,7 @@
 **Project:** Attendance
 **Environment:** Development
 **Severity:** Critical
-**Status:** Investigating
+**Status:** Resolved
 
 ## Summary
 The admin dashboard's Approve/Reject override flow can never succeed: the Blade form, the Laravel controller validation, and the FastAPI backend schema all disagree on field names, so every override submission fails validation before reaching the ledger.
@@ -45,7 +45,7 @@ This closes the gap directly: the root cause is three layers drifting on field n
 ## Solution
 
 ### Immediate Fix
-Align all three on `target_event_id, new_status, reason`; add reason textarea + status select to the view; wire `manager_id` to authenticated user instead of hardcoded string.
+Applied 2026-10-04 (Phase 0): single per-row form now submits `target_event_id` (hidden), `new_status` (Approve/REJECT buttons), and `reason` (required text input, max 255) — matching controller validation and backend `OverrideEvent`. `OVERRIDE_APPROVED` badge fixed to backend's real `OVERRIDE` event type. `manager_id` still hardcoded pending Phase 1 auth.
 
 ### Long-term Fix
 Auth-gated override with before/after diff display; E2E smoke of approve+reject on staging per the dashboard plan Phase 0.
@@ -67,5 +67,5 @@ Auth-gated override with before/after diff display; E2E smoke of approve+reject 
 
 ---
 
-**Resolved By:** N/A (flagged, not yet fixed)
-**Time to Resolution:** N/A
+**Resolved By:** Phase 0 fix session
+**Time to Resolution:** Same day (audit → fix)

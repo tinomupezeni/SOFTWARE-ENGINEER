@@ -4,7 +4,7 @@
 **Project:** Attendance
 **Environment:** Development
 **Severity:** High
-**Status:** Investigating
+**Status:** Resolved
 
 ## Summary
 The device-pairing confirmation page polls `/devices/pair-status/{code}` every 2s, but no Laravel route defines that URL, so polling always 404s. The QR code itself is rendered via `cdn.rawgit.com`, a discontinued CDN, and a stray `patch_controller.php` hack that duplicated the missing method is still committed at the admin root.
@@ -44,7 +44,7 @@ This closes the gap directly: the root cause is an unreachable internal endpoint
 ## Solution
 
 ### Immediate Fix
-Add `Route::get('/devices/pair-status/{code}', [DeviceController::class, 'checkPairStatus'])`; delete `admin/patch_controller.php`; vendor QR library via npm instead of rawgit.
+Applied 2026-10-04 (Phase 0): added `Route::get('/devices/pair-status/{code}')` → `checkPairStatus`; deleted `admin/patch_controller.php`; QR script moved from dead `cdn.rawgit.com` to verified-alive `cdn.jsdelivr.net/gh/davidshimjs/qrcodejs/qrcode.min.js`. `php -l` clean on routes + controller.
 
 ### Long-term Fix
 Contract/smoke test: generate pairing token on staging, poll status, complete pair from a test client, assert redirect.
@@ -67,5 +67,5 @@ Contract/smoke test: generate pairing token on staging, poll status, complete pa
 
 ---
 
-**Resolved By:** N/A (flagged, not yet fixed)
-**Time to Resolution:** N/A
+**Resolved By:** Phase 0 fix session
+**Time to Resolution:** Same day (audit → fix)
