@@ -54,7 +54,7 @@ technical area.)*
 
 ## Projects Tracked
 
-ARCHCODE, CANOPYRX, chemglee-concept-site, CLUBZERO, CRM, crucible,
+ARCHCODE, Attendance, CANOPYRX, chemglee-concept-site, CLUBZERO, CRM, crucible,
 Email-Sender, event-spark, FRUGAL_CORE, HBEC, LoanManagement, MARITCHO,
 Market-Link, OREPULSE, SavensBlog, shipwright, TESC, tese-marketplace, ZCHPC,
 ZCHPC-ERP, ZCHPC-WEB, ZIMDASH — one bug-log/report prefix per project, not
