@@ -4,7 +4,7 @@
 **Project:** Attendance
 **Environment:** Development
 **Severity:** Medium
-**Status:** Investigating
+**Status:** Resolved
 
 ## Summary
 Two of three backend tests fail without a live Redis because `mocker.patch("app.main.get_redis")` does not override the FastAPI dependency — requests still hit real Redis at `localhost:6379`. With a throwaway Redis running, one test still fails with an event-loop `RuntimeError`, so the seam is broken in both directions.
@@ -43,7 +43,7 @@ This closes the gap directly: the root cause is a mock that silently no-ops whil
 ## Solution
 
 ### Immediate Fix
-Not applied (out of Phase 0 admin scope). Rewrite the two tests with `app.dependency_overrides[get_redis] = lambda: FakeRedis()`; replace `close()` with `aclose()`.
+Applied 2026-10-04 (Phase 3): tests rewritten around `app.dependency_overrides[get_redis]` with a hermetic `FakeRedis` (incl. a single-use nonce-consumption assertion); `close()` → `aclose()`. Suite is 3-passed with zero ambient infra.
 
 ### Long-term Fix
 CI job running backend pytest against throwaway Redis/Postgres per WORKING-PROCESS §5.
@@ -63,5 +63,5 @@ CI job running backend pytest against throwaway Redis/Postgres per WORKING-PROCE
 
 ---
 
-**Resolved By:** N/A (flagged, not yet fixed)
-**Time to Resolution:** N/A
+**Resolved By:** Phase 3 session
+**Time to Resolution:** Same day
