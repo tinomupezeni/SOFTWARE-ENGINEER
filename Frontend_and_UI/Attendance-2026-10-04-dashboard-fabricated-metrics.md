@@ -4,7 +4,7 @@
 **Project:** Attendance
 **Environment:** Development
 **Severity:** High
-**Status:** Investigating
+**Status:** Resolved
 
 ## Summary
 `dashboard/index` renders hardcoded KPIs (142 active employees, 89 on-site, 3 suspicious) and static Chart.js datasets instead of querying the backend, presenting invented numbers as operational truth.
@@ -43,7 +43,7 @@ This closes the gap directly: the root cause is static numbers merged as if they
 ## Solution
 
 ### Immediate Fix
-Wire KPIs/charts to live `/admin/ledger` + `/admin/employees` aggregates; render honest empty/unavailable states when the backend is unreachable.
+Applied 2026-10-04 (Phase 2): new `DashboardController` aggregates live `/admin/employees` + `/admin/ledger` (Harare-timezone on-site-today, suspicious count, 7-day series, health buckets); backend unreachable renders an honest "unavailable" banner instead of numbers. Duplicate Chart.js include removed; warn reds moved to contrast-passing shades with chart `aria-label`s.
 
 ### Long-term Fix
 Define dashboard SLO aggregates (guide 4/5a) and cache them server-side instead of computing inline in Blade.
@@ -63,5 +63,5 @@ Define dashboard SLO aggregates (guide 4/5a) and cache them server-side instead 
 
 ---
 
-**Resolved By:** N/A (flagged, not yet fixed)
-**Time to Resolution:** N/A
+**Resolved By:** Phase 2 session
+**Time to Resolution:** Same day (audit → fix)
