@@ -4,7 +4,7 @@
 **Project:** HBEC
 **Environment:** Production
 **Severity:** High
-**Status:** Investigating
+**Status:** Resolved (confirmed 2026-10-05)
 
 ## Summary
 The Agentic Harness (FastAPI) was returning HTTP 500 Internal Server Error when the Admin Backend attempted to replicate `paper.published` events. This caused bulk syncs and individual paper publishes to fail when communicating with the AI Harness, leaving the Harness without the latest paper data.
@@ -47,7 +47,17 @@ Moving module-level imports to the top of the file (PEP 8 standard) or enforcing
 ## Solution
 
 ### Immediate Fix
-Pending. (Awaiting user authorization to apply the fix, which involves moving `import uuid` to the top of `AGENTIC_HARNESS/app/admin/replication_handlers.py` or moving it outside the conditional block).
+Applied same day (commit `afab7930`, 2026-09-30 12:57:25, "fix: implement
+dynamic version cache busting for curriculum & fix harness uuid bug") — moved
+`import uuid` to the function's unconditional top-of-function import block in
+`handle_paper_replication`, out of the `if event_type == "paper.archived":`
+branch.
+
+**Confirmed resolved 2026-10-05** while triaging `system_error_logs` via the
+new `hbec-errors-mcp` tool: the 8 logged occurrences all fall between
+2026-09-30T07:41 and 2026-10-01T07:00 — entirely before/at the fix commit,
+consistent with normal deploy lag. None since. Tracker entries marked
+resolved with a reference to this file.
 
 ### Long-term Fix
 Move all standard library imports to the module level in the Agentic Harness handlers to avoid conditional import scoping issues.
