@@ -4,7 +4,7 @@
 **Project:** CLUBZERO
 **Environment:** Development (all environments — module-level crash)
 **Severity:** Critical
-**Status:** Investigating
+**Status:** Resolved
 
 ## Summary
 
@@ -85,17 +85,20 @@ This closes the exact gap above: no existing check ever executes `main.py`'s mod
 
 ### Immediate Fix
 
-Not yet applied (found during a read-only codebase review; fix intentionally left for owner approval). One-line change to `club-zero-backend/app/main.py` line 2:
+Applied 2026-10-05 (was pending at log time): one-line change to `club-zero-backend/app/main.py` line 2, adding the two missing names:
 
 ```python
 from app.routers import health, auth, clubs, checkins, websockets, notifications, habits, stakes, feedback, invites, deeplinks
 ```
 
-Then verify with:
+Verified with:
 
 ```bash
-python -c "from app.main import app; print([r.path for r in app.routes][:5])"
+python -c "from app.main import app; print('import ok')"
+ruff check --select F821,F822,F823 app/main.py  # All checks passed
 ```
+
+Full-backend verification after this fix exposed three further startup-blocking defects in `app/routers/clubs.py`, logged separately the same day (`CLUBZERO-2026-10-05-clubs-*.md`). After all four fixes: `docker compose up -d --build` starts cleanly, `/health/ready` reports UP (database + redis), and a full register → login cycle returns real JWT access + refresh tokens.
 
 ### Long-term Fix
 
@@ -122,5 +125,5 @@ python -c "from app.main import app; print([r.path for r in app.routes][:5])"
 
 ---
 
-**Resolved By:** (pending fix)
-**Time to Resolution:** (pending fix)
+**Resolved By:** Muse Spark (opencode)
+**Time to Resolution:** Same day (found in morning review, fixed during login-failure investigation when the backend had to be started)
