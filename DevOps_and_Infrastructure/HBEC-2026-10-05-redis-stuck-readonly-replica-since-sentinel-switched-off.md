@@ -2,9 +2,28 @@
 
 **Date:** 2026-10-05
 **Project:** HBEC
-**Environment:** Production (VPS `/opt/hbec`) — affects both blue and green, since Redis is shared singleton infra
+**Environment:** Production (VPS `/opt/hbec`) — affects every environment that
+shares this Redis: the real, currently-live unsuffixed production containers,
+*and* the separate, not-yet-cut-over blue/green pair (see correction below)
 **Severity:** High
-**Status:** Investigating (root-caused, fix proposed, not yet applied — needs a go/no-go on a production Redis-client recreate)
+**Status:** Workaround Applied (Sentinel-orchestrated failover restored the
+hardcoded `redis` hostname as a writable master — fixes every service
+immediately, including ones with no Sentinel support in their own code. The
+durable fix, Sentinel-aware clients for the 3 services that support it, is
+still pending — see Long-term Fix.)
+
+## Correction (same-day, found while scoping the fix)
+Everything below originally assumed `student-backend-blue` *is* production.
+It is not. The live `docker/caddy/Caddyfile` routes every public domain
+(`student.hbca.tech`, `admin.hbca.tech`, etc.) at a third, **unsuffixed**
+set of containers (`hbec-student-backend`, `hbec-admin-backend`,
+`hbec-harness`, ...) running the same `prod-promote-6a151782` image as
+`-blue`. The real blue/green cutover (`render-caddyfile.sh` writing
+color-suffixed upstreams) has never actually been executed — `-blue`/`-green`
+are a separate, inert pair only reachable via `staging-*.hbca.tech`, built
+per the Phase 1 plan but never cut over. This incident affects the real,
+currently-live unsuffixed containers, not an inert pair — including three
+genuinely crash-looping production Celery workers (see Symptoms).
 
 ## Summary
 The container that every HBEC service connects to by hostname (`hbec-redis`,
@@ -28,9 +47,20 @@ stays green), and every write through that connection fails with
 - Intermittent, not constant: only 8 occurrences in `system_error_logs` across
   10 days, because most endpoints never exercise a cache-write path. This is
   exactly why it went unnoticed — the stack "looks" healthy.
-- Reproduced live against **production** (`student-backend-blue`, serving
-  100% of real traffic) by calling `cache.set()` directly via Django shell —
-  confirms this is not specific to any one color or any one endpoint.
+- Reproduced live against the real production (unsuffixed) `student-backend`
+  by calling `cache.set()` directly via Django shell — confirms this is not
+  specific to any one environment or endpoint.
+- **`hbec-student-worker`, `hbec-admin-worker`, `hbec-notifications-worker`
+  (the real, singleton production Celery workers) were crash-looping**,
+  `Restarting` every few seconds, 45-46 restarts logged by the time this was
+  found. Root cause: both Celery's own `kombu.transport.redis.Mutex` (visibility
+  restore on startup) and `redis.lock.Lock.acquire` call `SET NX` against
+  Redis before the worker can come up — a write, so it crash-looped forever
+  on the same `ReadOnlyError`. This meant **background job processing
+  (replication stream consumption, offline sync, reminders, email) was fully
+  down**, not just intermittent request 500s. `notifications-worker` crashed
+  from the identical symptom despite the `notifications` service never even
+  wiring `REDIS_SENTINEL_HOSTS` through — it doesn't need to; see Root Cause.
 
 ## Environment Details
 - **Server/Host:** `hbca-vps`, `/opt/hbec`
@@ -137,31 +167,74 @@ hard-to-correlate 500s.
 ## Solution
 
 ### Immediate Fix
-Not yet applied — proposed, pending explicit go-ahead given this is live
-production shared infra (see report to user, same session). Proposed fix:
-set `REDIS_SENTINEL_HOSTS=redis-sentinel:26379` in `/opt/hbec/.env` and
-recreate the Redis-client-holding services (both colors' backends, workers,
-beats, harness, payments, notifications) so they resolve the master through
-Sentinel instead of the stale hardcoded hostname.
+**Applied 2026-10-05**, after confirming zero data divergence
+(`hbec-redis`'s `slave_repl_offset` exactly matched `redis-replica`'s
+`master_repl_offset` — `2530825588` on both — before touching anything):
 
-### Long-term Fix
+```bash
+# Sentinel already knew hbec-redis was a healthy, fully-synced replica
+# (master-link-status:ok). Have Sentinel itself swap the roles back,
+# rather than fighting its recorded state with a manual REPLICAOF:
+docker exec hbec-redis-sentinel redis-cli -p 26379 sentinel failover hbec-redis
+
+# Verified: redis -> role:master, redis-replica -> role:slave of redis,
+# a real SET/GET round-trip against the `redis` hostname succeeded, and
+# all 3 crash-looping workers came up healthy on their next restart with
+# zero code or container changes (RestartCount stopped climbing at 45/45/46).
+```
+
+This is a genuine advantage of letting Sentinel drive the failover instead of
+a manual `REPLICAOF NO ONE`: it fixed **every** affected service in one step,
+including `payments`/`schools-backend`/`notifications`, none of which have
+any Sentinel-awareness in their own code — they only needed the hardcoded
+`redis` hostname to become writable again, which this restores without
+touching their containers at all.
+
+### Long-term Fix (not yet applied)
+- Set `REDIS_SENTINEL_HOSTS=redis-sentinel:26379` in `/opt/hbec/.env` and
+  recreate `student-backend`/`admin-backend`/`harness` (+ their workers/beats,
+  + the inert `-blue`/`-green` pair) so those three service groups stop
+  depending on which physical node currently holds the hardcoded hostname.
+  Without this, the exact same incident recurs verbatim on the next real
+  Sentinel failover — today's fix is a correct, safe recovery, not a
+  prevention.
+- **`payments`, `schools-backend`, and `notifications` have no Sentinel
+  support in their own code at all** (confirmed: no `REDIS_SENTINEL_HOSTS`
+  reference anywhere in `PAYMENTS/`, `SCHOOLS/`, `NOTIFICATIONS/`). They will
+  be exposed to this exact failure again on the next real failover regardless
+  of the `.env` change above — closing this gap needs a code change (port the
+  same `django-redis` SentinelClient / `Sentinel.master_for` pattern already
+  proven in student-backend/admin-backend/harness), not a config flip.
 - Add the write-probe guardrail above to the deploy pipeline.
 - Consider making `REDIS_SENTINEL_HOSTS` a `preflight-secrets.sh`-style
   mandatory-non-empty check in production specifically (it's fine for it to
   be empty in a single-node dev compose), so this can't silently regress back
   to off after being turned on.
+- **Single point of failure in the Sentinel setup itself**: `sentinel
+  sentinels hbec-redis` returned no other known sentinels
+  (`num-other-sentinels: 0`, `quorum: 1`) — there is exactly one Sentinel
+  process, so Sentinel's own availability is unmonitored and unredundant.
+  A real outage of `hbec-redis-sentinel` itself would leave no automatic
+  failover mechanism at all.
 
 ## Prevention
+- [x] Immediate: Sentinel-orchestrated failover restored the `redis`
+      hostname as writable master (2026-10-05)
 - [ ] Configuration change: set `REDIS_SENTINEL_HOSTS` in `/opt/hbec/.env`,
-      recreate affected services (not yet done — pending go-ahead)
+      recreate the 3 Sentinel-aware service groups + their workers/beats +
+      the inert blue/green pair
+- [ ] Code change: add Sentinel support to `payments`/`schools-backend`/
+      `notifications` — they have none today
 - [ ] Monitoring/alert to add: Prometheus alert on `redis_role{host="redis"}`
       != expected, or on any `READONLY`/`ReadOnlyError` appearing in
       `system_error_logs`
 - [ ] Add the write-probe guardrail to `verify-service-links.sh` or a new
       dedicated script, wired into `cd.yml`
+- [ ] Add a second Sentinel instance for quorum redundancy
 - [ ] Documentation: note in `docs/DEPLOYMENT.md` that
       `REDIS_SENTINEL_HOSTS` must be set in any environment with more than
-      one Redis node
+      one Redis node, and correct any doc that still describes `-blue` as
+      the live production environment (it is not — see Correction above)
 
 ## Related Issues
 - Found while verifying the feedback-filter admin API changes shipped in
@@ -176,5 +249,8 @@ Sentinel instead of the stale hardcoded hostname.
 
 ---
 
-**Resolved By:** Tinotenda Mupezeni (investigation); fix pending
-**Time to Resolution:** Ongoing — root-caused same day as discovery
+**Resolved By:** Tinotenda Mupezeni
+**Time to Resolution:** Crash loop and live crisis resolved same day as
+discovery (10 days after onset). Durable Sentinel-aware fix for
+student-backend/admin-backend/harness, and the code-level gap in
+payments/schools-backend/notifications, remain open follow-ups.
