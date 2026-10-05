@@ -6,11 +6,11 @@
 shares this Redis: the real, currently-live unsuffixed production containers,
 *and* the separate, not-yet-cut-over blue/green pair (see correction below)
 **Severity:** High
-**Status:** Workaround Applied (Sentinel-orchestrated failover restored the
-hardcoded `redis` hostname as a writable master — fixes every service
-immediately, including ones with no Sentinel support in their own code. The
-durable fix, Sentinel-aware clients for the 3 services that support it, is
-still pending — see Long-term Fix.)
+**Status:** Resolved. Immediate crisis fixed via Sentinel-orchestrated
+failover; durable fix (Sentinel-aware clients) applied to all 7 services that
+support it (`student-backend`/`admin-backend`/`harness` + their workers/beats).
+Remaining gap: `payments`/`schools-backend`/`notifications` have no
+Sentinel support in their own code — see Long-term Fix, still open.
 
 ## Correction (same-day, found while scoping the fix)
 Everything below originally assumed `student-backend-blue` *is* production.
@@ -190,14 +190,29 @@ any Sentinel-awareness in their own code — they only needed the hardcoded
 `redis` hostname to become writable again, which this restores without
 touching their containers at all.
 
-### Long-term Fix (not yet applied)
-- Set `REDIS_SENTINEL_HOSTS=redis-sentinel:26379` in `/opt/hbec/.env` and
-  recreate `student-backend`/`admin-backend`/`harness` (+ their workers/beats,
-  + the inert `-blue`/`-green` pair) so those three service groups stop
-  depending on which physical node currently holds the hardcoded hostname.
-  Without this, the exact same incident recurs verbatim on the next real
-  Sentinel failover — today's fix is a correct, safe recovery, not a
-  prevention.
+### Long-term Fix
+**Applied 2026-10-05.** `REDIS_SENTINEL_HOSTS=redis-sentinel:26379` appended
+to `/opt/hbec/.env` (backed up first). Recreated, in order, verifying health
+after each: `student-worker`, `student-beat`, `admin-worker`, `admin-beat`
+(the crash-looping ones + their schedulers, lower-risk since they're
+singletons with no live request traffic), then the three real,
+currently-live request-serving backends `student-backend`, `admin-backend`,
+`harness` (brief blip each, no standby — confirmed via
+`student.hbca.tech`/`admin.hbca.tech` both `200` immediately after).
+
+This surfaced an undocumented operational gap: several required compose
+variables (`TAG_ACTIVE`, `TAG_BLUE`, `TAG_GREEN`, `HARNESS_SERVICE_URL_ACTIVE`,
+`STUDENT_SERVICE_URL_ACTIVE`, `SCHOOLS_SERVICE_URL_ACTIVE`,
+`STUDENT_BACKEND_URL_ACTIVE`) are **not persisted in `.env` at all** — they're
+evidently exported ephemerally by the deploy script at invocation time. Any
+future manual `docker compose up` on an individual service (outside the
+deploy script) will fail to interpolate unless these are re-derived from the
+currently-running containers' actual resolved env first, same as done here.
+**This itself is worth a guardrail** (see Prevention) so it isn't rediscovered
+the hard way again.
+
+All 7 services confirmed now reporting `REDIS_SENTINEL_HOSTS=redis-sentinel:26379`
+via `docker exec <container> printenv`.
 - **`payments`, `schools-backend`, and `notifications` have no Sentinel
   support in their own code at all** (confirmed: no `REDIS_SENTINEL_HOSTS`
   reference anywhere in `PAYMENTS/`, `SCHOOLS/`, `NOTIFICATIONS/`). They will
@@ -220,20 +235,25 @@ touching their containers at all.
 ## Prevention
 - [x] Immediate: Sentinel-orchestrated failover restored the `redis`
       hostname as writable master (2026-10-05)
-- [ ] Configuration change: set `REDIS_SENTINEL_HOSTS` in `/opt/hbec/.env`,
-      recreate the 3 Sentinel-aware service groups + their workers/beats +
-      the inert blue/green pair
+- [x] Configuration change: `REDIS_SENTINEL_HOSTS` set in `/opt/hbec/.env`;
+      `student-backend`/`admin-backend`/`harness` + their workers/beats
+      recreated and confirmed Sentinel-aware (2026-10-05). The inert
+      `-blue`/`-green` pair was **not** recreated in this pass — same fix,
+      lower urgency since they carry no live traffic; do before any real
+      cutover.
 - [ ] Code change: add Sentinel support to `payments`/`schools-backend`/
       `notifications` — they have none today
+- [ ] Document the ephemeral `*_ACTIVE`/`TAG_BLUE`/`TAG_GREEN` deploy
+      variables (not persisted in `.env`) so a manual single-service
+      recreate doesn't require re-deriving them from running containers
+      again, as this fix had to
 - [ ] Monitoring/alert to add: Prometheus alert on `redis_role{host="redis"}`
       != expected, or on any `READONLY`/`ReadOnlyError` appearing in
       `system_error_logs`
 - [ ] Add the write-probe guardrail to `verify-service-links.sh` or a new
       dedicated script, wired into `cd.yml`
 - [ ] Add a second Sentinel instance for quorum redundancy
-- [ ] Documentation: note in `docs/DEPLOYMENT.md` that
-      `REDIS_SENTINEL_HOSTS` must be set in any environment with more than
-      one Redis node, and correct any doc that still describes `-blue` as
+- [ ] Documentation: correct any doc that still describes `-blue` as
       the live production environment (it is not — see Correction above)
 
 ## Related Issues
@@ -250,7 +270,8 @@ touching their containers at all.
 ---
 
 **Resolved By:** Tinotenda Mupezeni
-**Time to Resolution:** Crash loop and live crisis resolved same day as
-discovery (10 days after onset). Durable Sentinel-aware fix for
-student-backend/admin-backend/harness, and the code-level gap in
-payments/schools-backend/notifications, remain open follow-ups.
+**Time to Resolution:** Same day as discovery (10 days after onset). Crash
+loop fixed, durable Sentinel-aware fix applied to all 7 eligible services.
+Open follow-up: the code-level Sentinel-support gap in
+payments/schools-backend/notifications (requires a code change, not a
+config flip).
