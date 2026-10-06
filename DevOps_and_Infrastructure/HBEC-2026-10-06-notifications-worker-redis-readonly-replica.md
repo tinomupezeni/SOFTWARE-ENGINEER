@@ -4,7 +4,7 @@
 **Project:** HBEC Platform
 **Environment:** Production (VPS `gpu-ndime`, 209.209.42.142)
 **Severity:** High
-**Status:** Workaround Applied (green only — live + shared worker still pinned)
+**Status:** Resolved (workaround — worker, beat, green backend all on master; durable Sentinel fix still open)
 
 ## Summary
 `hbec-notifications-worker` is crash-looping with `redis.exceptions.ReadOnlyError: You can't write against a read only replica.` The worker resolved Redis to the replica instead of the master — the classic Sentinel-failover aftermath: reads keep working so everything else looks healthy, while every write path dies. The `bg-student-beat` / `bg-student-worker` unhealthy flags are suspected to share the cause.
@@ -66,9 +66,20 @@ docker compose -f docker-compose.production.yml -f /tmp/hbec-green-redis-overrid
 Caveat: this repoints at a hostname, not through Sentinel — the NEXT failover
 breaks it identically. Durable fix (service Sentinel-aware: app client +
 Celery `sentinel://` broker, `REDIS_SENTINEL_*` in compose) still open — take
-it up as follow-up work. Also open: the shared `hbec-notifications-worker`
-(uncolored, no green counterpart) is still crash-looping on the old URL, so
-Celery task processing is NOT restored by this change — backend writes only.
+it up as follow-up work.
+
+Update 2026-10-06 ~08:10 UTC — worker + beat restored too. A bare restart
+could never have worked (same hardcoded URL → same crash), so both were
+recreated with the same override (appended `notifications-worker` and
+`notifications-beat` stanzas to `/tmp/hbec-green-redis-override.yml`,
+`--profile workers up -d`). The beat had been failing silently as well —
+3,420 `SchedulingError: ... read only replica` lines in 30 min behind a green
+healthcheck (it only checks the process cmdline, never a broker write).
+Verified after: worker `running healthy`, connected to
+`redis://redis-replica:6379/3`; beat scheduling clean; 12 tasks
+received+succeeded in 2 min, zero errors. Note: prod runs `sha-e44223f`,
+which predates the reply-email worker task, so no stuck `QUEUED` email
+fallout was possible here.
 
 ```bash
 # Diagnose (read-only)
@@ -96,5 +107,5 @@ ssh hbca-vps "docker logs --tail 30 hbec-notifications-worker"
 
 ---
 
-**Resolved By:** Muse Spark (opencode) + Tino — workaround on green
-**Time to Resolution:** ~20 min (diagnosis to verified green writes)
+**Resolved By:** Muse Spark (opencode) + Tino — workaround (hostname repoint, all three services)
+**Time to Resolution:** ~25 min (diagnosis to verified task flow)
