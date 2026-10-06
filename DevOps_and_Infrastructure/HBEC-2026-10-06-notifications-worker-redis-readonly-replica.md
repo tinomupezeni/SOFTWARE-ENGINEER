@@ -4,7 +4,7 @@
 **Project:** HBEC Platform
 **Environment:** Production (VPS `gpu-ndime`, 209.209.42.142)
 **Severity:** High
-**Status:** Investigating
+**Status:** Workaround Applied (green only — live + shared worker still pinned)
 
 ## Summary
 `hbec-notifications-worker` is crash-looping with `redis.exceptions.ReadOnlyError: You can't write against a read only replica.` The worker resolved Redis to the replica instead of the master — the classic Sentinel-failover aftermath: reads keep working so everything else looks healthy, while every write path dies. The `bg-student-beat` / `bg-student-worker` unhealthy flags are suspected to share the cause.
@@ -33,7 +33,7 @@ To be confirmed: which address the worker's Redis client resolved (env `REDIS_UR
 - Blast radius is write paths only, which is why monitoring stayed green.
 
 ## Root Cause
-TBD — expected: worker's Redis connection resolved to the replica after a Sentinel failover (or was started against it) and never re-resolved. Update on fix.
+Confirmed: a Sentinel failover promoted `redis-replica` to master (Sentinel `get-master-addr-by-name` → `redis-replica:6379`; old `redis` is now its healthy slave, replicating, ~1s lag). The notifications service connects via hardcoded `REDIS_URL=redis://redis:6379/3` with no Sentinel discovery — in code (`init_redis` uses plain `aioredis.from_url`; the harness's Sentinel helpers were deliberately dropped) and in Celery broker config. Post-failover, every write lands on a read-only slave. Verified live-vs-idle first: Caddy routes all traffic to the uncolored legacy containers; `active_color=blue` is not wired into Caddy, so blue AND green are both idle (green freshest, `sha-e44223f`).
 
 ## Prevention / Rule
 **Guardrail:** every Celery worker entrypoint must resolve the Redis master through Sentinel at startup (never a hardcoded node address) and crash on boot if the resolved node answers `READONLY` to a `SET` probe — fail-fast on boot rather than crash-looping on the first real write.
@@ -43,7 +43,32 @@ A client that re-resolves the master on `ReadOnlyError` (drop pool, re-discover,
 ## Solution
 
 ### Immediate Fix
-TBD — likely `docker restart hbec-notifications-worker` to force Sentinel re-resolution, after confirming Sentinel's current master view. If it re-pins, inspect client config (`REDIS_SENTINEL_HOSTS` / `REDIS_URL`) next.
+Applied 2026-10-06 ~08:05 UTC on GREEN ONLY (idle branch): recreated
+`hbec-notifications-backend-green` with `REDIS_URL=redis://redis-replica:6379/3`
+via a temporary compose override (`/tmp/hbec-green-redis-override.yml` on the
+VPS — NOT in the repo), leaving live (uncolored) and blue untouched (start
+times verified unchanged). Verified: container healthy + live SET/GET/DEL
+write probe against the master (scratch key removed). Override needed
+`TAG_BLUE/TAG_GREEN/TAG_ACTIVE` + `*_ACTIVE` service URLs inline because
+`/opt/hbec/.env` doesn't carry them; values mirrored from running containers.
+
+```bash
+# Recreate green only (from /opt/hbec)
+TAG_BLUE=prod-promote-6a151782 TAG_GREEN=sha-e44223f TAG_ACTIVE=prod-promote-6a151782 \
+STUDENT_BACKEND_URL_ACTIVE=http://student-backend:8000 \
+HARNESS_SERVICE_URL_ACTIVE=http://harness-blue:8080 \
+STUDENT_SERVICE_URL_ACTIVE=http://student-backend:8000 \
+SCHOOLS_SERVICE_URL_ACTIVE=http://schools-backend:8000 \
+docker compose -f docker-compose.production.yml -f /tmp/hbec-green-redis-override.yml \
+  --profile color-green up -d notifications-green
+```
+
+Caveat: this repoints at a hostname, not through Sentinel — the NEXT failover
+breaks it identically. Durable fix (service Sentinel-aware: app client +
+Celery `sentinel://` broker, `REDIS_SENTINEL_*` in compose) still open — take
+it up as follow-up work. Also open: the shared `hbec-notifications-worker`
+(uncolored, no green counterpart) is still crash-looping on the old URL, so
+Celery task processing is NOT restored by this change — backend writes only.
 
 ```bash
 # Diagnose (read-only)
@@ -71,5 +96,5 @@ ssh hbca-vps "docker logs --tail 30 hbec-notifications-worker"
 
 ---
 
-**Resolved By:** TBD
-**Time to Resolution:** TBD
+**Resolved By:** Muse Spark (opencode) + Tino — workaround on green
+**Time to Resolution:** ~20 min (diagnosis to verified green writes)
