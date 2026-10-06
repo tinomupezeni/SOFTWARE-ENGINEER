@@ -4,7 +4,7 @@
 **Project:** HBEC Platform
 **Environment:** Production (VPS `gpu-ndime`)
 **Severity:** Medium
-**Status:** Investigating (fix in progress)
+**Status:** Resolved
 
 ## Summary
 The student DB holds two Form-4 Combined Science subjects: live `4003` (21 topics, 28 published papers) and stale `SCI_O` (0 topics, 11 published papers, 0 attempts ever). `SCI_O` exists nowhere admin-side — a July-2 seed leftover whose upstream removal never propagated (same withdrawal-propagation gap class as the Sept-27 paper fix). 76 student profiles enroll via `SCI_O`, and AI-generated papers keep spawning under it (11 dupes and counting). The purpose-built cleanup tool (`merge_legacy_subjects`, pair `SCI_O→4003` already listed) dry-runs to zero on prod because it hardcodes board code `ZIM-HBCA` while prod reads `ZIMSEC-HBCA`.
@@ -44,27 +44,61 @@ Stale seed-era subject row + no subject-delete propagation (TBD whether deletes 
 ## Solution
 
 ### Immediate Fix
-In progress: mirror the sibling's board resolution into `merge_legacy_subjects` (same-board-id + same-grade matching, drop `_BOARD_CODE`), with a test on a deliberately non-`ZIM-HBCA` board code; then dry-run → unpublish the 11 AI dupes → `--apply` → verify counts → inactivate `SCI_O`. (`is_active=False` is supported and honored by listings; no row deletes.)
+**Applied 2026-10-06.** Mirrored the sibling's board resolution into
+`merge_legacy_subjects` (same-board-id + same-grade matching, dropped
+`_BOARD_CODE`) — commit `23483bc1` — with a regression test on a
+deliberately non-`ZIM-HBCA`/non-`ZIMSEC-HBCA` board code. That commit also
+ported the sibling's per-topic savepoint safety (a blind bulk `Topic`
+move can hit a real `(release, subject, code)` uniqueness collision and
+abort the whole merge — already hit once on the sibling command).
+
+Dry-run then surfaced the full scope — not just `SCI_O`: `ENG_O` (68
+profiles, 0 papers), `MATH_O` (93 profiles, 6 papers), `SCI_O` (77 profiles,
+11 papers). All 17 papers across `MATH_O`/`SCI_O` carried the identical
+zero-quality, zero-attempt AI-dupe signature (`quality_score=0.0`,
+`session` in `{AI, unknown}`) confirmed by direct inspection before
+touching anything. A second fix (commit `b8c8ff33`) added an explicit
+`exclude(status=ARCHIVED)` to the paper-move step, so archiving them first
+(status flip only, same row, same subject FK) keeps them off the canonical
+subject permanently rather than relying on status-filtering elsewhere to
+hide them — matching the original intent ("withdraw, don't move to 4003")
+precisely rather than indirectly.
+
+Executed against production (green, `hbec-student-backend-green`, the
+code copied in via `docker cp` for this one-off run rather than a full
+image rebuild — student containers have no code volume mount):
+1. Archived the 17 confirmed junk papers (`status=ARCHIVED`).
+2. Re-ran dry-run: all 3 pairs now show 0 papers, confirming the exclusion
+   worked.
+3. `--apply`: 3 subjects merged, 238 student profiles remapped, 0 papers
+   re-pointed (all correctly left behind, archived, on the now-inactive
+   legacy subjects).
+4. Verified: `SCI_O`/`MATH_O`/`ENG_O` all `is_active=False`; 0 archived
+   papers attached to `4003`/`4004`/`4005`; 0 student profiles still
+   reference any legacy code.
 
 ### Long-term Fix
-- Same treatment for `ENG_O`/`MATH_O` (pairs already listed; verify counts first).
-- Propagate subject deletes/withdrawals downstream (verify whether anything does today).
-- Stop AI paper generation from targeting inactive subjects (else the dupes regrow).
+- Propagate subject deletes/withdrawals downstream (verify whether
+  anything does today) — still open, not addressed by this fix.
+- Stop AI paper generation from targeting inactive subjects (else the
+  dupes regrow) — still open.
 
 ## Prevention
-- [ ] Board-agnostic matching in both merge commands (+ regression tests)
-- [ ] Onboarding/listing audit: inactive subjects must be unpickable AND ungeneratable
-- [ ] Code changes required (the merge-tool fix; deploy to idle color, dry-run, apply)
+- [x] Board-agnostic matching in both merge commands (+ regression tests)
+- [x] Archived papers excluded from the canonical subject on merge (+ test)
+- [ ] Onboarding/listing audit: inactive subjects must be unpickable AND
+      ungeneratable (not verified this session)
+- [ ] Stop AI paper generation from targeting inactive subjects
 
 ## Related Issues
 - `Database_and_State/HBEC-2026-10-06-bulk-sync-retry-and-dns-failures.md` (replication gaps, same pipeline family)
 
 ## References
-- `STUDENT/hbec_backend/apps/curriculum/management/commands/merge_legacy_subjects.py` (`_MERGE_PAIRS`, `_BOARD_CODE`)
+- `STUDENT/hbec_backend/apps/curriculum/management/commands/merge_legacy_subjects.py`
 - `.../reconcile_stalled_subject_merges.py` (board-id resolution precedent + comments)
-- Override persistence: `/opt/hbec/redis-failover-20261006.green-override.yml` (unrelated, same session)
+- Commits `23483bc1` (board-agnostic matching + topic-collision safety), `b8c8ff33` (archived-paper exclusion)
 
 ---
 
-**Resolved By:** TBD (fix in progress)
-**Time to Resolution:** TBD
+**Resolved By:** Tinotenda Mupezeni; original investigation and in-progress fix by Muse Spark (opencode)
+**Time to Resolution:** Same day — fix completed and applied to production hours after discovery.

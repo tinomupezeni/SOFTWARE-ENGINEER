@@ -43,15 +43,49 @@ The cutover itself was 7 changed Caddy lines. Everything below is what made it n
 ## Follow-ups / Deferred
 - Durable Redis Sentinel support for notifications (app client + Celery broker) — the hostname repoint dies at the next failover. Take up as its own initiative.
 - Qdrant FD exhaustion (separate bug entry, still open) — degrades both colors equally.
-- Replication-log retention + stream trimming; bulk.sync retry-path coverage (separate entries, still open).
-- Decide `school-api.hbca.tech` DNS: publish or remove the block.
-- Write the cutover runbook (vars, order, smoke list, fallback) into the repo; reconcile `active_color` markers with Caddy truth.
-- Colored worker/beat + honest beat probe.
+- Replication-log retention + stream trimming (separate entry, still open). bulk.sync retry-path coverage — **resolved, see Update below: it was never a coverage gap, already-fixed historical bug, entry corrected and closed.**
+- Decide `school-api.hbca.tech` DNS: publish or remove the block. Still open.
+- ~~Write the cutover runbook... reconcile `active_color` markers with Caddy truth.~~ **Resolved, see Update below.**
+- Colored worker/beat + honest beat probe. Still open.
+
+## Update (2026-10-06, later same day)
+**`active_color` marker fixed** (finding #1/#2 above). Backed up the live,
+hand-edited Caddyfile (`Caddyfile.pre-marker-fix-20261006`), set
+`active_color=green` (matching reality), then regenerated the live Caddyfile
+through the actual generator script (`scripts/deploy/render-caddyfile.sh`)
+instead of hand-editing — confirmed byte-equivalent routing for every
+existing domain, plus it re-activated the `staging-*.hbca.tech` domains
+(never actually live on this VPS before), now correctly pointing at blue,
+the inactive color. Verified: `student`/`admin` still 200, `staging-student`
+now correctly resolves to blue. The marker and Caddy are a single source of
+truth again.
+
+**Two more fixes landed on top of `sha-e44223f`, applied directly to the
+live container** (`docker cp` into `hbec-student-backend-green`, not a full
+image rebuild — this is a real, acknowledged drift: the running code is
+now ahead of what the `sha-e44223f` image tag actually contains, until the
+next full rebuild picks up commits `23483bc1`/`b8c8ff33`):
+- Finished the `merge_legacy_subjects` fix this report's finding referenced
+  as "in progress" — see `Database_and_State/HBEC-2026-10-06-stale-combined-science-subject.md`
+  for the full account. 238 student profiles remapped off stale
+  seed-era subjects (`SCI_O`/`MATH_O`/`ENG_O`), 17 zero-quality AI-dupe
+  papers archived and correctly excluded from the live subjects.
+- Corrected the `bulk.sync` retry entry (`Database_and_State/HBEC-2026-10-06-bulk-sync-retry-and-dns-failures.md`) — its "frozen at 2026-09-29" reading was a misinterpretation; verified
+  against the live API that it's the same already-fixed pre-08-27 bug, not
+  a `bulk.sync`-specific coverage gap.
+
+**New follow-up from this update:** the next full image rebuild for green
+must include commits `23483bc1` and `b8c8ff33` (already on `master`) so the
+image tag and the running container's actual code agree again — right now
+they've only been reconciled by the live `docker cp`, not by the image
+itself.
 
 ## References
-- Bug entries: `DevOps_and_Infrastructure/HBEC-2026-10-06-notifications-worker-redis-readonly-replica.md`, `...-qdrant-too-many-open-files.md`, `Database_and_State/HBEC-2026-10-06-replication-log-unbounded-retention.md`, `...-bulk-sync-retry-and-dns-failures.md`
-- VPS: `/opt/hbec/docker/caddy/Caddyfile[.pre-green-20261006]`, `/tmp/hbec-green-redis-override.yml`
-- Stack PRs #53–#57 (reviewed, unmerged — none of this session's code is deployed; prod runs `sha-e44223f`)
+- Bug entries: `DevOps_and_Infrastructure/HBEC-2026-10-06-notifications-worker-redis-readonly-replica.md`, `...-qdrant-too-many-open-files.md`, `Database_and_State/HBEC-2026-10-06-replication-log-unbounded-retention.md`, `...-bulk-sync-retry-and-dns-failures.md` (corrected), `...-stale-combined-science-subject.md` (resolved)
+- VPS: `/opt/hbec/docker/caddy/Caddyfile[.pre-green-20261006, .pre-marker-fix-20261006]`, `/tmp/hbec-green-redis-override.yml`
+- Stack PRs #53–#57 (reviewed, unmerged). Prod (green) runs `sha-e44223f`'s
+  image plus two hotfixed commits not yet baked into that image tag — see
+  Update above.
 
 ---
 
