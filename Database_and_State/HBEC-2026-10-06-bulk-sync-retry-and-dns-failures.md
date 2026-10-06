@@ -3,11 +3,37 @@
 **Date:** 2026-10-06
 **Project:** HBEC Platform
 **Environment:** Production (VPS `gpu-ndime`)
-**Severity:** Medium
-**Status:** Investigating
+**Severity:** Low (corrected from Medium — see Correction below)
+**Status:** Resolved (no code change needed — already explained by a known, already-fixed bug)
+
+## Correction (2026-10-06, same day, verified against live data)
+The original write-up read `last_attempt_at` as "frozen" at 2026-09-29 11:00
+for all 435 rows — that was a misreading of a `MAX(last_attempt_at)`-style
+query result as if it applied uniformly. Pulled all 435 rows directly via
+the admin API (`GET /api/replication/logs/?status=failed&event_type=bulk.sync`)
+and the timestamps are spread across **313 distinct minutes from
+2026-07-14 to 2026-09-29** — 2026-09-29T11:00 is only the *latest* one, not
+a shared moment. This is the exact same 1,100-row `ReplicationLog` set
+already fully root-caused the day before in
+`Backend_and_API/HBEC-2026-10-06-content-replication-embedding-retry-orphaned-rows.md`:
+all 435 `bulk.sync` failures (and 1,093 of the other 1,100 failed rows,
+total) predate the fix that made `self.retry()` reachable at all
+(`dispatch()` previously caught every exception and returned normally — no
+raise, no retry — fixed 2026-08-27 by commit `7543724`). The
+retry-correlation fix (`(target, event_type, payload_hash)` row reuse,
+commit `a006e198`, 2026-09-18) is irrelevant here: with no retry ever
+firing, there was never a second attempt for that fix to correlate.
+`bulk.sync` does flow through the same shared `ReplicationService.dispatch()`
+as every other event type — there is no separate, uncovered dispatch path.
 
 ## Summary
-Of 9,141 `bulk.sync` replication rows, 435 are `failed` — every one with `attempts = 1` and `last_attempt_at` frozen at 2026-09-29 11:00. The error breakdown is 420 × `Temporary failure in name resolution`, plus a handful of connection-refused/reset, all targeting `harness`. Two open questions: whether the attempts-correlation fix (reuse rows on `(target, event_type, payload_hash)`, in `master`) actually covers the `bulk.sync` dispatch path, and what hostname failed to resolve that morning.
+Of 9,141 `bulk.sync` replication rows, 435 are `failed`, every one with
+`attempts = 1`. The error breakdown is 420 × `Temporary failure in name
+resolution`, plus a handful of connection-refused/reset, all targeting
+`harness`, spread across 313 distinct timestamps from 2026-07-14 to
+2026-09-29 — not one incident, just the chronic pre-2026-08-27 "dispatch()
+never raised" bug sampled across three months of ordinary `harness`
+connectivity blips. Already explained; no further investigation needed.
 
 ## Symptoms
 - `SELECT status, count(*), max(attempts) ... WHERE event_type='bulk.sync'` → `failed | 435 | 1`, all from one 11:00 cluster on 2026-09-29.
@@ -33,28 +59,39 @@ TBD: (a) whether `bulk.sync` flows through the fixed `dispatch()` or a separate 
 - All failures target `harness` (1,100 failed rows total across types, all `target_service='harness'`).
 
 ## Root Cause
-TBD — likely: environmental DNS outage on 2026-09-29 + retry counter never incrementing on the `bulk.sync` path (fix coverage gap) or rows predating the fix. Update after code-path check.
+Not a `bulk.sync`-specific gap. `dispatch()` caught every exception and
+returned normally (no raise) until 2026-08-27 (commit `7543724`) — so
+`self.retry()` was structurally unreachable for *any* event type across
+that entire period, `bulk.sync` included. No DNS postmortem is needed: 420
+of 435 errors are ordinary `harness` name-resolution blips scattered across
+three months, not one outage.
 
 ## Prevention / Rule
-**Guardrail:** the retry-correlation invariant needs a test that fails when any dispatch path creates a fresh row instead of reusing `(target, event_type, payload_hash)` — one parametrized test over every `dispatch*` entry point, so a new bulk/one-off path cannot silently reintroduce per-attempt rows. (Mirrors the `admin-copy.test.ts` philosophy: the property that matters is asserted where it can drift.)
+Already covered by the existing guardrail in
+`Backend_and_API/HBEC-2026-10-06-content-replication-embedding-retry-orphaned-rows.md`
+(a deploy-time write-probe + the `reuse_log_id` test coverage). No additional
+parametrized cross-path test is needed — there is one `dispatch()`, and every
+event type including `bulk.sync` already goes through it.
 
 ## Solution
 
 ### Immediate Fix
-TBD — confirm path coverage; if `bulk.sync` bypasses `dispatch()`, route it through the correlated write; consider replaying the 435 (content now current via later syncs — verify before replaying stale payloads).
+None needed. Whether to replay these 435 specific rows is a separate,
+lower-urgency judgment call (the underlying content may have since been
+superseded by a later successful sync) — tracked as a Follow-up, not a bug.
 
 ### Long-term Fix
-- Parametrized retry-correlation test over all dispatch paths.
-- Alert on `replication_logs` failure-rate spike (the Sept-29 cluster was silent for a week).
+None needed beyond what the referenced entry already covers.
 
 ## Prevention
-- [ ] Correlation test across dispatch paths
-- [ ] Failure-rate alert on replication logs
-- [ ] DNS/container-network postmortem for 2026-09-29 11:00 if still unexplained
-- [ ] Code changes required (pending path-coverage verdict)
+- [x] Root cause identified — already fixed, no `bulk.sync`-specific gap
+- [ ] Judgment call: review whether any of the 435 rows' content still needs
+      re-delivery, or was superseded by a later successful sync (same
+      follow-up already listed in the referenced entry, not duplicated here)
 
 ## Related Issues
 - `Database_and_State/HBEC-2026-10-06-replication-log-unbounded-retention.md` (same table, retention facet)
+- `Backend_and_API/HBEC-2026-10-06-content-replication-embedding-retry-orphaned-rows.md` (the actual root-cause analysis for this entire 1,100-row failed set, including these 435)
 
 ## References
 - `ADMIN/adminBackend/apps/replication/services.py:330-371` (correlation fix in `master`)
@@ -62,5 +99,5 @@ TBD — confirm path coverage; if `bulk.sync` bypasses `dispatch()`, route it th
 
 ---
 
-**Resolved By:** TBD
-**Time to Resolution:** TBD
+**Resolved By:** Tinotenda Mupezeni (correction + verification, 2026-10-06); original investigation by Muse Spark (opencode)
+**Time to Resolution:** Same day — the "TBD" questions were already answered by prior-day work this entry hadn't cross-referenced yet.
