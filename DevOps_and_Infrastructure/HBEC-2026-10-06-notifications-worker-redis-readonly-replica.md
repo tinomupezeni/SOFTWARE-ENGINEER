@@ -98,6 +98,41 @@ ssh hbca-vps "docker logs --tail 30 hbec-notifications-worker"
 - [ ] Document the Sentinel failover runbook (check master view → restart pinned workers → verify)
 - [ ] Code changes required (client re-resolution on ReadOnlyError)
 
+## Update 2026-10-06 (later the same day) — the override didn't cover `blue`, and bit again during the real cutover
+
+The override was formalized into a tracked file,
+`docker/redis-failover-20261006.override.yml`, listing `notifications-green`,
+`notifications-worker`, `notifications-beat` — written while blue was still
+idle and green was the thing that mattered. Hours later, the real
+blue/green cutover happened (`active_color` flipped to `blue`) and
+`notifications-backend-blue` — now the live, user-facing container — was
+recreated as part of the cutover's normal image rebuild, **without** this
+override applied (it has no `notifications-blue` entry at all). It came up
+healthy (the healthcheck only checks the process, same gap noted above) and
+silently went live pointed at `redis://redis:6379/3`, the dead master, for
+the entire window between cutover and this being caught.
+
+Caught during the cutover itself (not by a user report): recreating the
+singleton `notifications-worker`/`notifications-beat` as part of the
+same cutover's follower handoff hit the exact same `ReadOnlyError`
+immediately, which prompted re-checking `notifications-backend-blue`
+directly — confirmed it had the same wrong `REDIS_URL`.
+
+**Fixed**: added a `notifications-blue` stanza to the override (same fix,
+`redis://redis-replica:6379/3`), copied the override file to the VPS (it had
+never been copied there at all — it only existed in the local working
+tree), and recreated `notifications-backend-blue` with both compose files.
+Verified healthy with the correct `REDIS_URL` immediately after.
+
+**This is the same root cause demonstrating the same lesson twice in one
+day**: a per-color override file needs an entry for every color that can
+go live, not just whichever one is live when the override is written, and
+a hand-maintained VPS-only file (like `.env`) needs an explicit step to
+actually reach the VPS — "I edited it locally" is not "it's applied."
+Neither gap is closed by the durable Sentinel fix either; both apply to
+whatever stopgap exists for as long as `notifications` stays
+Sentinel-unaware.
+
 ## Related Issues
 - `DevOps_and_Infrastructure/HBEC-2026-07-13-redis-sentinel-500-error.md` (same Sentinel setup, client-config facet)
 - HBEC CLAUDE.md "side effect must not fail..." / Sentinel failover notes
