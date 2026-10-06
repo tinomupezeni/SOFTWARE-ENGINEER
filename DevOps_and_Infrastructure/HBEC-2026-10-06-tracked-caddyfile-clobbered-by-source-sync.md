@@ -82,7 +82,19 @@ healthcheck probe, confirming it correctly receives no public traffic.
 ### Long-term Fix
 `git rm --cached docker/caddy/Caddyfile` + added to `.gitignore` (commit
 `ad0a5ab9`) — matching `active_color`'s own untracked, runtime-only
-treatment. A future source sync can never clobber either file again.
+treatment.
+
+**One more wrinkle hit applying this fix, worth recording:** the VPS's next
+source sync (pulling commit `ad0a5ab9` itself) *deleted* the file entirely —
+`git reset --hard` removes a working-tree file when moving to a target
+commit that no longer tracks it, which is exactly what happened the one
+time the tracked→untracked transition itself had to cross that sync. Caught
+immediately (checked right after, out of habit from the first catch) and
+fixed the same way (`render-caddyfile.sh` regenerates it from `active_color`
+regardless of whether the file existed a moment before). Confirmed
+afterward: `git ls-files` returns nothing for this path on the VPS now, so
+no future sync can repeat either failure mode — this was strictly a
+one-time cost of the transition, not a standing gap.
 
 ## Prevention
 - [x] Untracked the file, added to `.gitignore`
