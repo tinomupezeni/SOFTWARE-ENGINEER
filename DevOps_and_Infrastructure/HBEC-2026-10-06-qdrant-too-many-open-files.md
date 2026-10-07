@@ -1,10 +1,10 @@
 # Qdrant rejecting connections — file descriptor exhaustion
 
-**Date:** 2026-10-06
+**Date:** 2026-10-06 (found) / 2026-10-07 (root-caused and fixed)
 **Project:** HBEC Platform
 **Environment:** Production (VPS `gpu-ndime`, 209.209.42.142)
-**Severity:** High
-**Status:** Investigating
+**Severity:** High (compounded into a platform-wide marking outage — see Update below)
+**Status:** Resolved
 
 ## Summary
 `hbec-qdrant` (v1.12.1) reports `Up (unhealthy)` and its log is a solid wall of `actix_server::accept: Error accepting connection: Too many open files (os error 24)`. The vector store cannot accept new connections, which degrades semantic marking, RAG retrieval, and the harness embedding pipeline that depend on it.
@@ -62,12 +62,78 @@ ssh hbca-vps "curl -sf localhost:7033/collections | head -c 500"
 - [ ] Code changes required (only if a client leak is confirmed)
 
 ## Related Issues
-- None yet (first Qdrant incident logged for HBEC)
+- `HBEC-2026-10-07-circuit-breaker-stuck-open-after-trip.md` — a critical,
+  independently-discovered bug (a platform audit, not this investigation)
+  that turned this single-container issue into a platform-wide one. Qdrant's
+  own accept failures tripped the circuit breaker guarding every Qdrant
+  collection; that breaker never recovered on its own, so one Qdrant
+  hiccup left marking/search degraded indefinitely afterward, until either
+  the harness process restarted or (this entry) the dependency itself got
+  fixed. Both are now fixed; neither alone would have been enough — a
+  perfectly working breaker still correctly opens against a genuinely
+  failing Qdrant, and a healthy Qdrant doesn't un-stick an already-wedged
+  breaker on an older running process.
 
 ## References
 - VPS: `/opt/hbec` (`docker-compose.production.yml`); Qdrant REST on the stack's `7033`-mapped port
 
+## Update 2026-10-07 — root cause confirmed, fixed
+
+Ran the diagnosis this entry had queued but never completed:
+
+```
+docker inspect hbec-qdrant --format '{{json .HostConfig.Ulimits}}'
+# null - no explicit ulimit at all
+
+cat /proc/<pid>/limits | grep -i 'open files'
+# Max open files    1024    524288   <- Docker's inherited default soft limit
+
+cat /proc/sys/fs/file-nr   # host itself nowhere near its own file-max; not a host-level limit
+```
+
+**Root cause confirmed**: no ulimit override anywhere in
+`docker-compose.production.yml` (or the dev compose file - same gap,
+same fix needed to avoid yet another dev/prod drift this week), so Qdrant
+ran on Docker's default **1024** open files. Six active collections
+(`model_answers`, `curriculum_content`, `marking_knowledge`,
+`learner_memory`, `semantic_cache`, `marking_schemes`), each with several
+RocksDB segment files, plus client sockets from every harness worker across
+both blue and green, comfortably exceeds that.
+
+### Immediate Fix
+Added explicit `ulimits: nofile: {soft: 65536, hard: 65536}` to qdrant's
+service block in both compose files (a ulimit only takes effect at
+container creation, so this needed a recreate, not a config reload):
+
+```bash
+cd /opt/hbec
+source scripts/deploy/color-env.sh blue   # qdrant is a shared singleton, unaffected by which color is live
+sudo -E docker compose -f docker-compose.production.yml up -d --no-deps --wait --wait-timeout 60 qdrant
+```
+
+Verified: new limit confirmed in `/proc/<pid>/limits` (65536/65536); all 6
+collections recovered 100% on restart (confirmed via a live `GET
+/collections` through `harness-blue`, not just the healthcheck); zero
+`Too many open files` lines and zero new circuit-breaker trips in the
+minutes immediately after, versus a continuous stream of both before.
+
+### Long-term Fix
+Done for Qdrant. Still open, out of scope for this entry: the same gap
+exists for `postgres` and `redis` in the same compose file - no stateful
+service in it has an explicit ulimit. A Prometheus alert on FD-usage ratio
+(container `process_open_fds`/`process_max_fds` and host
+`node_filefd_allocated`/`file-max`) is still not implemented - this issue
+would otherwise have been caught by that alert, not by a user report.
+
+## Prevention
+- [x] `ulimits: nofile` on qdrant in both compose files
+- [ ] Same for postgres and redis (same file, same gap, not done here)
+- [ ] Prometheus alert: FD usage ratio > 0.8 (container + host)
+- [x] Runbook entry: this file now serves as the Qdrant EMFILE triage
+      reference (limits → recreate → integrity check → watch)
+
 ---
 
-**Resolved By:** TBD
-**Time to Resolution:** TBD
+**Resolved By:** Tinotenda Mupezeni
+**Time to Resolution:** Found 2026-10-06; root-caused and fixed 2026-10-07
+(~20 minutes from confirmed diagnosis to verified clean)
