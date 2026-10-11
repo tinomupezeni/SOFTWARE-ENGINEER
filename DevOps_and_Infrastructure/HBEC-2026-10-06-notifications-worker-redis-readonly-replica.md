@@ -4,7 +4,7 @@
 **Project:** HBEC Platform
 **Environment:** Production (VPS `gpu-ndime`, 209.209.42.142)
 **Severity:** High
-**Status:** Resolved (workaround — worker, beat, green backend all on master; durable Sentinel fix still open)
+**Status:** Resolved (workaround reverted to the correct base config 2026-10-11; durable Sentinel fix still open — see update below)
 
 ## Summary
 `hbec-notifications-worker` is crash-looping with `redis.exceptions.ReadOnlyError: You can't write against a read only replica.` The worker resolved Redis to the replica instead of the master — the classic Sentinel-failover aftermath: reads keep working so everything else looks healthy, while every write path dies. The `bg-student-beat` / `bg-student-worker` unhealthy flags are suspected to share the cause.
@@ -133,8 +133,75 @@ Neither gap is closed by the durable Sentinel fix either; both apply to
 whatever stopgap exists for as long as `notifications` stays
 Sentinel-unaware.
 
+## Update 2026-10-11 — the bandage broke the same four containers in reverse, during an unrelated planned outage
+
+The override's own header warned about the forward case ("next failover
+breaks this identically") but not the case that actually happened: Redis's
+real master had been back on `redis` (the original node) for days — Sentinel's
+own log shows the 2026-10-06 failover attempts all ending in
+`-failover-abort-no-good-slave`, i.e. it never completed — yet
+`docker/redis-failover-20261006.override.yml` was still hardcoding
+`REDIS_URL=redis://redis-replica:6379/3` for `notifications-green`,
+`notifications-blue`, `notifications-worker`, `notifications-beat`. That
+pointed all four at what is now the **read-only replica**, the exact same
+`ReadOnlyError` as the original incident, just with the two node roles
+swapped back.
+
+This stayed invisible for five days because none of the four containers had
+been recreated since the override was last applied — a long-lived container
+keeps whatever `REDIS_URL` was baked in at its last creation regardless of
+which node is actually master now. It only surfaced because an unrelated
+planned migration (moving Docker's and containerd's data-root to a second
+disk, `HBEC-2026-10-11-docker-containerd-dataroot-migration.md`) required a
+full `docker`/`containerd` daemon stop-start, which forced every container
+back through its startup path and every worker's Celery lock-acquire SET
+immediately failed against the replica.
+
+**A second, independent fault compounded it in the same outage window**:
+after the daemon restart, the `-blue`/`-green` profile-gated containers for
+every blue-green service (student-backend, admin-backend, harness, payments,
+schools-backend, notifications) came back `Exited (0)` and did not
+auto-restart, while the retired `legacy`-profile singletons (which do carry
+`restart: unless-stopped`) came back and ran instead — silently serving stale
+code to nobody, since Caddy routes every public domain's upstream at the
+color-suffixed containers. `student.hbca.tech` and `admin.hbca.tech` 502'd
+until this was caught and the `-green` containers were started by hand
+(`docker start`). The color-profiled service blocks need their own explicit
+`restart: unless-stopped` (or equivalent) so a host-wide daemon restart
+doesn't quietly fail over to the legacy tier — tracked as a follow-up, not
+fixed in this entry.
+
+**Fixed (this update)**: recreated `notifications-green`, `notifications-worker`
+and `notifications-beat` with `docker compose ... up -d --no-deps
+--force-recreate` **without** the stale override file, so they picked up the
+base compose file's correct `REDIS_URL=redis://redis:6379/3`. Verified via
+`docker inspect` that all three now carry the correct URL and via
+`scripts/deploy/verify-service-links.sh -green` that `notifications -> student`
+signs and responds `200`. The superseded `hbec-notifications-backend` (legacy,
+unsuffixed, not referenced by Caddy or any live peer) was left crash-looping
+on an unrelated stale-image/migration-revision mismatch and was stopped
+outright rather than fixed, since nothing depends on it once the color-green
+container is healthy (see the separate entry on that stale-image gap,
+`HBEC-2026-10-11-notifications-legacy-image-missing-migration.md`).
+Confirmed no other running container still carries `REDIS_URL=redis://redis-replica`.
+
+**The actual lesson, now proven in both directions**: a hand-maintained
+per-color override that hardcodes "whichever node is master right now" has
+no expiry mechanism and no automatic way to notice the topology moved back.
+Every future Sentinel event (forward or reverse) will silently re-break
+whichever containers the override still mentions, for as long as it exists
+and `notifications` stays Sentinel-unaware. The durable fix named in the
+original Root Cause section (Sentinel-aware client + Celery `sentinel://`
+broker) remains the only thing that actually closes this, not another
+hand edit of the override. Recommending the override be deleted rather than
+corrected the next time this is touched, once the durable fix lands.
+
 ## Related Issues
 - `DevOps_and_Infrastructure/HBEC-2026-07-13-redis-sentinel-500-error.md` (same Sentinel setup, client-config facet)
+- `reports/HBEC-2026-10-11-docker-containerd-dataroot-migration.md` — the
+  unrelated planned migration whose forced daemon restart surfaced this
+- `DevOps_and_Infrastructure/HBEC-2026-10-11-notifications-legacy-image-missing-migration.md`
+  — the second, independent notifications fault hit in the same window
 - HBEC CLAUDE.md "side effect must not fail..." / Sentinel failover notes
 
 ## References
