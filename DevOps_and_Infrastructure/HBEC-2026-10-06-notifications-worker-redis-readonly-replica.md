@@ -4,7 +4,7 @@
 **Project:** HBEC Platform
 **Environment:** Production (VPS `gpu-ndime`, 209.209.42.142)
 **Severity:** High
-**Status:** Resolved (workaround reverted to the correct base config 2026-10-11; durable Sentinel fix still open — see update below)
+**Status:** Resolved — the override file itself deleted 2026-10-11, closing the recurrence vector permanently; durable Sentinel fix still open — see updates below
 
 ## Summary
 `hbec-notifications-worker` is crash-looping with `redis.exceptions.ReadOnlyError: You can't write against a read only replica.` The worker resolved Redis to the replica instead of the master — the classic Sentinel-failover aftermath: reads keep working so everything else looks healthy, while every write path dies. The `bg-student-beat` / `bg-student-worker` unhealthy flags are suspected to share the cause.
@@ -195,6 +195,35 @@ original Root Cause section (Sentinel-aware client + Celery `sentinel://`
 broker) remains the only thing that actually closes this, not another
 hand edit of the override. Recommending the override be deleted rather than
 corrected the next time this is touched, once the durable fix lands.
+
+## Update 2026-10-11 (later) — recurred during the very next deploy, exactly as predicted; override deleted
+
+Happened again within hours, on a real production cutover (17 merged PRs,
+commit `1f77527e`): `manual-cutover.sh`'s singleton-worker handoff step
+recreated `hbec-notifications-worker` to follow the newly-active color, and
+it immediately crash-looped on the identical `ReadOnlyError` — because both
+`manual-deploy-color.sh` and `manual-cutover.sh` auto-apply every
+`docker/*.override.yml` present (by design, documented in their own
+headers), and the stale override was still sitting on the VPS. This is
+exactly the "whatever stopgap exists, for as long as notifications stays
+Sentinel-unaware" failure the first 2026-10-11 update warned about, arriving
+on the very next deploy rather than the next real Sentinel event.
+
+**Fixed for good this time**: deleted
+`docker/redis-failover-20261006.override.yml` from both the VPS and the
+git repo (commit `15105929`), rather than correcting it again. There is now
+nothing left for a future deploy to auto-apply. Recreated
+`notifications-worker`/`notifications-beat` cleanly (no override), confirmed
+`REDIS_URL=redis://redis:6379/3`, both healthy, cutover completed and fully
+re-verified (`verify-service-links.sh -blue`, all signed links OK; all four
+public domains `200`).
+
+**The lesson from the first update ("recommending deletion, not another
+correction") should have been acted on immediately rather than left as a
+recommendation for later** — the file sat there, armed, for exactly long
+enough to catch the next real deploy. A 24h-old "fix this properly next
+time" note on a file that auto-applies itself to every future deploy is not
+a safe thing to defer.
 
 ## Related Issues
 - `DevOps_and_Infrastructure/HBEC-2026-07-13-redis-sentinel-500-error.md` (same Sentinel setup, client-config facet)
