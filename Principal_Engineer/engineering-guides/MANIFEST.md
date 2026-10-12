@@ -309,6 +309,18 @@
   | HBEC | High | Source of every finding in the guide — the Admin/Student/Harness three-way replication produced this guide's entire case-study evidence in one week (2026-09-09 to 2026-09-11). See `PROJECT_ADAPTER_HBEC.md`. |
 - **Note:** Added 2026-09-11, split out as a standalone guide rather than folded into guide 6 (Database Engineering) because the failure mode is specifically cross-database, not single-schema — guide 6 now carries a short pointer section to this one instead of duplicating its content.
 
+### 24. Code Review
+- **File:** `24. Code Review.md`
+- **Scope:** The operational framework for deciding whether a proposed change should be allowed into a live, stateful production system — the ordered review-decision pipeline (intent → correctness → design → architecture → data/persistence → security → reliability → performance → observability → testing → maintainability → operational safety → merge), a formal nine-category defect taxonomy with merge-policy severity, specialized subsystem review disciplines (DB migrations/locking, API backward compatibility, concurrency/race conditions, distributed failure modes, BOLA/IDOR authorization, observability), test-suite rigor vs. superficial coverage, Conventional Comments (blocker/high/medium/nit/question/praise), PR risk scoring (Change Risk Score, Tiers 1–4), the review-maturity model, and explicit guidance for reviewing AI-agent-generated contributions (phantom changes, hallucinated APIs, superficial AI-written tests). Distinct from guide 15 (Code Integration), which covers the surrounding branching/CI/release mechanics — this guide is the review judgment itself, applied once a diff is in front of a reviewer (human or agent).
+- **Stack:** Stack-agnostic; worked examples span Java/SQL/PostgreSQL but every principle transfers directly to Python/Django/FastAPI/TypeScript.
+- **Triggers:** Any project reviewing a pull request before merge, with special relevance when an AI coding agent is doing some or all of the reviewing; a production incident traced back to something a review should have caught; a project with no formal blocking-bar standard (reviewers either rubber-stamp everything or block on stylistic nits).
+- **applies_to:**
+  | Project | Fit | Notes |
+  |---|---|---|
+  | HBEC | High | PR-based workflow across 4+ services (Django, FastAPI, React, Postgres) with AI agents (Claude Code) as primary PR authors — the AI-generated-code review section and the defect taxonomy (data integrity, security/BOLA, reliability, N+1s) map directly onto patterns already seen in this repo's own bug log (e.g. missing tenant scoping, unindexed queries, retry/fallback gaps). Not yet formally run as a standing checklist against HBEC's open PRs. |
+  | Most others | High | Stack-agnostic review judgment; applies to any project with a PR-gated merge process, human or agent-authored. |
+- **Note:** Added to the manifest 2026-10-12 — file existed in the guide library but had never been entered here, so it was being missed when scanning the manifest for a review standard. Surfaced when asked to run a batch of open HBEC PRs against "the code review guide" and the file wasn't discoverable from the manifest alone.
+
 ---
 
 ## Pilot: TESE-MARKET (BFF)
