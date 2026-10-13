@@ -4,7 +4,7 @@
 **Project:** HBEC Platform
 **Environment:** Production (`hbca-vps`)
 **Severity:** High (real student-facing AI marking and revision-note generation failures, ongoing)
-**Status:** Investigating (root cause external, not yet resolved — logged for continuity)
+**Status:** Partially resolved (analytics `NoneType` crash fixed 2026-10-13, HBEC working tree — Gemini outage itself still investigating)
 
 ## Summary
 Found during a routine pre/post-cutover stability sweep (unrelated to the
@@ -29,9 +29,12 @@ marking and revision-note generation for real students right now.
   `TypeError: unsupported operand type(s) for /: 'NoneType' and 'int'`
   at `ratio = score / max_score if max_score > 0 else 0` — when marking is
   unavailable, `score` arrives `None`, and the `max_score > 0` guard
-  doesn't protect against that case. 129 occurrences in the same window.
-  **This second bug is real and worth fixing independently of the Gemini
-  outage** — any future "marking genuinely pending" state will hit it too.
+   doesn't protect against that case. 129 occurrences in the same window.
+   **This second bug is real and worth fixing independently of the Gemini
+   outage** — any future "marking genuinely pending" state will hit it too.
+   **Fixed 2026-10-13** (see Solution): `question_answered` with a `None`
+   score or `None` max_score now returns early — no mastery update, no
+   timeline row — instead of crashing. A pending mark is never scored zero.
 
 ## Environment Details
 - **Server/Host:** hbca-vps, `hbec-litellm`, `hbec-harness-blue`/`-green`
@@ -93,20 +96,30 @@ live, ongoing external dependency issue, not a code defect in our control
 (aside from the separate `analytics/engine.py` `NoneType` bug below, which
 has a clear fix).
 
-**The `analytics/engine.py` bug, once confirmed, should be fixed with**: a
-null check on `score` before the ratio computation (not fold it into the
-`max_score > 0` guard — the two are independent null/zero conditions) —
-*not yet implemented, deliberately deferred to a dedicated session rather
-than folded into an unrelated stability sweep.*
+**The `analytics/engine.py` bug was fixed 2026-10-13 with**: a null check on
+`score` (and `max_score` — an explicitly-`None` max hits the same crash) before
+the ratio computation, kept separate from the `max_score > 0` guard since the
+two are independent null/zero conditions. A `None` score returns early with a
+`question_answered_without_score` log, skipping both the mastery update and the
+timeline row: recording a pending mark as zero would poison mastery with a
+failure the learner never earned, and the successful remark arrives as its own
+event later. Regression tests:
+`tests/unit/test_analytics_engine.py::test_question_answered_pending_score_skipped`
+and `::test_question_answered_missing_max_score_skipped` (43 passed across the
+engine/event-processor/streak suites, ruff clean). Fix lives in the HBEC
+working tree (`app/analytics/engine.py:50-62`), not yet committed/pushed —
+deploy follows the normal HBEC flow, not this log.
 
 ## Solution
 
 ### Immediate Fix
-None applied — this is logged for continuity and to avoid re-discovering
-the same investigation from scratch in a future session. The existing
-fallback chain (Gemini → Groq → GPU) is already degrading as designed:
-Groq picks up some of the load (slowly), and the GPU tier (already known
-down separately) would be the final fallback if it were healthy.
+`analytics/engine.py` `None`-score guard applied 2026-10-13 (see above) —
+the crash side is closed. The Gemini outage itself has no fix applied: this
+is logged for continuity and to avoid re-discovering the same investigation
+from scratch in a future session. The existing fallback chain
+(Gemini → Groq → GPU) is already degrading as designed: Groq picks up some
+of the load (slowly), and the GPU tier (already known down separately) would
+be the final fallback if it were healthy.
 
 ### Long-term Fix
 To be determined once root cause is confirmed. Candidate next steps for a
@@ -122,7 +135,7 @@ follow-up session:
 
 ## Prevention
 - [ ] Root cause confirmed (external provider status not yet checked)
-- [ ] `analytics/engine.py`'s `None`-score crash fixed
+- [x] `analytics/engine.py`'s `None`-score crash fixed (2026-10-13, HBEC working tree)
 - [ ] Consider an alert on `ai_marking_unavailable_no_scheme` /
       `LLMUnavailableError` rate, since this ran for at least 25+ minutes
       generating 200+ failures before being noticed as a side effect of an
@@ -146,7 +159,8 @@ follow-up session:
 
 ---
 
-**Resolved By:** Not yet resolved — investigation ongoing
-**Time to Resolution:** N/A (logged mid-investigation, ~20 minutes spent
+**Resolved By:** Split — `NoneType` crash fixed 2026-10-13 (fix in HBEC working
+tree, pending normal HBEC commit/deploy); Gemini outage investigation ongoing
+**Time to Resolution:** N/A for the outage (logged mid-investigation, ~20 minutes spent
 narrowing root cause to "external, Gemini-side" before deferring further
 work to a dedicated follow-up)
