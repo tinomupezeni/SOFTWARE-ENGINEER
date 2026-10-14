@@ -4,7 +4,7 @@
 **Project:** MARITCHO
 **Environment:** Development (physical device SM S906U1, wireless debug, `flutter run -d 192.168.60.126:36943`)
 **Severity:** Medium
-**Status:** Investigating
+**Status:** Resolved
 
 ## Summary
 During a wireless-debug run of the mobile app on a physical Galaxy S22, navigating away from the signup page while `AuthCubit.login()` was still awaiting `AuthRepository.login()` produced an unhandled `Bad state: Cannot emit new states after calling close`, crashing the Dart compiler session (`Lost connection to device`). The cubit emits `AuthSuccess`/`AuthFailure` unconditionally after the await, with no `isClosed` guard — the standard Bloc async-gap hazard.
@@ -48,7 +48,7 @@ This closes the gap because the crash is precisely "emit on a closed cubit after
 ## Solution
 
 ### Immediate Fix
-Not yet applied (run session only; no code changed). App remains installed on device; debug session detached.
+Applied 2026-10-14: added `if (isClosed) return;` after every `await` that precedes an `emit` in all 10 cubits (`auth`, `worker_home`, `employer_home`, `post_job`, `job_detail`, `job_tracking`, `applicants` ×2 methods, `job_execution` ×2 methods, `worker_skills` loop + final, `my_work` ×3 sequential awaits). `dart format` applied (2 files reflowed); `flutter analyze` shows no new issues (13 pre-existing infos/warnings only); `flutter test` — all 19 tests passed. MARITCHO working tree left uncommitted per repo policy (no commit without explicit request).
 
 ```bash
 # Reproduce / re-verify after fix:
@@ -76,5 +76,5 @@ Not yet applied (run session only; no code changed). App remains installed on de
 
 ---
 
-**Resolved By:** (open)
-**Time to Resolution:** (open)
+**Resolved By:** Muse Spark (agent session)
+**Time to Resolution:** ~30 min (found during wireless-debug run, fixed same session)
