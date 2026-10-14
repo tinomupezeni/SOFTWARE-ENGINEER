@@ -30,10 +30,10 @@ Inspected Karen's Groq request paths and response-header handling, then compared
 - Recorded cooldowns for both LLM and Groq TTS responses.
 - Added automatic non-forced interactive fallback to Ollama in `brain/mod.rs`.
 - Documented the policy in `ARCHITECTURE.md`.
-- Added focused cooldown tests.
+- Added focused cooldown and `Retry-After` format tests.
 
 ## Verification
-- `cargo test groq_keys -- --nocapture`: 8 passed.
+- `cargo test groq_keys -- --nocapture`: 9 passed.
 - `cargo test`: 77 passed.
 - `cd karen-desktop && npm run build`: passed.
 - Existing compiler warnings remain unrelated to this change.
