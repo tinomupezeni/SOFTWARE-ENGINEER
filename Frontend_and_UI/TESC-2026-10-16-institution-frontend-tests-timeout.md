@@ -4,10 +4,10 @@
 **Project:** TESC / ScalarEye
 **Environment:** Development validation
 **Severity:** Medium
-**Status:** Investigating
+**Status:** Resolved
 
 ## Summary
-The institution frontend production build passed, but the Vitest suite had 7 failures, all timeouts in `src/components/AddStudentDialog.test.tsx`. The remaining 32 tests across the suite passed.
+The institution frontend production build passed, but the Vitest suite had 7 failures, all timeouts in `src/components/AddStudentDialog.test.tsx`. The failures were caused by stale test fixtures that omitted fields now required by the dialog.
 
 ## Symptoms
 - `npm run build` completed successfully.
@@ -27,35 +27,36 @@ The institution frontend production build passed, but the Vitest suite had 7 fai
 Installed the declared `inst` dependencies and ran the frontend test suite.
 
 ### 2. Root Cause Analysis
-The failing tests consistently timed out inside the AddStudentDialog interaction flow, while API, auth, hook, and other component tests passed. The exact interaction synchronization defect was not changed during this bulk-upload verification session.
+The failing tests stopped at the dialog's required-field guard, while API, auth, hook, and other component tests passed. The tests omitted required National ID and/or Date of Birth values, so they never reached the success, API-error, loading, or reset assertions.
 
 ### 3. Key Findings
-- 7 of 39 tests failed.
-- 32 tests passed.
+- 7 of 39 tests initially failed.
+- 32 tests initially passed.
 - Failures are isolated to AddStudentDialog tests.
 - The production bundle builds successfully.
+- After valid required fields were supplied, all eight dialog tests passed.
 
 ## Root Cause
-Not yet isolated; likely test interaction synchronization or component state handling around dialog rendering and submission.
+The test fixtures were stale after Date of Birth became a required field, and several submission-path fixtures also omitted National ID.
 
 ## Prevention / Rule
-**Guardrail:** Require the institution frontend Vitest suite to pass in CI, with dialog tests using explicit `waitFor`/`act` synchronization around asynchronous state changes.
+**Guardrail:** Require the institution frontend Vitest suite to pass in CI, with submission-path fixtures satisfying the component's required-field contract.
 
-This prevents UI upload and data-entry regressions from being hidden by a green production build alone.
+This prevents UI data-entry regressions from being hidden by a green production build alone and catches stale fixtures when required fields change.
 
 ## Solution
 
 ### Immediate Fix
-No application change was made; the bulk-upload API suite remained the authoritative end-to-end verification for this session.
+Updated `inst/src/components/AddStudentDialog.test.tsx` so every submission-path test supplies valid National ID and Date of Birth values.
 
 ### Long-term Fix
-Debug `AddStudentDialog.test.tsx` timeouts, remove unwrapped asynchronous updates, and add focused tests for the institution bulk-upload dialogs.
+Added institution frontend test and build steps to `.github/workflows/ci.yml`.
 
 ## Prevention
 - [ ] Configuration changes needed
 - [ ] Monitoring/alerts to add
 - [x] Documentation to update
-- [ ] Code changes required
+- [x] Code changes required
 
 ## Related Issues
 - None.
@@ -66,5 +67,14 @@ Debug `AddStudentDialog.test.tsx` timeouts, remove unwrapped asynchronous update
 
 ---
 
-**Resolved By:** Pending
-**Time to Resolution:** Investigation recorded
+**Resolved By:** Copilot
+**Time to Resolution:** Same validation session
+
+## Verification
+
+```bash
+cd inst
+npm test -- --run src/components/AddStudentDialog.test.tsx --reporter=dot
+```
+
+Result: **1 test file passed, 8 tests passed**.
