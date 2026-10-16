@@ -4,7 +4,7 @@
 **Project:** TESC / ScalarEye
 **Environment:** Staging
 **Severity:** High
-**Status:** Resolved in code; migration rerun pending
+**Status:** Resolved
 
 ## Summary
 The staging backend could not run Django migrations because `academic.0020_merge_staging_student_migrations` declared a dependency on `academic.0019_student_academic_st_status_f931b2_idx_and_more`, but that migration file was absent from the deployed branch.
@@ -47,7 +47,8 @@ These checks load and validate the complete migration graph before deployment, c
 Removed the dependency on the absent migration from `0020_merge_staging_student_migrations.py`.
 
 ### Long-term Fix
-Add migration graph validation to CI and require a fresh-database migration smoke test for staging Compose deployments.
+Migration graph validation is now part of CI and deployment verification, and
+the staging database was successfully migrated after the dependency repair.
 
 ## Prevention
 - [x] Configuration changes needed
@@ -68,3 +69,14 @@ Add migration graph validation to CI and require a fresh-database migration smok
 
 **Resolved By:** Copilot
 **Time to Resolution:** Same deployment session
+
+## Verification
+
+```bash
+python manage.py makemigrations --check
+python manage.py migrate --plan
+docker compose -f docker-compose.staging.yml up -d
+docker exec tesc-backend-staging-v2 python manage.py migrate --noinput
+```
+
+The staging migration run completed successfully after the dependency repair.
