@@ -4,7 +4,7 @@
 **Project:** TESC (ScalarEye)
 **Environment:** Production / VPS
 **Severity:** Critical
-**Status:** Investigating
+**Status:** Resolved
 
 ## Summary
 The TESC deployment pipeline could report completion while targeting a nonexistent backend container for database migrations. The script used `docker exec tesc-backend-1 ... || true`, while the running container was `tesc-main-backend-1`. The suppressed error could leave migrations unapplied and contribute to gateway timeouts.
@@ -32,6 +32,10 @@ The script targeted `tesc-backend-1`, but Docker was running `tesc-main-backend-
 - Container names were assumed instead of resolved from Compose.
 - A release-critical migration command had error suppression.
 - The gateway symptom could only be diagnosed reliably after validating the backend directly.
+- The repository deployment script now invokes migrations through the Compose
+  `backend` service and runs Django's `migrate --check` afterward.
+- Backend startup no longer suppresses failures from its idempotent
+  superuser-initialization command.
 
 ## Root Cause
 Deployment automation used a stale container name and suppressed the resulting migration failure.
@@ -54,12 +58,14 @@ curl -I http://localhost:8000/api
 ```
 
 ### Long-term Fix
-Use `docker compose exec <service>` or a machine-readable service lookup instead of hard-coded generated container names. Remove `|| true` from migrations, health checks, and release-critical steps.
+`scripts/deploy.sh` uses `docker compose ... run --rm --no-deps backend` and
+fails if `manage.py migrate --check` reports pending migrations. The backend
+startup script also fails closed instead of suppressing initialization errors.
 
 ## Prevention
-- [ ] Replace hard-coded container names with Compose service names
-- [ ] Remove error suppression from migration and health-check steps
-- [ ] Add a CI/deployment gate proving migrations ran successfully
+- [x] Replace hard-coded container names with Compose service names
+- [x] Remove error suppression from migration and health-check steps
+- [x] Add a CI/deployment gate proving migrations ran successfully
 - [ ] Add direct-container and gateway-level verification
 
 ## Related Issues
@@ -70,5 +76,15 @@ Use `docker compose exec <service>` or a machine-readable service lookup instead
 
 ---
 
-**Resolved By:** Not yet resolved in available history
-**Time to Resolution:** Unknown
+**Resolved By:** Copilot
+**Time to Resolution:** Same remediation session
+
+## Verification
+
+```bash
+bash -n scripts/deploy.sh backend/startup.sh
+docker compose -f docker-compose.prod.yml config --quiet
+```
+
+The deployment script now has an explicit post-migration gate. Production VM
+execution and off-host backup scheduling remain operational follow-ups.
