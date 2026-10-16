@@ -3,16 +3,16 @@
 **Date:** 2026-10-16
 **Project:** TESC / ScalarEye
 **Environment:** Staging
-**Severity:** High
-**Status:** Investigating
+**Severity:** Low
+**Status:** Resolved
 
 ## Summary
-The deployed staging URL configuration registers a `GraduateViewSet` at `/api/academic/graduates-mgmt/`, but requests to that route return HTTP 404. The route is present in the deployed `academic/urls.py` source, yet Django does not resolve the expected router route name or URL, so graduate-management endpoint coverage cannot pass.
+The endpoint checklist initially treated `/api/academic/graduates-mgmt/` as a list route and reported a false failure. `GraduateViewSet` is a `GenericViewSet` with custom actions only, so the base route correctly returns HTTP 404. The intended listing endpoint is `/api/academic/graduates-mgmt/records/`, which passes in staging.
 
 ## Symptoms
-- `GET /api/academic/graduates-mgmt/` returns Django HTTP 404.
-- Alternate forms without or with trailing slash also return 404.
-- Other academic router endpoints, including students and placements, return HTTP 200.
+- `GET /api/academic/graduates-mgmt/` returns Django HTTP 404 by design.
+- `GET /api/academic/graduates-mgmt/records/` returns HTTP 200.
+- Other graduate actions (`template`, `bulk-actions`, `bulk-upload`, `eligible`, and `confirm-auto`) are registered under the same prefix.
 
 ## Environment Details
 - **Server/Host:** TESC staging Docker backend
@@ -26,39 +26,39 @@ The deployed staging URL configuration registers a `GraduateViewSet` at `/api/ac
 Ran the route as part of the authenticated endpoint matrix after all other read-only academic endpoints responded successfully.
 
 ### 2. Root Cause Analysis
-Confirmed the deployed source contains `router.register(r'graduates-mgmt', GraduateViewSet, basename='graduate-mgmt')`. The live Django resolver still returned no matching route for the expected list endpoint, and URL reversing for `graduate-mgmt-list` failed.
+Confirmed the deployed source contains `router.register(r'graduates-mgmt', GraduateViewSet, basename='graduate-mgmt')`. The viewset inherits `GenericViewSet`, not `ModelViewSet`, and defines no `list()` method. Django REST Framework therefore registers only the declared `@action` routes.
 
-```bash
-GET /api/academic/graduates-mgmt/ -> 404
-reverse('graduate-mgmt-list') -> NoReverseMatch
+```text
+GET /api/academic/graduates-mgmt/ -> 404 (expected)
+GET /api/academic/graduates-mgmt/records/ -> 200
 ```
 
 ### 3. Key Findings
-- The source declaration and live route behavior disagree.
-- This is isolated to the graduate-management router registration/URL loading path.
-- The failure is not caused by authentication; authenticated requests reach Django and receive Page Not Found.
+- The source declaration and live route behavior are consistent.
+- The checklist used the wrong base route for a custom-action-only viewset.
+- The frontend already uses the correct `/records/` route.
 
 ## Root Cause
-Not yet isolated. The deployed URL resolver is not exposing the registered graduate-management route despite the route declaration being present in the container source.
+The audit checklist incorrectly inferred a conventional list route from the router prefix. `GraduateViewSet` intentionally exposes graduate records through its custom `records` action.
 
 ## Prevention / Rule
-**Guardrail:** Add a deployment smoke assertion that resolves and requests every registered router list route, including graduate management, before staging is considered healthy.
+**Guardrail:** Generate endpoint checklist entries from Django's resolved URL patterns and include custom `@action` routes, rather than assuming every router registration has a base list endpoint.
 
-This catches URL-loader or deployment-artifact drift immediately instead of allowing a declared-but-unreachable endpoint into production.
+This distinguishes intentional 404 base routes from real deployment drift and ensures custom action endpoints are tested.
 
 ## Solution
 
 ### Immediate Fix
-No production change made. The endpoint is recorded as **FAIL** in the session endpoint checklist.
+Corrected the checklist: the base route is **NOT_APPLICABLE**, and `/api/academic/graduates-mgmt/records/` is **PASS** after an authenticated staging request returned HTTP 200.
 
 ### Long-term Fix
-Inspect `GraduateViewSet` import/registration and the deployed image artifact, then add a focused route-resolution test for `/api/academic/graduates-mgmt/`.
+Have the endpoint audit derive route coverage from Django's URL resolver and add focused tests for each graduate custom action.
 
 ## Prevention
 - [ ] Configuration changes needed
 - [ ] Monitoring/alerts to add
 - [x] Documentation to update
-- [x] Code changes required
+- [ ] Code changes required
 
 ## Related Issues
 - None.
@@ -70,5 +70,5 @@ Inspect `GraduateViewSet` import/registration and the deployed image artifact, t
 
 ---
 
-**Resolved By:** Pending
-**Time to Resolution:** Investigation recorded
+**Resolved By:** Copilot
+**Time to Resolution:** Same verification session
