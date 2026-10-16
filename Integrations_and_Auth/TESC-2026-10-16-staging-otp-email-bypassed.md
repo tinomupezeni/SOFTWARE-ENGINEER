@@ -4,7 +4,7 @@
 **Project:** TESC / ScalarEye
 **Environment:** Staging
 **Severity:** High
-**Status:** Resolved in code; staging deployment pending
+**Status:** Resolved
 
 ## Summary
 Staging login appeared not to send OTP email even though direct SMTP tests succeeded. The staging Compose configuration set `DEBUG=True`, and the authentication serializers treated Django debug mode as an OTP bypass. Normal staging login therefore returned tokens without queueing the email task.
@@ -52,7 +52,9 @@ An explicit feature flag separates developer diagnostics from authentication beh
 - Added `OTP_BYPASS=False` to the environment template.
 
 ### Long-term Fix
-Deploy the updated backend and Celery worker to staging, verify the effective runtime value of `OTP_BYPASS`, and perform a real login/OTP flow while monitoring worker logs.
+The updated backend and Celery worker were deployed to staging. The effective
+runtime value was `OTP_BYPASS=False`, and a real login/OTP flow was verified
+through the worker.
 
 ## Prevention
 - [x] Configuration changes needed
@@ -73,3 +75,10 @@ Deploy the updated backend and Celery worker to staging, verify the effective ru
 
 **Resolved By:** Copilot
 **Time to Resolution:** Same investigation session
+
+## Verification
+
+- Staging login returned `requires_otp: true`.
+- The OTP task was queued and consumed by `celery-worker-staging`.
+- Worker execution completed in approximately 2.5 seconds.
+- The generated email used `noreply@hpc.ac.zw`.
