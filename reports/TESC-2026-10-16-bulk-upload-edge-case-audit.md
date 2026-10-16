@@ -54,11 +54,16 @@ runtime had not been updated.
   `ValueError`.
 
 ## Verification
-- Remote staging edge suite: **23/25 passed; 2 failed** because the remote
-  runtime still serves the pre-fix code.
+- - Remote backend hostname edge suite: **23/25 passed; 2 failed** because the
+  remote runtime still serves the pre-fix code.
+- Institution frontend hostname edge suite: **23/25 passed; 2 failed** with
+  the same two commit-path defects, confirming the frontend proxy reaches the
+  same stale backend runtime.
 - Existing positive smoke suite remains 14/14 passed before this edge audit.
 - Local compilation and focused backend tests passed.
 - Remote staging IP is `102.217.49.126`; SSH deployment attempt was denied.
+- Both `tesc-staging.zchpc.ac.zw` and `tesc-inst-staging.zchpc.ac.zw` resolve
+  to the same staging VM and reproduce the same results.
 
 ## Follow-ups / Deferred
 - Deploy TESC `eea3d7e` to the remote staging VM.
