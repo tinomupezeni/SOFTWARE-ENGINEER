@@ -4,7 +4,7 @@
 **Project:** SMEPULSE
 **Environment:** Development
 **Severity:** Low
-**Status:** Investigating
+**Status:** Resolved
 
 ## Summary
 The repository's checked-in architecture and testing documentation describes an older
@@ -65,16 +65,19 @@ allowing onboarding commands and architecture diagrams to drift silently.
 ## Solution
 
 ### Immediate Fix
-No source or documentation changes were made during this read-only assessment.
+Updated the root orchestration scripts and active documentation to use the
+current V2 service names and directories. Added a dedicated WhatsApp interface
+reference covering user functionality, routing, integrations, configuration,
+and operations.
 
 ### Long-term Fix
-Update `README.md`, `SYSTEM_OVERVIEW.md`, `TESTING.md`, `ARCHITECTURE.md`, and the
-root `package.json` scripts to reflect the active V2 service layout.
+Add a CI path-reference consistency check so future renames cannot leave
+scripts and maintained guides pointing at removed workspaces.
 
 ## Prevention
 - [ ] Add a path-reference consistency check to CI
-- [ ] Update architecture and testing documentation
-- [ ] Replace stale root development/build/test scripts
+- [x] Update architecture and testing documentation
+- [x] Replace stale root development/build/test scripts
 
 ## Related Issues
 - None recorded.
@@ -89,5 +92,5 @@ root `package.json` scripts to reflect the active V2 service layout.
 
 ---
 
-**Resolved By:** Pending
-**Time to Resolution:** Pending
+**Resolved By:** Copilot
+**Time to Resolution:** Same session
