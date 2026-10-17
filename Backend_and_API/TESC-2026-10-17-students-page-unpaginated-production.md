@@ -4,7 +4,7 @@
 **Project:** TESC
 **Environment:** Production
 **Severity:** High
-**Status:** Investigating
+**Status:** Workaround Applied
 
 ## Summary
 The production `/students` page requests server-side pagination, but the
@@ -83,6 +83,8 @@ fallback branch serializes the entire queryset.
 - The same silent-no-op pagination failure was previously recorded for custom
   student report actions in
   `TESC-2026-10-13-stem-students-pagination-dead-code.md`.
+- The targeted fix was implemented in TESC commit `4ce8252` and deployed to
+  staging; production remains unchanged pending promotion approval.
 
 ## Root Cause
 `StudentViewSet` has no `pagination_class`, and `REST_FRAMEWORK` has no
@@ -101,8 +103,9 @@ mistaken for an active server-side contract.
 ## Solution
 
 ### Immediate Fix
-No production change has been made. The proposed surgical fix is to assign
-`StandardResultsSetPagination` to `StudentViewSet` only.
+Assigned `StandardResultsSetPagination` to `StudentViewSet` only and ordered
+the list queryset by `id` for stable page boundaries. No production change has
+been made; the fix is deployed and verified on staging.
 
 ### Long-term Fix
 - Add a focused backend regression test proving page size, page boundaries,
@@ -112,13 +115,13 @@ No production change has been made. The proposed surgical fix is to assign
   response-contract review; do not restore project-wide defaults casually.
 
 ## Prevention
-- [ ] Configuration changes needed — add view-level pagination to
-      `StudentViewSet` after staging verification.
+- [x] Configuration changes needed — view-level pagination is active on
+      `StudentViewSet` in staging.
 - [ ] Monitoring/alerts to add — track response size and latency for
       `/api/academic/students/`.
 - [ ] Documentation to update — document the page/aggregate response contract.
-- [ ] Code changes required — add backend regression coverage and deploy the
-      targeted fix.
+- [x] Code changes required — backend regression coverage added in TESC
+      commit `4ce8252`.
 
 ## Related Issues
 - `TESC-2026-10-13-stem-students-pagination-dead-code.md`
@@ -134,4 +137,4 @@ No production change has been made. The proposed surgical fix is to assign
 ---
 
 **Resolved By:** Copilot
-**Time to Resolution:** Investigation ongoing
+**Time to Resolution:** Staging implementation completed; production promotion pending
