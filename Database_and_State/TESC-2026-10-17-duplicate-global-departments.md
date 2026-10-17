@@ -4,7 +4,7 @@
 **Project:** TESC  
 **Environment:** Staging and Production  
 **Severity:** Medium  
-**Status:** Investigating
+**Status:** Workaround Applied
 
 ## Summary
 
@@ -97,14 +97,23 @@ reconciled before enabling the constraint.
 
 ### Immediate Fix
 
-No fix was applied, per the request. No department or user assignment was
-changed.
+The confirmed-unused duplicate global `Administration` row was removed from
+both staging and production after a database backup and dependency preflight:
+
+- Deleted `users_department.id=152`, guarded by `name='Administration'` and
+  `institution_id IS NULL`.
+- Verified zero users referenced the row before deletion.
+- Verified the row was absent afterward and one global `Administration` row
+  remained.
+- Preserved the active row ID 5 and all its user assignments.
+- No application services were restarted.
 
 ### Long-term Fix
 
 - Decide the canonical department vocabulary and whether similarly named
   records represent distinct business units.
-- Inventory and reconcile global and institution-scoped duplicates.
+- Inventory and reconcile the remaining case/spelling variants and
+  institution-scoped records.
 - Preserve or migrate user assignments before removing unused duplicates.
 - Add a safe uniqueness migration and tests.
 - Improve the settings display with scope and record identity during the
