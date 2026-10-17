@@ -1,25 +1,18 @@
-# AI Paper Subject Correction Crashes Before Harness Sync
+# Withdrawn: AI Paper Subject Correction Finding
 
 **Date:** 2026-10-17
 **Project:** HBEC
 **Environment:** Code review (PR #100)
-**Severity:** High
-**Status:** Investigating
+**Severity:** Informational
+**Status:** Withdrawn
 
 ## Summary
-The new admin endpoint for correcting an AI paper's subject saves the
-Student Backend change, then calls `notify_harness_of_subject()`. That helper
-reads `subject.level`, but the Student Backend `Subject` model has no such
-field; level is represented by the related `Grade`. Every correction for a
-paper with a harness copy therefore raises `AttributeError` after the local
-write and before the harness copy is updated.
+This finding from the initial PR review was withdrawn after rechecking the PR
+ref. The Student Backend `Subject` model does define a `level` field, so the
+reported `AttributeError` does not occur on this path.
 
 ## Symptoms
-- Admin subject-correction requests return HTTP 500 instead of a successful
-  response.
-- The Student Backend paper is moved to the new subject while the Harness
-  paper remains under the old subject.
-- Subsequent marking or generation can use inconsistent subject metadata.
+- No production or code defect was confirmed.
 
 ## Environment Details
 - **Server/Host:** PR #100 code path
@@ -41,43 +34,33 @@ The Student Backend calls:
 level=subject.level or ""
 ```
 
-The Student Backend `Subject` model has `grade`, `code`, and related
-curriculum fields, but no `level` attribute. The Harness endpoint expects a
-separately supplied normalized `level`.
+`Subject.level` is declared in
+`STUDENT/hbec_backend/apps/curriculum/models.py:213-217`.
 
 ### 3. Key Findings
-- The local Student Backend mutation is committed before synchronization.
-- `AttributeError` is not covered by the `httpx` exception handlers.
-- The failure creates cross-service divergence while the API reports failure.
+- The earlier finding was not reproducible from the actual PR source.
 
 ## Root Cause
-The new cross-service contract used a field name that does not exist on the
-Student Backend subject model and did not derive the Harness level from the
-subject's related grade.
+The review finding was based on a false premise about the Student Backend
+model.
 
 ## Prevention / Rule
-**Guardrail:** Add a contract test that constructs a real Student Backend
-`Subject` and verifies the subject-correction request derives and sends the
-canonical grade-to-level value accepted by the Harness endpoint.
+**Guardrail:** Verify every review finding against the exact PR ref's model
+definition before requesting changes.
 
-This catches model-field drift at test time and proves the producer payload
-against the consumer contract instead of relying on similarly named fields.
+This prevents a valid review from being blocked by a mismatch between the
+reviewer's assumed model and the actual producer contract.
 
 ## Solution
 
 ### Immediate Fix
-No fix was applied during the read-only PR review.
+The review finding was withdrawn. No code fix is required.
 
 ### Long-term Fix
-Derive the normalized level from `subject.grade` using the repository's
-canonical mapping, then make synchronization retryable or reconcileable after
-the local mutation succeeds.
+No follow-up is required for this finding.
 
 ## Prevention
-- [ ] Add producer/consumer contract coverage for the subject-correction path
-- [ ] Add a reconciliation or durable retry path for failed Harness updates
-- [ ] Add an integration test covering a successful local mutation followed by
-      Harness synchronization
+- [x] Recheck the exact Student Backend model on the PR ref
 
 ## Related Issues
 - PR #100 review: Maths, OCR, production fixes, message visibility and support
@@ -91,5 +74,5 @@ the local mutation succeeds.
 
 ---
 
-**Resolved By:** Unresolved
-**Time to Resolution:** N/A
+**Resolved By:** Copilot
+**Time to Resolution:** Same review session

@@ -10,9 +10,10 @@ Performed a read-only, skills-guided review of PR #100, “Maths, OCR,
 production fixes, message visibility and support ticketing.” The review traced
 the affected cross-service contracts, migrations, event consumers, paper
 visibility rules, AI-paper generation flow, OCR changes, authentication
-boundaries, and operational behavior. Three high-confidence defects were
-confirmed. The PR should not merge until the cross-service consistency and
-support-delivery paths are corrected and covered by end-to-end tests.
+boundaries, and operational behavior. One high-confidence defect was
+confirmed and one architectural durability issue remains. The initial
+AI-paper subject-correction finding was withdrawn after the exact PR model was
+rechecked: `Subject.level` exists.
 
 ## Context / Trigger
 The user requested a code review using the installed engineering skills:
@@ -46,18 +47,12 @@ models/routes.
 
 ## Decisions & Findings
 
-### High: AI paper subject correction crashes before Harness synchronization
+### Withdrawn: AI paper subject-correction finding
 
-`STUDENT/hbec_backend/apps/internal/ai_papers_admin.py:169-174` reads
-`subject.level`, but the Student Backend `Subject` model has no `level`
-attribute; the level is represented by the related grade. The Student Backend
-saves the subject change at lines 238-240 before calling the helper at line
-250. The resulting `AttributeError` is not handled by the HTTP exception
-branches, so the request fails after the local write and leaves the Harness
-copy under the old subject.
-
-See issue log:
-`Backend_and_API/HBEC-2026-10-17-ai-paper-subject-correction-crash.md`.
+The exact PR ref defines `Subject.level` at
+`STUDENT/hbec_backend/apps/curriculum/models.py:213-217`, so the previously
+reported `AttributeError` is not a real defect. No AI architecture change is
+needed.
 
 ### High: Explicit paper-share targets can be silently discarded
 
@@ -96,12 +91,13 @@ integration suites in the supported environments, plus migration application
 and cross-service smoke tests.
 
 ## Changes Made
-No HBEC source files or PR files were modified. This was a read-only review.
+The explicit paper-sharing replication fix was added to PR #100 in commit
+`09cc09936`. No AI source or architecture was changed.
 
 Engineering records were added and pushed:
-- `75e214f` — AI paper subject correction issue
 - `b8f93cf` — explicit paper-share target issue
 - `6a82ebc` — support report event-loss issue
+- The earlier AI finding was corrected in place and marked withdrawn.
 
 ## Verification
 - Confirmed PR #100 is open against `master`.
@@ -112,7 +108,7 @@ Engineering records were added and pushed:
   `SOFTWARE-ENGINEER` repository.
 
 ## Follow-ups / Deferred
-- Fix the three high-severity defects before merge.
+- Fix the explicit paper-share target defect before merge.
 - Add bidirectional contract tests for AI-paper subject correction and explicit
   share target replication.
 - Add outage/replay tests for `report.submitted`.
