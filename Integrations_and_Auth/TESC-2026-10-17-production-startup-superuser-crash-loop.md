@@ -64,8 +64,13 @@ Keep startup bootstrap operations idempotent and add a container-start smoke
 test using a database containing legacy seed identities.
 
 ## Verification
-The fix was applied locally and requires image rebuild/redeployment followed
-by production container and public API health checks.
+The fix was rebuilt and deployed in TESC commit `13b5ebc`. Production logs
+showed `Superuser already exists` followed by Gunicorn startup. The backend,
+Celery worker, frontends, nginx, database, and Redis all remained running with
+restart count zero. Public frontends returned HTTP 200, API routing returned
+the expected Django HTTP 404 at `/api/`, and direct invalid bulk commit calls
+raised validation errors instead of reaching the old duplicate or missing-key
+failure paths.
 
 ## References
 - `backend/startup.sh`
