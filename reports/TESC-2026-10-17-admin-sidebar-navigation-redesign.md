@@ -3,7 +3,7 @@
 **Date:** 2026-10-17
 **Project:** TESC (ScalarEye)
 **Type:** UI Refactor
-**Status:** Completed locally
+**Status:** Completed and deployed to staging
 
 ## Summary
 
@@ -67,14 +67,18 @@ than introducing a second routing or permission system.
 - `git diff --check`
 
 All eight focused admin tests passed and Django reported no system-check
-issues. Staging visual verification and deployment were not performed in this
-initiative.
+issues. The runtime templates and CSS were copied to staging with matching
+SHA-256 fingerprints, and the previous staging files were backed up before
+replacement. Staging static collection, migration checks, authenticated
+sidebar smoke, public route checks, static CSS delivery, dependency
+readiness, zero-restart checks, and the deployment-window backend error scan
+all passed.
 
 ## Follow-ups / Deferred
 
-- Deploy the exact changed templates and collected static assets to staging.
 - Perform an authenticated browser/device visual check at desktop and mobile
-  widths.
+  widths; the current verification used live HTTP checks and an authenticated
+  Django request.
 - Consider permission-aware hiding of individual sidebar links if the admin
   role model later includes restricted staff roles; link visibility must not
   replace server-side authorization.
