@@ -3,7 +3,7 @@
 **Date:** 2026-10-17
 **Project:** HBEC
 **Type:** Audit
-**Status:** Completed (source review; runtime validation deferred)
+**Status:** Completed (source fixes applied; runtime validation deferred)
 
 ## Summary
 A full-repository source audit was performed using the Cloudflare `security-audit` skill installed from `https://github.com/cloudflare/security-audit-skill.git`. Four source-grounded security leads were identified. None is classified as confirmed because this session lacked the skill's required OS-enforced sandbox for local runtime validation.
@@ -29,18 +29,21 @@ All four are `needs_validation`, not confirmed vulnerabilities.
 - Installed the Cloudflare security-audit skill at `~/.agents/skills/security-audit`.
 - Created four issue records in the technical-area directories.
 - Created this audit report.
-- No HBEC source files were modified.
+- Hardened the payment settings endpoint with `IsInternalService`.
+- Removed the Admin Backend catch-all `MEDIA_ROOT` route.
+- Pinned the active mutable GitHub Actions references to full commit SHAs.
+- Removed `latest` fallbacks from production Compose image selection and from the deployment workflow input; made the Ollama image an explicit required setting.
 
 ## Verification
 - Confirmed the skill installation completed for supported agents.
 - Rechecked the cited source locations and line ranges.
-- No runtime tests were run because the required isolated sandbox was unavailable.
+- Python compilation and Compose YAML parsing passed.
+- The targeted payment authorization tests were added but could not run because PostgreSQL was unavailable at `127.0.0.1:5432`.
 
 ## Follow-ups / Deferred
 - Run the four bounded local checks in an OS-enforced sandbox with dummy settings/files.
 - Have the deployment owner verify public ingress rules for `/_internal/settings/payment/` and `/media/`.
-- Resolve and review immutable SHAs for all third-party actions.
-- Render production Compose with the actual deployment environment and verify digest-only artifact selection.
+- Render production Compose with the actual deployment environment and verify that every `TAG` is a commit-addressed immutable release tag and `OLLAMA_IMAGE` is a digest.
 - Reclassify findings after validation and rotate credentials if the payment endpoint was publicly reachable.
 
 ## References

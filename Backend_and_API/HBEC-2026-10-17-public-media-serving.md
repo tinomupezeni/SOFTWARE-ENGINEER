@@ -4,7 +4,7 @@
 **Project:** HBEC
 **Environment:** Source audit; proxy exposure and file classification not yet verified
 **Severity:** Medium
-**Status:** Investigating
+**Status:** Resolved in source; download-path migration pending
 
 ## Summary
 The Admin Backend unconditionally registers Django's static `serve` view for `MEDIA_ROOT`, which is documented in the same file as containing admin-uploaded papers and marking schemes. If the route is publicly reachable, known or discoverable media paths can be downloaded without authentication or object-level authorization.
@@ -42,10 +42,10 @@ This prevents a route or proxy change from exposing confidential educational mat
 ## Solution
 
 ### Immediate Fix
-Inspect the active proxy and test a dummy confidential upload from an unauthenticated client. Remove public routing for private media if reachable.
+The Admin Backend catch-all `media/` route was removed, so Django no longer serves `MEDIA_ROOT` anonymously. Existing authenticated content-file routes remain the intended path for protected curriculum files.
 
 ### Long-term Fix
-Separate public branding assets from private uploads and serve private files through authenticated object-scoped downloads or short-lived signed URLs.
+Inspect the active proxy and test a dummy confidential upload from an unauthenticated client. Separate public branding assets from private uploads and serve private files through authenticated object-scoped downloads or short-lived signed URLs.
 
 ## Prevention
 - [ ] Configuration changes needed

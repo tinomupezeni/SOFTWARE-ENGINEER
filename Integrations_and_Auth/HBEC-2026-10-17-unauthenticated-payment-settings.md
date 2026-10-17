@@ -4,7 +4,7 @@
 **Project:** HBEC
 **Environment:** Source audit; deployment exposure not yet verified
 **Severity:** High
-**Status:** Investigating
+**Status:** Resolved in source; deployment validation pending
 
 ## Summary
 The Admin Backend exposes `InternalPaymentSettingsView` at `/_internal/settings/payment/` with `AllowAny` and decrypts sensitive payment settings before returning them. If the route is reachable from the public ingress, an unauthenticated caller can obtain payment credentials.
@@ -43,10 +43,10 @@ This prevents a proxy or network-policy drift from turning an internal route int
 ## Solution
 
 ### Immediate Fix
-Verify that the active ingress rejects public access to `/_internal/settings/payment/` and rotate any payment credentials if public reachability is confirmed.
+`InternalPaymentSettingsView` now uses `IsInternalService`, matching the signed service-authentication control used by the neighboring internal endpoint. The targeted authorization tests were added, but execution is blocked in this checkout because PostgreSQL is not running on `127.0.0.1:5432`.
 
 ### Long-term Fix
-Replace `AllowAny` with the repository's service-authentication/HMAC control, return only the minimum required configuration, and add an unauthenticated-request regression test.
+Verify that the active ingress rejects public access to `/_internal/settings/payment/` and rotate any payment credentials if public reachability is confirmed. Bind authorization to the payment service identity and return only the minimum required configuration.
 
 ## Prevention
 - [ ] Configuration changes needed

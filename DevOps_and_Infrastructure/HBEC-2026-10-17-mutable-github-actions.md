@@ -4,7 +4,7 @@
 **Project:** HBEC
 **Environment:** CI/CD source configuration
 **Severity:** High
-**Status:** Investigating
+**Status:** Resolved in source; supply-chain policy follow-up pending
 
 ## Summary
 Active workflows reference third-party GitHub Actions by mutable tags or branches, including `appleboy/ssh-action@v1`, `trufflesecurity/trufflehog@main`, and `aquasecurity/trivy-action@master`. A compromised or retagged upstream reference could execute attacker-controlled code in a runner with deployment secrets.
@@ -42,7 +42,7 @@ This makes the executed action content deterministic and reviewable.
 ## Solution
 
 ### Immediate Fix
-Resolve the current action versions through a trusted process and review the resulting SHAs before replacing the mutable references.
+The active deployment and security-scan workflows now pin `appleboy/ssh-action`, `trufflesecurity/trufflehog`, and `aquasecurity/trivy-action` to full commit SHAs selected from their referenced refs.
 
 ### Long-term Fix
 Add a CI policy check for immutable action pinning, restrict deployment jobs to protected branches/environments, and minimize secrets available to each job.

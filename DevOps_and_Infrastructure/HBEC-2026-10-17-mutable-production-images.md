@@ -4,7 +4,7 @@
 **Project:** HBEC
 **Environment:** Production deployment configuration
 **Severity:** Medium
-**Status:** Investigating
+**Status:** Resolved in source; deployment validation pending
 
 ## Summary
 The production Compose file contains `ollama/ollama:latest` and multiple application image references defaulting to `${TAG:-latest}`. If deployment does not override and verify these values by immutable digest, a registry-side tag change can run unreviewed code in production.
@@ -42,10 +42,10 @@ This prevents a tag mutation from changing the artifact selected by a deployment
 ## Solution
 
 ### Immediate Fix
-Render the production Compose configuration with the real deployment environment and confirm whether every image is resolved to an immutable reviewed reference.
+Production Compose now fails fast when `TAG` is absent instead of silently falling back to `latest`, and the Ollama image must be supplied through `OLLAMA_IMAGE` as a reviewed immutable digest. The deployment workflow's tag input also no longer defaults to `latest`.
 
 ### Long-term Fix
-Pin all production images to digests, enforce digest-only deployment in CI, and fail deployment checks when `latest` or an unset tag remains.
+Render the production Compose configuration with the real deployment environment, confirm that every `TAG` is a commit-addressed immutable release tag, and add CI enforcement for digest-only third-party images.
 
 ## Prevention
 - [ ] Configuration changes needed
