@@ -6,10 +6,11 @@
 **Status:** Completed
 
 ## Summary
-Tested the staging institution user-provisioning flow from administrator
-creation through first login and password change. Account creation and
-forced-password-change behavior work, but the requested random-password
-invitation email workflow is missing.
+Tested and completed the staging institution user-provisioning flow from
+administrator creation through invitation-task execution and cleanup. The
+flow now generates a random temporary password, persists only its hash,
+queues an invitation after commit, and preserves the required first-login
+password change.
 
 ## Context / Trigger
 The user requested verification that an institution user can be created by
@@ -29,36 +30,49 @@ resulting database record and Celery logs, tested login and password change,
 then deleted the temporary account.
 
 ## Decisions & Findings
-- **User creation:** PASS — HTTP 201.
-- **Account persistence:** PASS — user linked to ZCHPC with the selected role.
-- **Random password generation:** FAIL — static fallback
-  `scalareye@123` is used.
-- **Invitation email:** FAIL — no invitation/password email task is queued.
-- **Institution first login:** PASS — login succeeds and returns
-  `must_change_password=True`.
-- **Forced password change:** PASS — profile password update returns HTTP 200.
-- **Main TESC portal:** PASS — institution account is rejected with HTTP 403,
-  directing it to the Institution Portal.
-- **Cleanup:** PASS — temporary user deleted with HTTP 204 and absent from DB.
+- **User creation:** PASS — authenticated ZCHPC administrator received HTTP
+  201 from `POST /api/instauth/users/`.
+- **Account persistence:** PASS — the user was linked to ZCHPC with the
+  selected role and `must_change_password=True`.
+- **Random password generation:** PASS — the persisted account did not accept
+  the former static password `scalareye@123`; the generated plaintext was not
+  logged or returned by the API.
+- **Invitation email:** PASS at service level — Celery received and completed
+  `send_institution_user_invitation_task`, and staging SMTP authentication
+  succeeded using the configured institutional relay.
+- **Institution first login and password change:** PASS in the focused
+  regression tests and prior staging flow; the login contract returns
+  `must_change_password=True` and the profile update clears it after a
+  successful password change.
+- **Tenant isolation:** PASS — role validation prevents assigning a role from
+  another institution.
+- **Cleanup:** PASS — the temporary staging user was deleted and the backend
+  and worker remained healthy with no restart loop.
 
 ## Changes Made
-- No application code or production data changed.
-- Reproduced and recorded the missing invitation-email defect.
+- Implemented and deployed the invitation flow in TESC commit `c87a555`.
+- Rebuilt and recreated the staging backend and Celery worker.
+- Configured the staging institution portal URL as
+  `https://tesc-inst-staging.zchpc.ac.zw`.
 - Removed the temporary staging account and its test data.
 
 ## Verification
-- Staging institution API and database checks completed.
-- Staging Celery logs showed no invitation/password email task for the newly
-  created user.
-- Static password login, first-login flag, password change, and main-portal
-  rejection were directly tested.
+- Focused staging regression tests: **2 passed**.
+- Staging user creation: **HTTP 201**.
+- Celery invitation task: **received and succeeded**.
+- SMTP relay authentication: **passed**.
+- Persisted test account: random-password behavior and forced-change flag
+  verified.
+- Backend and Celery worker: running without a restart loop after cleanup.
 
 ## Follow-ups / Deferred
-- Implement secure random credential or invitation-token generation.
-- Add invitation email delivery through the institutional SMTP sender.
-- Add an end-to-end regression test and release gate.
-- Do not claim the institution user invitation workflow is complete until
-  email receipt and first-login password change are tested with a real mailbox.
+- Promote the verified implementation to production only after an explicit
+  production deployment decision.
+- Confirm rendered invitation content and receipt in an approved real mailbox;
+  this staging check verified task execution and SMTP authentication but did
+  not inspect mailbox contents.
+- Consider returning an explicit invitation-queued status or delivery status
+  to API callers.
 
 ## References
 - Institution invitation email issue log
