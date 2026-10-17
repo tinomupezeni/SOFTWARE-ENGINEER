@@ -90,7 +90,7 @@ soft deactivation, audit creation, and non-staff denial behavior.
 ## Verification
 
 - `cd backend && .venv/bin/python manage.py check` passed.
-- `cd backend && USE_SQLITE=True .venv/bin/python manage.py test users.tests.AdminOperationsTests --verbosity 1` passed: 3 tests.
+- `cd backend && USE_SQLITE=True .venv/bin/python manage.py test users.tests.AdminOperationsTests --verbosity 1` passed: 4 tests.
 - `git diff --check` passed.
 - PostgreSQL-backed test execution was attempted and blocked by
   `connection refused` on `localhost:5432`; no shared or production database
