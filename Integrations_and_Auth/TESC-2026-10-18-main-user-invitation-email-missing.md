@@ -4,7 +4,7 @@
 **Project:** TESC (ScalarEye)
 **Environment:** Staging and source
 **Severity:** High
-**Status:** Investigating
+**Status:** Resolved in source; staging deployment pending
 
 ## Summary
 
@@ -76,6 +76,8 @@ frontend still presents the historical static password in its success toast.
 - No real account was created during this verification.
 - The local PostgreSQL-backed invitation test was blocked because no local
   PostgreSQL listener is available; SQLite-mode tests passed.
+- The main flow also accepted roles and departments outside an institution's
+  scope when a crafted API request supplied foreign IDs.
 
 ## Root Cause
 
@@ -99,21 +101,27 @@ independently in two serializers and drifting again.
 
 ### Immediate Fix
 
-No production code was changed during this verification. The defect is
-confirmed and remains open for implementation.
+Updated the main user serializer to generate a cryptographically random
+temporary password, hash it, set `must_change_password=True`, and queue a
+main-portal invitation only after the database transaction commits. Added a
+main-specific invitation task using `settings.FRONTEND_URL`, removed the
+static-password fallback from the main frontend, and added institution/global
+role and department scope validation.
 
 ### Long-term Fix
 
-Implement the shared invitation flow for main users, remove static-password
-fallbacks and frontend password disclosure, add main-portal invitation tests,
-then verify a real staging SMTP handoff using a controlled test recipient.
+Deploy the scoped change to staging and verify the Celery task registration,
+SMTP handoff, first-login forced password change, and post-change login with a
+controlled recipient. A shared onboarding service remains a future
+refactoring option; the current fix avoids changing the already-working
+institution flow.
 
 ## Prevention
 
 - [ ] Configuration changes needed
 - [ ] Monitoring/alerts to add
-- [ ] Documentation to update
-- [ ] Code changes required
+- [x] Documentation to update
+- [x] Code changes required
 
 ## References
 
@@ -126,5 +134,5 @@ then verify a real staging SMTP handoff using a controlled test recipient.
 
 ---
 
-**Resolved By:** Pending implementation
-**Time to Resolution:** Investigation session
+**Resolved By:** Copilot
+**Time to Resolution:** One implementation session; staging verification pending
