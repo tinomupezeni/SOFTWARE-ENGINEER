@@ -4,7 +4,7 @@
 **Project:** TESC (ScalarEye)
 **Environment:** Staging
 **Severity:** High
-**Status:** Resolved in source; staging deployment pending
+**Status:** Resolved
 
 ## Summary
 
@@ -94,5 +94,5 @@ labels when institution users are intentionally managed from the same screen.
 
 ---
 
-**Resolved By:** Pending staging deployment
-**Time to Resolution:** Investigation completed
+**Resolved By:** Copilot
+**Time to Resolution:** Same-day staging fix

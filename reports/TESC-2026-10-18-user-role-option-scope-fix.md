@@ -43,6 +43,9 @@ and route.
 - `frontend/src/pages/Settings.tsx`
   - Filters roles and departments by `main` versus `institutions` scope.
   - Removes duplicate labels before passing options to `UserModal`.
+- `frontend/src/modules/settings/Users.tsx`
+  - Hides `Add User` outside the main scope because the global endpoint cannot
+    create institution-scoped users.
 - Deployed frontend image:
   `tinotenda762/tesc-main:user-options-4fdbcde`.
 
@@ -53,11 +56,13 @@ and route.
 - Live bundle no longer contains the old `Default Password` UI.
 - `/settings` returned HTTP 200.
 - Frontend container restart count after deployment: 0.
+- The live main-scope user list keeps the Add User control; the institution
+  scope does not expose it.
 
 ## Follow-ups / Deferred
 
-- Retry creating `massala.care@gmail.com` using a global role such as the
-  global `Full Administrator` entry.
+- Retry creating `massala.care@gmail.com` using the single global
+  `Full Administrator` entry.
 - Add automated frontend modal coverage for scope filtering.
 - Improve institution-scope labels with institution names if that workflow is
   intentionally supported from this page.
