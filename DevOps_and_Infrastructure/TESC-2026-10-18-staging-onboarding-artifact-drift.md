@@ -4,7 +4,7 @@
 **Project:** TESC (ScalarEye)
 **Environment:** Staging
 **Severity:** High
-**Status:** Investigating
+**Status:** Symptom mitigated in staging; prevention pending
 
 ## Summary
 
@@ -86,20 +86,20 @@ journey on an older onboarding contract.
 
 ### Immediate Fix
 
-No application or staging data was changed during this diagnosis. The
-conflicting account was already removed, and the remaining failure is the
-generated username collision plus stale staging artifacts.
+Deployed the scoped backend and frontend onboarding changes to staging. The
+old static-password flow is no longer present in the live bundle, the worker
+registers `users.tasks.send_user_invitation_task`, and the protected API,
+migrations, service health, and public routes pass verification.
 
 ### Long-term Fix
 
-Deploy the committed main invitation changes to staging, then verify the exact
-frontend bundle, backend task registration, and controlled user-creation
-journey.
+Run the controlled main user-creation journey with `massala.care@gmail.com`,
+then verify SMTP handoff, first-login forced password change, and cleanup.
 
 ## Prevention
 
-- [ ] Promote the exact onboarding backend artifact
-- [ ] Promote the matching main frontend artifact
+- [x] Promote the exact onboarding backend artifact
+- [x] Promote the matching main frontend artifact
 - [ ] Add response-body assertion to staging smoke checks
 - [ ] Replace generic frontend 400 toast with field-level validation details
 
@@ -111,5 +111,5 @@ journey.
 
 ---
 
-**Resolved By:** Pending staging deployment
-**Time to Resolution:** Investigation completed
+**Resolved By:** Copilot
+**Time to Resolution:** Same-day staging deployment
