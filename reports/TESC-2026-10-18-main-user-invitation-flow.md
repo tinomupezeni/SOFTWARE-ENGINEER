@@ -59,7 +59,8 @@ and credential non-disclosure.
 ## Verification
 
 - `USE_SQLITE=True .venv/bin/python manage.py check`
-- Main and institution invitation suites: 4 tests passed.
+- Main invitation suite: 3 tests passed; institution invitation suite: 2 tests
+  passed.
 - `git diff --check` passed.
 - Local PostgreSQL-backed verification remains unavailable because no local
   PostgreSQL listener is running.
