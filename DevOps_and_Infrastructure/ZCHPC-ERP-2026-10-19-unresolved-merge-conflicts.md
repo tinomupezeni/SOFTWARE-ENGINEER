@@ -7,7 +7,7 @@
 **Status:** Investigating
 
 ## Summary
-The ZCHPC-ERP worktree is not in a clean, build-safe state: six tracked paths
+The ZCHPC-ERP worktree is not in a clean, build-safe state: seven tracked paths
 are reported by Git as unmerged. The conflicts span Django app configuration
 and the ERP admin inventory/CRM service surface, so the repository cannot be
 treated as a reliable baseline until the merge is resolved.
@@ -44,8 +44,8 @@ git diff --name-only --diff-filter=U
 - `erp_project/src/modules/inventory/apps.py` is unmerged.
 - `erp_project/src/modules/projects/apps.py` is unmerged.
 - `zchpc-erp-synergy-main/src/pages/InventoryPage.tsx` is unmerged.
-- `zchpc-erp-synergy-main/src/services/crm.services.ts` and
-  `zchpc-erp-synergy-main/src/services/inventory.services.ts` are unmerged.
+- `zchpc-erp-synergy-main/src/services/crm.services.ts` is unmerged.
+- `zchpc-erp-synergy-main/src/services/inventory.services.ts` is unmerged.
 
 ## Root Cause
 An incomplete Git merge or rebase left conflict entries in the index. The

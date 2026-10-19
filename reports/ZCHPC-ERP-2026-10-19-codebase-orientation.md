@@ -49,7 +49,7 @@ backend/frontend boundaries.
 - Frontend API clients target the backend `/api/v2/` surface and persist JWT
   tokens in browser storage; the admin and portal apps use separate auth
   contexts/services and token keys.
-- The worktree is currently not a clean baseline: six paths are unresolved
+- The worktree is currently not a clean baseline: seven paths are unresolved
   conflicts, including four Django app configs and admin inventory/CRM files.
   This is recorded separately in the issue log referenced below.
 
