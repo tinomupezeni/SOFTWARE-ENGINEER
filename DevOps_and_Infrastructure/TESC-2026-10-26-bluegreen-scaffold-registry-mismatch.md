@@ -3,7 +3,7 @@
 **Date:** 2026-10-26
 **Project:** TESC
 **Severity:** Medium (would have caused a failed/confusing first blue-green deploy, not data loss)
-**Status:** Found; not yet fixed (fix tracked in the companion guide, see References)
+**Status:** Fixed (TESC `staging` branch commit `3dcc769`)
 
 ## Symptoms / Discovery Context
 
@@ -52,21 +52,24 @@ contract migration gate, active-color marker file) depends on.
 
 ## Fix
 
-Tracked as part of
-`reports/TESC-2026-10-26-blue-green-production-deployment-guide.md`, which
-adapts the HBEC blue-green reference pattern to TESC's actual tar-transfer,
-no-registry-pull topology instead of the GHCR-pull model the draft assumed.
-The compose file's image references and the deploy script's activation step
-need to change from "pull `${IMAGE_TAG}`" to "load the already-transferred
-`.tar` for the target color, then `up -d --no-deps` with no pull."
+Per user decision, blue-green is being set up directly on `tesc-prod`
+(single VM, not the staging-VM tar-transfer model) — the tesc-staging VM is
+being retired to backup-only, so images for blue-green now build directly on
+`tesc-prod` for the idle color, tagged by the deploying commit's short SHA,
+with no registry pull and no tar transfer at all. `docker-compose.
+bluegreen.yml` and `scripts/bluegreen-deploy.sh` were rewritten accordingly
+(TESC `staging` branch commit `3dcc769`) — see
+`reports/TESC-2026-10-26-blue-green-production-deployment-guide.md` for the
+full design.
 
 ## Verification
 
-Not yet re-verified against a real deploy (no blue-green deploy to
-`tesc-prod` has happened yet — this scaffold has never been exercised
-outside the two unit tests in `tests/test_bluegreen_deployment.py`, which
-only check the nginx-config renderer and compose-file shape, not the actual
-image-transfer mechanism).
+All 7 renderer/compose-shape tests in `tests/test_bluegreen_deployment.py`
+pass against the rewritten scaffold; `docker compose -f
+docker-compose.bluegreen.yml config` validates with no errors; a rendered
+nginx config from the new renderer passes `nginx -t` in a throwaway
+container. The actual first deploy-and-cutover on `tesc-prod` is tracked
+separately in the companion report's day-zero runbook, not yet executed.
 
 ## References
 
