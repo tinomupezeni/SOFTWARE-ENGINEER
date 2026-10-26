@@ -3,9 +3,15 @@
 **Date:** 2026-10-26
 **Project:** TESC
 **Type:** Architecture Decision / Implementation Plan
-**Status:** Scaffold implemented and tested (TESC `staging` commit
-`3dcc769`); day-zero cutover on `tesc-prod` not yet executed (deliberately
-gated on explicit confirmation — see Follow-ups)
+**Status:** Live in production. Day-zero cutover executed on `tesc-prod` on
+2026-10-26 — `tesc-prod` now actually runs blue-green, currently on `blue`
+(`94bf94e`, verified byte-for-byte identical to the real deployed code — see
+the companion incident log below for why a *first* attempt at this cutover
+briefly served a regressed build, and had to be rolled back and corrected).
+The old single-color stack (`backend`, `celery-worker`, `frontend-client-v2`,
+`frontend-admin-v2`) is still running, untouched, as the immediate rollback
+target during the burn-in period (see Follow-ups) — it will be stopped once
+blue has proven stable.
 
 ## Summary
 TESC asked to set up blue-green deployment on the production VM
@@ -231,10 +237,55 @@ Comparing against the HBEC guide's §2, §5, §7, §8:
 - Live on `tesc-prod`: the drift-fix nginx reload was verified end-to-end
   (`nginx -t`, reload, both public domains + `/api/` returning correct
   codes) — see the companion bug log for the exact checks.
-- **Not yet done**: an actual blue-green deploy-and-cutover on `tesc-prod`.
-  The scaffold is implemented and unit-tested but has not been exercised
-  against the real VM end-to-end — that's the day-zero runbook below,
-  gated on explicit confirmation before execution.
+- **Day-zero cutover executed live on `tesc-prod`, 2026-10-26** (after
+  confirming a fresh verified pre-migration backup existed — see below):
+  - Brought only the 3 blue-green commits (`f8646b4`, `198c706`, `082616d`
+    on `staging`) onto `main` via cherry-pick, deliberately **not** merging
+    all of `staging` (166 commits ahead of `main` at the time, almost all
+    unrelated feature work not meant for this prod deploy).
+  - `check_compose_colors.py` and `verify_expand_contract.py --base
+    fcf6985` both passed before building anything.
+  - `bluegreen-deploy.sh` built and started `backend-blue`,
+    `celery-worker-blue`, `frontend-client-v2-blue`,
+    `frontend-admin-v2-blue` — all reported `Healthy`; the old unsuffixed
+    stack's uptime was confirmed unchanged throughout (still "Up 2 days").
+  - Verified blue pre-cutover with zero DNS/traffic exposure: `docker exec
+    tesc-main-nginx-1` hitting `backend-blue`/`frontend-client-v2-blue`/
+    `frontend-admin-v2-blue` directly by container hostname, plus a real
+    functional check inside `backend-blue` (`cache.set`/`cache.get` —
+    confirms `REDIS_URL` correct — and `Student.objects.count()` returning
+    86,895, confirming it reads the same live shared database, not an
+    isolated copy).
+  - `CONFIRM_CUTOVER=yes bluegreen-cutover.sh` — `nginx -t` passed, reload
+    succeeded, `active_color` flipped to `blue`, `.cutover_from` recorded
+    `green`.
+  - Post-cutover: `tesc.zchpc.ac.zw` → 200, `tesc-inst.zchpc.ac.zw` → 200,
+    bare `/api/` → 404 (correct) — identical to pre-cutover behavior. The
+    old stack (`backend`, `celery-worker`, `frontend-client-v2`,
+    `frontend-admin-v2`) is still running, untouched, the entire time —
+    confirmed via `docker ps` uptime before and after.
+  - **Pre-migration backup**: the automated daily dump exists
+    (`tesc_db_backup_20261026_020001.sql`, that morning), but a fresh one
+    was taken immediately before this change anyway per `project_docs/09`'s
+    standing rule ("even if nothing touches schema, this is the safety net
+    for anything going wrong"): `pg_dump -Fc`, verified with `pg_restore
+    --list` (563 TOC entries, ~55MB, consistent with recent dumps) before
+    proceeding.
+
+- **This first cutover briefly served a regressed build** - caught by the
+  user immediately via the live dashboard, not by any automated check. Full
+  incident writeup, root cause, and fix:
+  `DevOps_and_Infrastructure/TESC-2026-10-26-bluegreen-daycero-built-from-stale-main.md`.
+  In short: `main`'s tip was 166 commits behind what's actually deployed
+  (prod runs a commit, `fcf6985`, only reachable via `staging` - `main` was
+  never kept in sync with it). The first "blue" was built from `main`,
+  making it an older, regressed build despite passing every structural
+  guardrail. Rolled back within ~2 minutes (`git checkout --
+  nginx/nginx.conf` + reload, since the old stack was never touched and
+  still had the current, correct code), rebuilt "blue" from `fcf6985`
+  instead, verified **byte-for-byte identical** to the live bundle (same
+  file size, same asset hash) before re-attempting cutover. The corrected
+  cutover is the one now live.
 
 ## Day-Zero Runbook: migrating tesc-prod into blue-green without dropping live traffic
 The one constraint that shapes this entire runbook: **the currently-running
@@ -250,7 +301,17 @@ containers before and after.
    it only makes `bluegreen-deploy.sh` compute "blue" as its target on the
    next step, since "green" doesn't exist yet and never will until the
    *next* deploy after this one.
-2. **Build and start "blue" alongside the untouched old stack.**
+2. **Before building, verify the checkout is actually ahead of what's live
+   - never trust a branch's name.** `git merge-base --is-ancestor
+   <currently-deployed-sha> HEAD` must succeed. This step exists because of
+   a real incident on this exact migration (see
+   `DevOps_and_Infrastructure/TESC-2026-10-26-bluegreen-daycero-built-from-stale-main.md`):
+   `main` looked like the right thing to build from and wasn't - it was 166
+   commits behind what `tesc-prod` actually runs, because prod had been
+   deployed from `staging` directly in the past without `main` ever being
+   updated to match. Do not skip this on the assumption that a branch named
+   for an environment is kept in sync with it in practice.
+3. **Build and start "blue" alongside the untouched old stack.**
    `MIGRATION_BASE_SHA=<current running sha, e.g. fcf6985> scripts/
    bluegreen-deploy.sh` — builds the 4 app services from the current
    checkout, tags them `*-blue:<new-sha>`, starts only
@@ -258,23 +319,23 @@ containers before and after.
    `frontend-admin-v2-blue` via `--no-deps`, pointed at the same already-
    running `db`/`redis` over the shared network. The old unsuffixed
    containers and nginx are not referenced by this command at all.
-3. **Verify blue independently, with zero DNS changes.** Since nginx isn't
+4. **Verify blue independently, with zero DNS changes.** Since nginx isn't
    repointed yet, exercise blue directly over the shared docker network,
    e.g. from the nginx container itself: `docker exec tesc-main-nginx-1 wget
    -qO- http://backend-blue:8000/api/<a known-safe read endpoint>` and
    `... http://frontend-client-v2-blue:80/`. Confirm response codes and
    content match what the old stack currently serves for the same request.
-4. **One atomic cutover.** `CONFIRM_CUTOVER=yes scripts/bluegreen-cutover.sh`
+5. **One atomic cutover.** `CONFIRM_CUTOVER=yes scripts/bluegreen-cutover.sh`
    — this is the only moment traffic moves. It re-verifies blue's containers
    are `Running`, renders the new nginx config, validates it (`nginx -t`),
    reloads nginx. An nginx reload does not kill in-flight proxied
    connections; only new connections route to the new upstream, so this is
    not a stop-the-world moment the way a full container recreate is.
-5. **Verify production post-cutover** the same way the drift-fix was
+6. **Verify production post-cutover** the same way the drift-fix was
    verified this session: `curl -H "Host: tesc.zchpc.ac.zw" ...` and the
    inst domain, both expecting 200, plus a real functional check (not just
    "no errors in the log") against the now-live blue backend.
-6. **Burn-in, then retire the old stack explicitly.** Only after blue has
+7. **Burn-in, then retire the old stack explicitly.** Only after blue has
    been stable for an agreed burn-in period, `docker stop backend
    celery-worker frontend-client-v2 frontend-admin-v2` (stopped, not
    removed — keep as the immediate rollback target for a further period
@@ -287,22 +348,40 @@ touched). Rollback after step 4 but before step 6 is re-running
 future rollback, since the old stack is still running.
 
 ## Follow-ups / Deferred
-1. **Execute the day-zero runbook above on `tesc-prod`** — explicitly held
-   for a separate confirmation before running, since it's the first real
-   build-and-deploy against a live production host under this new
-   mechanism, and doubles app-tier container count (and build load) on that
-   host during the transition.
-2. **Coordinate DNS for `tesc-staging.zchpc.ac.zw` /
+1. **Decide how to fix `main`'s branch pointer going forward.** `main` is
+   still 166 commits behind `fcf6985`+blue-green on GitHub (the corrected
+   history was pushed as branch `bluegreen-correct-base`, not force-pushed
+   onto `main` - the harness's own safety classifier blocked that force-push
+   as a destructive git action pending explicit human sign-off, which is
+   the right call for a repo-history rewrite). Needs an explicit decision:
+   force-update `main` to `bluegreen-correct-base` (safe - confirmed `main`
+   has zero unique commits beyond this session's own cherry-picks), or
+   handle it differently (e.g. a proper merge bringing the rest of
+   `staging`'s unreleased work along too, which is a materially bigger,
+   separate decision about what else should ship to prod).
+2. **Add a pre-build "is this branch actually ahead of what's live"
+   guardrail** to `bluegreen-deploy.sh` - this incident's root cause (§ the
+   companion incident log) is exactly the class of mistake a cheap check
+   (`git merge-base --is-ancestor <currently-recorded-sha> HEAD`, refusing
+   to build if the deploying commit isn't a descendant of the color being
+   replaced) would have caught before any container was ever built, not
+   after a user noticed a missing feature in production.
+3. **Stop the old single-color stack** (`backend`, `celery-worker`,
+   `frontend-client-v2`, `frontend-admin-v2`) once `blue` has been stable
+   for an agreed burn-in period — currently still running, untouched, as
+   the immediate rollback target. `db`/`redis`/`nginx` are unaffected either
+   way (never duplicated).
+4. **Coordinate DNS for `tesc-staging.zchpc.ac.zw` /
    `tesc-inst-staging.zchpc.ac.zw`** to point at `tesc-prod` once the
    `tesc-staging` VM is fully retired — not required for day-zero (the
    inactive color can be verified with a Host-header curl against
    `tesc-prod` directly, with no DNS change), but needed for the
    "staging means inactive color" convention to work through a browser.
-3. `verify-revisions.sh`-equivalent, `preflight-secrets.sh` (§6) — useful
+5. `verify-revisions.sh`-equivalent, `preflight-secrets.sh` (§6) — useful
    follow-on hardening, independent of the core mechanism.
-4. Decide a concrete burn-in duration and old-image retention/pruning policy
-   once the first real cutover has happened and there's a real data point
-   for how quickly problems would surface.
+6. Decide a concrete burn-in duration and old-image retention/pruning policy
+   now that the first real cutover has happened (including a correction
+   cycle) and there's a real data point for how quickly problems surface.
 
 ## References
 - `reports/HBEC-2026-10-26-blue-green-production-reference-guide.md` — the
