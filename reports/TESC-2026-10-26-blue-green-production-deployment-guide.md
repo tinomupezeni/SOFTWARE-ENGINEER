@@ -348,17 +348,14 @@ touched). Rollback after step 4 but before step 6 is re-running
 future rollback, since the old stack is still running.
 
 ## Follow-ups / Deferred
-1. **Decide how to fix `main`'s branch pointer going forward.** `main` is
-   still 166 commits behind `fcf6985`+blue-green on GitHub (the corrected
-   history was pushed as branch `bluegreen-correct-base`, not force-pushed
-   onto `main` - the harness's own safety classifier blocked that force-push
-   as a destructive git action pending explicit human sign-off, which is
-   the right call for a repo-history rewrite). Needs an explicit decision:
-   force-update `main` to `bluegreen-correct-base` (safe - confirmed `main`
-   has zero unique commits beyond this session's own cherry-picks), or
-   handle it differently (e.g. a proper merge bringing the rest of
-   `staging`'s unreleased work along too, which is a materially bigger,
-   separate decision about what else should ship to prod).
+1. **`main`'s branch pointer on GitHub is still stale** (`082616d`, the
+   regressed-base commit) pending the user running
+   `git push --force-with-lease origin bluegreen-correct-base:main`
+   themselves - the harness's safety classifier blocks this force-push even
+   with the user's explicit in-chat approval, correctly requiring it be run
+   directly or the permission setting adjusted. `tesc-prod` itself is
+   already on the correct commit (`94bf94e`) regardless of this - this is
+   purely about GitHub's `main` ref matching reality.
 2. **Add a pre-build "is this branch actually ahead of what's live"
    guardrail** to `bluegreen-deploy.sh` - this incident's root cause (§ the
    companion incident log) is exactly the class of mistake a cheap check
@@ -371,12 +368,33 @@ future rollback, since the old stack is still running.
    for an agreed burn-in period — currently still running, untouched, as
    the immediate rollback target. `db`/`redis`/`nginx` are unaffected either
    way (never duplicated).
-4. **Coordinate DNS for `tesc-staging.zchpc.ac.zw` /
-   `tesc-inst-staging.zchpc.ac.zw`** to point at `tesc-prod` once the
-   `tesc-staging` VM is fully retired — not required for day-zero (the
-   inactive color can be verified with a Host-header curl against
-   `tesc-prod` directly, with no DNS change), but needed for the
-   "staging means inactive color" convention to work through a browser.
+4. **Done**: `tesc-staging.zchpc.ac.zw` / `tesc-inst-staging.zchpc.ac.zw`
+   now resolve through the inactive color. These domains are served not by
+   plain DNS but by a CloudPanel instance (a separate public-facing host,
+   `102.217.49.126`) doing TLS termination and then reverse-proxying by
+   IP:port - previously `http://10.50.1.37:8081`/`:8082` (the old staging
+   VM's directly-exposed frontend ports, bypassing any backend API
+   routing). The user updated both CloudPanel vhosts' "Reverse Proxy Url" to
+   `http://10.50.200.35:80` (`tesc-prod`'s nginx) - CloudPanel's vhost
+   template already forwards the real `Host` header
+   (`proxy_set_header Host $host;`), which is exactly what `tesc-prod`'s
+   nginx needs to match the right `server_name` block and route to the
+   correct (inactive) color. Verified end-to-end:
+   `curl https://tesc-staging.zchpc.ac.zw/` and
+   `https://tesc-inst-staging.zchpc.ac.zw/` both return 200 publicly,
+   serving the `green` build (built as a same-commit standby once this was
+   diagnosed - see below) while `blue` keeps serving the real public
+   domains, confirmed unaffected throughout.
+   - One thing this surfaced: right after day-zero, these domains correctly
+     matched their `server_name` block but 502'd, because the block points
+     at `frontend-client-v2-green`/`backend-green`, and no `green`
+     containers existed yet (day-zero only ever builds `blue`). This isn't
+     a config bug - the "inactive color" domains are legitimately unusable
+     until a `green` (or whichever is inactive) build actually exists. Built
+     one now (`MIGRATION_BASE_SHA=94bf94e bluegreen-deploy.sh`, same commit
+     as `blue`, so a pure standby with no functional difference) specifically
+     to make the staging domains meaningful immediately rather than waiting
+     for the next real deploy.
 5. `verify-revisions.sh`-equivalent, `preflight-secrets.sh` (§6) — useful
    follow-on hardening, independent of the core mechanism.
 6. Decide a concrete burn-in duration and old-image retention/pruning policy
