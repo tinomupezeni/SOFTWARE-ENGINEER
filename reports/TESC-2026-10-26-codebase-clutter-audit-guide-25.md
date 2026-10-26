@@ -3,7 +3,7 @@
 **Date:** 2026-10-26
 **Project:** TESC
 **Type:** Audit
-**Status:** Evidence-gathering complete; no removals executed — awaiting authorization per the guide's own staged workflow
+**Status:** §1 and §2 removed, §3 operational-script defaults fixed, all per explicit user authorization; §3's doc rewrite and §4 (student data provenance) remain deferred
 
 ## Summary
 Audited the TESC repository against `25. Continuous Codebase Simplification.md`'s clutter taxonomy and evidence model. Found ~45 one-off root-level scripts with zero cross-references anywhere in the repo (one of them, `create_admin.py`, is provably broken — imports a model class that no longer exists), plus several higher-severity findings the initial scan didn't anticipate: 78MB of a third-party binary committed to git, a 25MB accidental debug-HTML dump, two committed SQLite database snapshots, and a stale compose file that operational scripts still default to (which already caused a real failure earlier this session). Nothing was deleted — this report is the candidate list with evidence, per the guide's "identify a candidate without modifying the working tree" step.
@@ -75,18 +75,27 @@ This is not ordinary clutter - it's **actively misleading tooling**. `scripts/ba
 `students_training_data.csv` (6.0MB) and `students_training_data.xlsx` (1.8MB) are tracked in git. The CSV header (`Student_id, institution, institution_type, program, ..., gender, ...`) doesn't show obviously identifying fields like name or national ID in the first row, but the file is large enough (6MB) to plausibly contain real exported student records rather than a small synthetic sample. Given this is a Zimbabwe higher-education system handling real student records elsewhere in the codebase (encrypted `Student` model fields, per `backend/academic/models.py`'s own "ENCRYPTED STUDENT MODEL" section header), this file's provenance should be confirmed - real exported data vs. synthetic/anonymized training data - before deciding whether it belongs in version control at all, independent of whether it's "used" by anything.
 
 ## Changes Made
-None. Per the guide's own mandatory staged workflow (§"Mandatory staged workflow," steps 1-2: "Identify a candidate without modifying the working tree" / "Collect supporting and contradictory evidence"), this report stops at candidate generation and evidence collection. No file was deleted or modified.
+After this report's findings were presented, the user explicitly authorized proceeding ("proceed, lets start removing the junk"). Executed, in one commit (TESC `staging`/`main` `70a4f98`):
+- Removed all §1 items: `k6-v0.49.0-linux-amd64/` + `.tar.gz` (78MB), `backend/error_output.html` (25MB), `backend/tesc_db` + `tesc_db.bak`.
+- Removed all 44 §2 one-off scripts.
+- Fixed the `docker-compose.prod.yml` default/hardcoded reference in `scripts/backup_database.sh`, `scripts/reencrypt.sh`, and `scripts/deploy.sh` (all now point at the real `docker-compose.yml`), and the echoed example commands in `scripts/rotate-key.sh`.
+- Added `.gitignore` entries for all three §1 artifact categories to prevent recurrence.
+- Synced the same commit onto `tesc-prod`'s checkout (fast-forward, ancestry-verified) since the fixed operational scripts live there.
+
+Deliberately **not** done in this pass: `docker-compose.prod.yml` itself (still referenced descriptively by ~10 docs - a larger rewrite, not a quick fix) and `.github/workflows/deploy.yml`'s stale references (inside the already-disabled `if: false` deploy job) were left alone; `students_training_data.csv`/`.xlsx` was left untouched pending the provenance check below.
 
 ## Verification
-N/A — no changes made yet. Each finding above states the specific evidence (git grep results, `file` output, content inspection, cross-reference count) that would need to be re-confirmed immediately before any actual removal, per the guide's recommendation that a "finding" carry its own provenance rather than being treated as self-evidently true once generated.
+- `git grep` re-run post-removal for every deleted filename across the whole repo (including `.github/`, `docker-compose*.yml`, `scripts/`, docs) - zero remaining references, confirming the original zero-reference finding held and nothing was silently depending on these files.
+- Confirmed `scripts/run_load_test.sh` already has its own `wget`-based k6 download-on-demand fallback (lines 17-25) - the removed binary/tarball will be fetched fresh the next time that script actually needs it, not silently broken.
+- Confirmed the `tesc_db`/`DB_NAME=tesc_db` string matches elsewhere in the repo (`settings.py`, `.env.example`, `backup_db.sh`) are the Postgres database *name*, unrelated to the removed SQLite file - the removed file was Django's own `BASE_DIR / 'tesc_db'` local-dev SQLite path (`USE_SQLITE=True` branch), regenerated on demand, never read from git.
+- `bash -n` syntax-checked all four modified operational scripts.
+- Live verification on `tesc-prod` post-cleanup: `curl -H "Host: tesc.zchpc.ac.zw"` → 200, all 8 blue/green containers still `Up`, confirming the cleanup (repo-root files + shell script text only, no application code touched) had zero effect on the running system, as expected.
 
 ## Follow-ups / Deferred
-1. **Authorize or decline removal** of the §1 items (k6 binary/tarball, `error_output.html`, `tesc_db`/`tesc_db.bak`) - lowest risk, highest size payoff (78MB+ of pure waste).
-2. **Per-family confirmation** on the §2 one-off scripts before removal - recommend grouping by prefix (`rewrite_*`, `update_*`, `fix_*`/`patch_*`, `create_*`/`export_*`/other) rather than reviewing all ~45 individually.
-3. **Fix the `docker-compose.prod.yml` default** in `scripts/backup_database.sh`, `scripts/reencrypt.sh`, `scripts/rotate-key.sh` (and `.github/workflows/deploy.yml`, though that pipeline's deploy job is already disabled) before deciding the stale file's own fate.
-4. **Confirm `students_training_data.csv`/`.xlsx` provenance** (real export vs. synthetic) before deciding whether to remove from the working tree and/or scrub from history.
-5. A deeper, intra-file dead-code pass (unused functions/imports within `backend/`/`frontend/`/`inst/` source, per the guide's Vulture/Ruff/Knip-style tooling) was out of scope for this pass and could be a separate follow-up audit.
-6. If any of the above are approved for removal, note that git history retains the content regardless (including the `create_admin.py` plaintext password) - a history rewrite is a separate, higher-risk decision not recommended as part of routine cleanup.
+1. **`docker-compose.prod.yml` itself and the ~10 docs still describing it** - the actively-dangerous part (operational scripts silently defaulting to it) is fixed; the file and its documentation are now merely stale, not dangerous. A dedicated doc-rewrite pass, not a quick fix.
+2. **Confirm `students_training_data.csv`/`.xlsx` provenance** (real export vs. synthetic) before deciding whether to remove from the working tree and/or scrub from history.
+3. A deeper, intra-file dead-code pass (unused functions/imports within `backend/`/`frontend/`/`inst/` source, per the guide's Vulture/Ruff/Knip-style tooling) remains out of scope for this pass.
+4. Git history still retains everything removed here, including the `create_admin.py` plaintext password - a history rewrite (`git filter-repo`/BFG) is a separate, higher-risk decision not recommended as part of routine cleanup, but worth being aware of if that password was ever reused anywhere real.
 
 ## References
 - `Principal_Engineer/engineering-guides/25. Continuous Codebase Simplification.md` - the guide this audit follows.
