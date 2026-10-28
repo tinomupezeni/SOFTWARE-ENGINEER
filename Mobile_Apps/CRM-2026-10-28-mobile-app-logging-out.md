@@ -124,11 +124,13 @@ against a mocked `/auth/token/refresh/` response pair.
 - [ ] Add double-refresh-cycle regression test (not yet done)
 
 ## Related Issues
-- Separate, unresolved: `useProfile`'s `meta.onError: () => logout()` in
-  `mobile/src/features/auth/api.ts` is dead code under TanStack Query v5
-  and should either be removed or wired through a global `QueryCache`
-  `onError` handler if the intent was to auto-logout on a failed profile
-  fetch.
+- Found alongside this bug, now resolved: `useProfile`'s
+  `meta.onSuccess`/`meta.onError` in `mobile/src/features/auth/api.ts` were
+  dead code under TanStack Query v5 (per-query `onSuccess`/`onError` were
+  removed in v5; `meta` callbacks only fire via a global `QueryCache`
+  handler, which this app never configured). Replaced with `useEffect`s
+  reacting to the query's own `data`/`isError` state, so `setUser()` on
+  success and `logout()` on failure actually run now. Fixed in `crm@b662edf`.
 
 ## References
 - `mobile/src/services/api.ts`
