@@ -56,8 +56,8 @@ technical area.)*
 
 ARCHCODE, Attendance, CANOPYRX, chemglee-concept-site, CLUBZERO, CRM, crucible,
 Email-Sender, event-spark, FRUGAL_CORE, HBEC, KAREN, LoanManagement, MARITCHO,
-Market-Link, OREPULSE, SavensBlog, shipwright, TESC, tese-marketplace, ZCHPC,
-ZCHPC-ERP, ZCHPC-WEB, ZIMDASH — one bug-log/report prefix per project, not
+Market-Link, OREPULSE, PFMCP, SavensBlog, shipwright, TESC, tese-marketplace,
+ZCHPC, ZCHPC-ERP, ZCHPC-WEB, ZIMDASH — one bug-log/report prefix per project, not
 a subfolder per project (see Structure above). This list is generated from
 the actual filenames in use; if you add a new project's first entry, add
 its prefix here too.
