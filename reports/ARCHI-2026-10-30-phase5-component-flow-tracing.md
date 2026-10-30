@@ -62,12 +62,21 @@ Split new logic into pure, vscode-independent parser modules (`pythonRoutes.ts`,
 - The MVP release gate's manual desktop click-through in a real VS Code GUI window is still pending the user's own confirmation; the automated packaging side is done and reproducible via `npm run package`.
 - No app-level scoping or kind (routes-only / tasks-only) filter was added to the Flows view, unlike the Data view's app filter — deferred until a workspace's per-service route/task count makes that filtering useful; HBEC's per-service counts did not demonstrate the need during validation.
 
+## Addendum (same session): extension icon and visual testing
+
+After this report was first written, the user asked for an extension icon and then for visual testing. Both were completed in the same session as a direct continuation of this phase, so they're recorded here rather than as a separate report:
+
+- Added `media/icons/icon.png`/`.svg` (three connected nodes on a dark rounded-square background, matching the webview's own accent colors) and registered it via `package.json`'s `icon` field; confirmed legible at both 128px and 32px.
+- Since this environment cannot drive a real VS Code desktop GUI (see Decisions above), built a standalone headless-Chrome harness that loads the actual, unmodified `media/main.js`/`media/style.css` against the *real* HBEC-extracted graphs (same pure extractor functions, driven via `fs` instead of `vscode.workspace.fs`) and screenshots scripted interaction scenarios. This substituted for the manual click-through where a real browser render was sufficient to judge the UI, though it is not a replacement for the actual pending VS Code-desktop confirmation.
+- This visual pass caught a real design-conformance gap — the Flows view rendered a service's entire route list (129 routes for `student-backend` alone) as one flat, unscoped, cluttered grid — fixed by extending the Data view's existing app-scoping pattern to the Flows view and dropping a noisy, uninformative hub-edge rendering. Logged separately: `Frontend_and_UI/ARCHI-2026-10-30-flows-view-unscoped-route-flood.md`.
+
 ## References
 
 - `Archi/IMPLEMENTATION_PLAN.md` — phase definitions and exit gates.
 - `Archi/PHASE2_REVIEW.md` – `Archi/PHASE4_REVIEW.md` — prior phase reviews, same format followed here.
-- `Archi/PHASE5_REVIEW.md` — this phase's own review, Archi-repo-local.
+- `Archi/PHASE5_REVIEW.md` — this phase's own review, Archi-repo-local, updated with the visual-testing findings above.
 - `Backend_and_API/ARCHI-2026-10-30-route-path-trailing-slash-dropped.md` — the bug found and fixed during this work.
+- `Frontend_and_UI/ARCHI-2026-10-30-flows-view-unscoped-route-flood.md` — the scoping bug found and fixed during visual testing.
 
 ---
 
