@@ -4,10 +4,10 @@
 **Project:** HBEC
 **Environment:** Production (`hbca-vps`) and local development
 **Severity:** High
-**Status:** Investigating
+**Status:** Resolved
 
 ## Summary
-Sharing a subject's topics to another grade copied some subtopics as root topics. A read-only production audit found 175 flattened copies across six subject-grade combinations. A backend prevention fix is implemented and locally tested, but it has not been deployed and the historical rows remain unchanged.
+Sharing a subject's topics to another grade copied some subtopics as root topics. A production audit found 175 flattened copies across six subject-grade combinations. Commit `7b8b38ae0` now preserves the hierarchy when sharing, and the 175 historical parent links were restored on production.
 
 ## Symptoms
 - Shared topics appeared jumbled in the target grade's admin topic tree.
@@ -37,6 +37,8 @@ ssh hbca-vps 'docker exec hbec-postgres psql -X -v ON_ERROR_STOP=1 -U hbec -d hb
 - 343 linked topic pairs had identical order values; 175 pairs differed in root-versus-child status.
 - All 175 flattened copies have exactly one matching parent copy in the target subject.
 - The read-only repair mapping is saved at `/tmp/hbec-unflatten-dry-run-20261031.csv` (175 unique target IDs).
+- The mapping digest was `53c48ed31d71024a410ea666b34201dad161a04aefcc39bc3900aa307132ed3e` and remained stable through the production preflight.
+- The full backup archive SHA-256 was `9fc2022c3dc0b386287f2f33bbe678b6e4abd85fdb39aebb224d1b00f8480c30`, verified on both external VPS mirrors before the repair.
 
 ## Root Cause
 Topic sharing used display order as creation order. It did not topologically sort the source hierarchy or resolve an already-shared target parent before creating a child.
@@ -47,19 +49,20 @@ Topic sharing used display order as creation order. It did not topologically sor
 ## Solution
 
 ### Immediate Fix
-The local `TopicShareView` change walks ancestors first, reuses existing parent copies, and starts a fresh ID map for each target grade. Three focused PostgreSQL-backed API tests passed. Production deployment and historical data repair are still pending.
+`TopicShareView` now walks ancestors first, reuses existing parent copies, and starts a fresh ID map for each target grade. Eight focused PostgreSQL-backed tests passed. The guarded repair was rehearsed against an isolated restore of the production admin database: 175 rows updated, 175 outbox records created, and the post-repair dry run returned zero. The same commit passed inactive-blue health, link, retrieval, and secret checks, then was cut over to live blue. The production repair applied the exact reviewed mapping in one transaction; a second dry run returned zero.
 
 ```bash
 POSTGRES_PORT=55433 .venv/bin/pytest apps/curriculum/tests/test_topic_share_api.py -q --tb=short
 ```
 
 ### Long-term Fix
-Deploy the tested backend change, then run a guarded Django repair using the dry-run mapping and verify admin and student hierarchies.
+The sharing API's ancestor-first behavior and its regression tests prevent recurrence. The repair command requires an exact count and SHA-256 of the proposed mapping for any future application.
 
 ## Prevention
 - [x] Focused hierarchy regression tests added locally.
-- [ ] Deploy the backend prevention fix.
-- [ ] Repair and verify the 175 existing flattened copies.
+- [x] Deploy the backend prevention fix as `7b8b38ae0`.
+- [x] Repair and verify the 175 existing flattened copies; the production dry run now reports zero.
+- [x] Verify downstream delivery: 175 topic outbox events were published, and all 171 repaired topics present in the student database have the expected parent. Four repaired topics are absent from the published student set.
 
 ## Related Issues
 - None recorded.
@@ -70,5 +73,5 @@ Deploy the tested backend change, then run a guarded Django repair using the dry
 
 ---
 
-**Resolved By:** Pending deployment and data repair
-**Time to Resolution:** Ongoing
+**Resolved By:** Commit `7b8b38ae0`, blue/green cutover, and guarded production repair on 2026-10-31
+**Time to Resolution:** Same work session
