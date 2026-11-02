@@ -4,7 +4,7 @@
 **Project:** RESTK
 **Environment:** Production
 **Severity:** Critical
-**Status:** Investigating
+**Status:** Resolved
 
 ## Summary
 After the VPS restarted, the enabled host `caddy.service` occupied port 80. The intended `caddy-proxy` container could not bind that port and exited. Public application hostnames are served the host Caddy default page; port 443 has no listener.
@@ -43,19 +43,19 @@ curl -H 'Host: crm.restksolutions.co.zw' http://127.0.0.1/
 Two Caddy deployments claim the same host port; the host service won the bind after restart.
 
 ## Prevention / Rule
-**Guardrail:** Make startup validation fail if both host `caddy.service` and `caddy-proxy` are enabled to bind port 80.
+**Guardrail:** Keep host `caddy.service` disabled and verify `systemctl is-enabled caddy` reports `disabled` while Docker `caddy-proxy` retains restart policy `always` and owns ports 80/443.
 
-This catches the port ownership conflict before a reboot can replace application routing with a default page.
+These checks establish a single port owner across reboot and catch a conflicting service before it replaces application routing.
 
 ## Solution
 ### Immediate Fix
-Pending operational decision on which Caddy instance owns ports 80 and 443; no production changes made during this read-only audit.
+Stopped host Caddy through its local management API, corrected and validated the Docker Caddyfile, then recreated `caddy-proxy` with the existing image and Compose definition. The VPS operator ran `sudo systemctl disable --now caddy`. Verified host Caddy is disabled and inactive; Docker proxy owns ports 80/443; CRM, Tese, ProjectFlow, Savens, and MLMS respond over HTTPS with valid certificates.
 
 ### Long-term Fix
-Declare one proxy owner in deployment configuration and assert public route responses after reboot.
+Docker `caddy-proxy` is the declared port owner and retains restart policy `always`. Recheck `systemctl is-enabled caddy`, Docker port bindings, and public routes after the next planned reboot.
 
 ## Prevention
-- [ ] Configuration changes needed
+- [x] Configuration changes needed
 - [ ] Monitoring/alerts to add
 - [ ] Documentation to update
 - [ ] Code changes required
@@ -68,5 +68,5 @@ Declare one proxy owner in deployment configuration and assert public route resp
 
 ---
 
-**Resolved By:** Pending
-**Time to Resolution:** Pending
+**Resolved By:** Codex and VPS operator
+**Time to Resolution:** Same session
