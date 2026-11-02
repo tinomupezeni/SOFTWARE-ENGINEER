@@ -4,7 +4,7 @@
 **Project:** ProjectFlow
 **Environment:** Production
 **Severity:** High
-**Status:** Investigating
+**Status:** Resolved
 
 ## Summary
 ProjectFlow's frontend, backend, scheduler, and database containers all stopped when the VPS restarted and did not return because their restart policy is `no`.
@@ -47,13 +47,13 @@ This prevents an otherwise clean reboot from leaving the application stopped.
 
 ## Solution
 ### Immediate Fix
-Pending operational restart; no production changes made during this read-only audit.
+Started all four existing containers without rebuilding images. Added `restart: unless-stopped` to the deployed Compose file and applied the same policy to the running containers with `docker update`. The database accepts connections, the frontend responds on its direct port, and the public ProjectFlow route returns HTTP 200 through the restored proxy.
 
 ### Long-term Fix
-Set appropriate Compose restart policies and add a post-reboot service check.
+Keep the Compose restart policies in deployment configuration and verify all four services after the next planned reboot.
 
 ## Prevention
-- [ ] Configuration changes needed
+- [x] Configuration changes needed
 - [ ] Monitoring/alerts to add
 - [ ] Documentation to update
 - [ ] Code changes required
@@ -66,5 +66,5 @@ Set appropriate Compose restart policies and add a post-reboot service check.
 
 ---
 
-**Resolved By:** Pending
-**Time to Resolution:** Pending
+**Resolved By:** Codex
+**Time to Resolution:** Same session
