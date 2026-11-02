@@ -3,7 +3,7 @@
 **Date:** 2026-11-02
 **Project:** CRM (Myra)
 **Type:** New Feature
-**Status:** Completed (tests + real backend verified; real-device visual check pending — see Follow-ups)
+**Status:** Completed (tests, real backend, and real-device check all verified)
 
 ## Summary
 Replaced the Home tab's placeholder welcome screen with a real dashboard —
@@ -87,17 +87,18 @@ sized for a dashboard card and avoids a second network call.
 - `flutter test` — 80/80 passing.
 - `flutter build apk --debug` — builds clean against the real backend
   contract (`API_BASE_URL` pointed at the LAN-reachable Django instance).
-- **Not done**: a real-device visual check. The phone's wireless-debugging
-  connection had dropped (screen lock/timeout) by the time the build was
-  ready, and `adb mdns services` found nothing to reconnect to. Deferred
-  rather than skipped silently — see Follow-ups.
+- **Real-device check completed** (Samsung Galaxy S22+, after a full
+  wireless-debugging re-pair — the connection had dropped from a screen
+  lock/timeout, per
+  `DevOps_and_Infrastructure/DevEnv-2026-11-02-adb-wireless-pairing-port-confusion.md`):
+  dashboard renders live backend data correctly (Contacts/Products/Sales
+  counts, Revenue/Paid/Outstanding credit/Margin, Stock health counts,
+  "Needs restocking" list). Confirmed both deep links fire for real:
+  tapping a low-stock row pushes to that exact product's detail screen,
+  and tapping the Stock health card switches the bottom nav to the Stock
+  tab.
 
 ## Follow-ups / Deferred
-- Real-device visual confirmation once wireless debugging is
-  re-enabled on the phone (same reconnect procedure as
-  `DevOps_and_Infrastructure/DevEnv-2026-11-02-adb-wireless-pairing-port-confusion.md`
-  — pairing itself shouldn't need redoing, only `adb connect` to a fresh
-  IP:port if the connect port rotated).
 - Revenue trend chart and Tasks/Deals dashboard tiles — once those mobile
   modules exist or a chart is explicitly requested.
 
