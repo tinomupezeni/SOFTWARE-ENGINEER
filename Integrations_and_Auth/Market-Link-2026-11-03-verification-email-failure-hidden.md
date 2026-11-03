@@ -4,7 +4,7 @@
 **Project:** Market-Link
 **Environment:** Local checkout; reported by users, production state not independently verified
 **Severity:** High
-**Status:** Deployed in release 34274f0; SMTP acceptance verified, inbox receipt pending
+**Status:** Resolved — inbox receipt confirmed 2026-11-03 in post-release QA (`reports/Market-Link-2026-11-03-post-release-qa-verification.md`)
 
 ## Summary
 Registration returned success even when verification email delivery failed, and backend mail settings were absent from the active environment template and Compose configuration.

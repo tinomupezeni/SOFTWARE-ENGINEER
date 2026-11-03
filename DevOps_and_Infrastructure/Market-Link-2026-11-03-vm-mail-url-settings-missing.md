@@ -4,7 +4,7 @@
 **Project:** Market-Link
 **Environment:** Production VM read-only inspection
 **Severity:** High
-**Status:** Deployed in release 34274f0; SMTP acceptance verified, inbox receipt pending
+**Status:** Resolved — inbox receipt confirmed 2026-11-03 in post-release QA (`reports/Market-Link-2026-11-03-post-release-qa-verification.md`)
 
 ## Summary
 The `agromarket-vm` backend `.env` has non-placeholder `EMAIL_USERNAME` and `EMAIL_PASSWORD`, but lacks `FRONTEND_URL` and `PUBLIC_API_URL`. The deployed reset code falls back to a domain without a scheme; verification links derive from request host. The VM file sets `NODE_ENV=development`.

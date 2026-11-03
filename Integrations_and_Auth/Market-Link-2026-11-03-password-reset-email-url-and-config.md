@@ -4,7 +4,7 @@
 **Project:** Market-Link
 **Environment:** Local checkout; reported by users, production state not independently verified
 **Severity:** High
-**Status:** Deployed in release 34274f0; SMTP acceptance verified, inbox receipt pending
+**Status:** Resolved — inbox receipt confirmed 2026-11-03 in post-release QA (`reports/Market-Link-2026-11-03-post-release-qa-verification.md`)
 
 ## Summary
 Forgot password used an unqualified domain as its fallback frontend URL and depended on mail credentials that were not explicitly loaded into Compose.

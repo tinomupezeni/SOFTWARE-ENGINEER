@@ -4,7 +4,7 @@
 **Project:** Market-Link
 **Environment:** Development code review (deployment state not verified)
 **Severity:** Critical
-**Status:** Deployed in release 34274f0; SMTP acceptance verified, inbox receipt pending
+**Status:** Resolved — confirmed by `npm run test:auth` (404 on both bulk-verify routes); deployed in release 34274f0
 
 ## Summary
 The public `GET /api/auth/verify-all-old-users` route sets `isVerified: true` on every currently unverified user. Any caller can bypass email verification for all accounts.
