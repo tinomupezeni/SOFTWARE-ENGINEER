@@ -1,9 +1,10 @@
-# Flutter Dashboard Full Feature-Parity Rebuild — Phase 1 & 2
+# Flutter Dashboard Full Feature-Parity Rebuild — Phases 1–4
 
 **Date:** 2026-11-03
 **Project:** HBEC (STUDENT/mobile_flutter)
 **Type:** Scope Decision / Feature Build
-**Status:** In Progress (Phase 1 & 2 of 4 complete)
+**Status:** Completed (all 4 phases; see "Phase 3–4 addendum" below for the
+part done after this report was first filed as an in-progress checkpoint)
 
 ## Summary
 The Flutter mobile app's `DashboardPage` was a static placeholder (hardcoded
@@ -166,7 +167,56 @@ No backend code touched, per the standing project constraint.
   `STUDENT/mobile_flutter/lib/features/{gamification,analytics,
   notifications,home}/` (Flutter implementation).
 
+## Phase 3–4 addendum (same session, filed after this report's initial commit)
+
+**Phase 3 — `LearningTrailHero`:** Implemented as a `CustomPainter`-based
+trail (same 1160×320 viewBox, margins, amplitude and sine node placement as
+web's SVG, reimplemented rather than approximated with a generic curve),
+with mastered/current/ahead node states, the exam-readiness fog overlay
+(opacity 0.85/0.45/0.06 by dropout-risk level, matching web), subject
+picker, neglected-subject nudge, all four empty/edge states, and the footer
+CTA. Two minimal, flagged additions on top of Phase 1: `LearnerReport.
+examReadiness` (nullable, parsed defensively) and wiring Phase 1's
+already-defined-but-never-loaded `GetSubjectProgressUseCase` into
+`GamificationBloc`. Reasonable adaptations where Flutter has no backing
+feature yet: a local 8-icon avatar picker (persisted via secure storage)
+instead of web's synced avatar system, and subject-level (not topic-level)
+CTA routing since the revision feature has no topic-id route param.
+
+**Phase 4 — polish:** Achievement rarity colors/family labels corrected to
+match web's actual values (legendary `#FBBF24`, epic `#C084FC`, rare
+`#60A5FA`); a real subject-mastery bar visualization and peak-study-hours
+chips added to the analytics panel. **Deliberately did not add `fl_chart`**
+— hand-rolled bar/progress visuals already deliver genuine chart-shaped
+parity from real data with zero new dependency risk, which mattered given
+how much Linux-toolchain pain (`clang`/`ninja`/`libsecret`/CMake-cache
+issues) this session already absorbed getting the Flutter Linux build
+working in the first place. Notification tap-to-read/dismiss/clear-all
+turned out to already be fully wired from Phase 2 — verified by reading the
+bloc, not assumed. Added golden tests for the three new pure-props widgets
+(`AchievementGrid`, `StreakTodayCard`, `ProgressStatsPanel`); a full-page
+`DashboardPage` golden was judged impractical since the page reads the
+`getIt` DI singleton directly rather than via an injectable `BlocProvider`,
+and no `getIt`-stubbing test harness exists yet in this codebase — a
+reasonable follow-up if page-level goldens are wanted later.
+
+**Final verification (all 4 phases):** `flutter analyze` clean (zero
+errors, only pre-existing-style `info`s). `flutter test`: 17 passed, 1
+pre-existing skip requiring a live backend — nothing newly broken across
+any phase. File-scope checked after every phase via `git status`/`git diff
+--stat`; all changes stayed within the new feature folders plus the same
+small set of wiring/theme touch points named above.
+
+**The one thing that did NOT get done, by explicit user choice mid-session:**
+live verification against a real staging login. The user was asked whether
+to pause and verify live before Phase 4, or keep building; they chose to
+keep building. This means the single biggest correctness risk flagged
+throughout this report — unverified gamification/analytics endpoint paths
+and field names — is still unverified as of this report's completion. A
+live-data pass against staging is the clear next action before this feature
+set should be considered production-ready, not merely "code complete."
+
 ---
 
 **Completed By:** tinomupezeni (with Claude Code)
-**Duration:** ~1 session (research + two implementation phases)
+**Duration:** ~1 session (research + four implementation phases)
