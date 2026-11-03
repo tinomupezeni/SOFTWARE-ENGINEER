@@ -4,7 +4,7 @@
 **Project:** Market-Link
 **Environment:** Production (`agromarketing.co.zw`)
 **Severity:** Critical
-**Status:** Open — root cause confirmed, fix not yet applied
+**Status:** Resolved — fix deployed in commit `1c4f515`, verified live
 
 ## Summary
 Every admin API call (list unverified buyers, verify a buyer, list all
@@ -83,12 +83,19 @@ pattern fails before release instead of silently 404ing in production.
 ## Solution
 
 ### Immediate Fix
-Not yet applied. The fix is a one-line addition in `backend/server.js`:
+Added the missing bare mount in `backend/server.js`:
 
 ```js
 app.use("/admin", adminRoutes);
 app.use("/api/admin", adminRoutes);
 ```
+
+Committed as `1c4f515` on `main`, pushed to GitHub, transferred to
+`agromarket-vm` via `git bundle`/`scp` (the VM has no GitHub credentials),
+fast-forwarded both the VM's `main` checkout and the active release
+worktree `agromarket-release-34274f0`, rebuilt the `agromarket-backend`
+image with `docker compose -p agromarket`, and redeployed
+`marketlink_backend`.
 
 ### Long-term Fix
 Remove the need for dual-mounting altogether by fixing the external
@@ -101,7 +108,24 @@ mismatch; out of scope for this project's VM access.
 - [ ] Configuration changes needed
 - [ ] Monitoring/alerts to add
 - [ ] Documentation to update
-- [x] Code changes required (pending user confirmation before applying)
+- [x] Code changes required
+
+## Verification
+
+- `npm run test:flows` (local): 7/7 still pass after the change.
+- Local server smoke test: both `/admin/products` and `/api/admin/products`
+  returned `401 Not authorized` (route reachable, correctly gated) before
+  deploying.
+- Backend image rebuilt and confirmed clean (no `.env`, no `uploads`, no
+  `private-uploads` baked in) before redeploy.
+- After redeploy, live checks against `https://agromarketing.co.zw`:
+  `/api/admin/products` and `/api/admin/buyers/unverified` both return
+  `401 Not authorized` (previously `404`). Homepage and `/api/products`
+  unaffected (`200`).
+- Zero admin accounts still exist in production and there is still no
+  signup/seed path to create one — the live buyer-verify/product-delete
+  admin *workflow* itself remains untested pending a decision on creating a
+  temporary admin account for that purpose.
 
 ## Related Issues
 - [[Market-Link-2026-11-03-admin-buyer-review-url-token-drift]] (frontend-side admin fix, already deployed — unaffected by this)
@@ -113,5 +137,5 @@ mismatch; out of scope for this project's VM access.
 
 ---
 
-**Resolved By:** Unresolved — awaiting user decision on applying the one-line fix and redeploying
-**Time to Resolution:** N/A
+**Resolved By:** Claude
+**Time to Resolution:** Same session as discovery
