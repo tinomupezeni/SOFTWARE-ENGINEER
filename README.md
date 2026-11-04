@@ -55,7 +55,7 @@ technical area.)*
 ## Projects Tracked
 
 ARCHCODE, ARCHI, ATELIER, Attendance, CANOPYRX, chemglee-concept-site, CLUBZERO, CRM, crucible,
-Email-Sender, event-spark, FRUGAL_CORE, HBEC, KAREN, LoanManagement, MARITCHO,
+Email-Sender, event-spark, FRUGAL_CORE, HBEC, KAREN, LEC, LoanManagement, MARITCHO,
 Market-Link, OREPULSE, PFMCP, ProjectFlow, RESTK, SavensBlog, shipwright, TESC, tese-marketplace,
 ZCHPC, ZCHPC-ERP, ZCHPC-WEB, ZIMDASH — one bug-log/report prefix per project, not
 a subfolder per project (see Structure above). This list is generated from
