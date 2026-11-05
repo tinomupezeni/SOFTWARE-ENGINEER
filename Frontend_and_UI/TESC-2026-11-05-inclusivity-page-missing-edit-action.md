@@ -50,10 +50,12 @@ inclusivity records, never for editing existing ones.
   already correct — the bug was a missing UI affordance on one specific
   page, not a data/permissions/validation bug.
 - The page's `InclusivityStudent` list type is a lightweight summary (id,
-  name, program, gender, category, institution) without the fields
-  `EditStudentDialog` needs, so the fix fetches the full record via the
-  existing `getStudentById` service on demand rather than changing the
-  summary endpoint.
+  name, program, gender, category, institution). The first pass of the fix
+  fetched the full `NormalizedStudent` record via `getStudentById` and
+  reused the full `EditStudentDialog` form; on review this was replaced
+  with a purpose-built, minimal dialog (see Solution) since editing this
+  page only ever needs the id, name, and category already on hand in the
+  row — no reason to pull or round-trip the rest of the student record.
 
 ## Root Cause
 `Inclusivity.tsx` was built with a create-only dialog and never wired an
@@ -73,14 +75,22 @@ Students page, so future per-category pages follow the same template.
 `inst/src/pages/Inclusivity.tsx`:
 - Added an "Actions" column to the table with a permission-gated
   (`student.edit`) edit button per row.
-- On click, fetches the full student via `getStudentById(id)` and opens
-  the existing `EditStudentDialog` (same component/behavior as the
-  Students page), which already persists `inclusivity_category` correctly.
+- On click, opens a new, purpose-built `EditInclusivityCategoryDialog`
+  (`inst/src/components/EditInclusivityCategoryDialog.tsx`) seeded directly
+  from the row's existing `id`/`full_name`/`inclusivity_category` — no
+  extra fetch of the full student record.
+- The dialog PATCHes only `inclusivity_category` via the existing
+  `updateStudent(id, { supportProfiles: { inclusivity } })` partial-update
+  path (confirmed the backend serializer/service handle a partial update
+  containing just this field).
+- `DISABILITY_OPTIONS` was exported from `EditStudentDialog.tsx` so the new
+  dialog reuses the same category list instead of duplicating it.
 - `onSuccess` closes the dialog and re-fetches the inclusivity list so the
   table reflects the change immediately.
 
 ### Long-term Fix
-None needed — reused existing, already-correct components.
+None needed — new dialog is intentionally minimal and reuses the existing
+write path and option list.
 
 ## Prevention
 - [x] UI gap closed (edit action added)
@@ -91,6 +101,7 @@ None needed — reused existing, already-correct components.
 
 ## References
 - `inst/src/pages/Inclusivity.tsx`
+- `inst/src/components/EditInclusivityCategoryDialog.tsx`
 - `inst/src/components/EditStudentDialog.tsx`
 - `backend/academic/serializers/student_serializers.py`
 - `backend/academic/services/student_services.py`
