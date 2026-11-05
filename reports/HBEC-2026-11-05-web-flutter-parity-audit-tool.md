@@ -94,15 +94,19 @@ tool.
   mapping between a web item and a Flutter item by name similarity — a new
   item on either side always requires a human decision recorded in the map,
   so the map stays an honest record of intent rather than a guess.
-- **Real findings on first run, left unfixed by design:** several brand
-  colors are measurably off from their own stated source-of-truth CSS
-  variable — e.g. web's `--accent: 48 100% 50%` ("Zimbabwe Gold") computes
-  to `#FFCC00`, not the `#FFD700` `app_colors.dart` actually uses (also
-  used for `--assistant`/`assistantBase`). Also flagged: `destructive`,
-  `revisionBase`, `primaryHover`, `projectLight` — all off by a modest
-  amount (≤15 of 255 RGB units per channel, likely imperceptible but real).
-  These were left as-is: fixing them wasn't asked for and risks touching
-  brand colors across the whole app without a deliberate design review.
+- **Real findings on first run, fixed on the user's explicit choice:**
+  several brand colors were measurably off from their own stated
+  source-of-truth CSS variable — e.g. web's `--accent: 48 100% 50%`
+  ("Zimbabwe Gold") computes to `#FFCC00`, not the `#FFD700`
+  `app_colors.dart` actually used (also used for `--assistant`/
+  `assistantBase`). Also flagged: `destructive`, `revisionBase`,
+  `primaryHover`, `projectLight` — all off by a modest amount (≤15 of 255
+  RGB units per channel). Asked whether to leave these, fix them, or review
+  swatches first; user chose to fix them to exact web parity. Each value
+  was computed by hand from the web CSS variable's true HSL (verified with
+  Python's `colorsys`, not eyeballed), applied to `app_colors.dart`, and
+  the two dashboard golden tests whose rendered pixels depend on
+  `revisionBase` were regenerated against the corrected colors.
 - **`--project-guide` is a genuine, intentional web/Flutter color
   divergence**, not drift: web deliberately uses a near-black charcoal here
   (its own CSS comment explains a red/orange sat on top of `--destructive`
@@ -134,32 +138,42 @@ tool.
 
 **Separately, same session, also on Friday:**
 - `STUDENT/mobile_flutter/lib/core/theme/app_colors.dart` — added
-  `fridayOrange` (`#F37125`, ported from web's `playful`-skin `--accent`).
+  `fridayOrange` (`#F37125`, ported from web's `playful`-skin `--accent`),
+  then, after the first parity-audit run, corrected `primaryHover`,
+  `accent`, `accentHover`, `destructive`, `revisionBase`, `assistantBase`,
+  and `projectLight` to their exact web-equivalent hex values.
 - `STUDENT/mobile_flutter/lib/shared/widgets/main_tab_scaffold.dart` — the
   Friday tab's icon now uses `fridayOrange` when active, instead of the
   shared green indicator every other tab uses.
+- `STUDENT/mobile_flutter/test/golden_tests/goldens/{ci,linux}/
+  progress_stats_panel_render.png` — regenerated against the corrected
+  `revisionBase`.
 
 ## Verification
 - `python3 scripts/parity/web_flutter_parity.py --section routes
   --no-report` and `--section features --no-report`: both exit 0, "no
   drift found" — confirmed the route and feature maps are fully accurate
   against current code before relying on the tool's output in this report.
-- `python3 scripts/parity/web_flutter_parity.py` (all sections): exits 1
-  with exactly 7 findings, all in `colors`, all reviewed by hand above —
-  no `UNMAPPED` or `STALE` findings remain once the map was corrected
-  iteratively against two real script bugs (found and fixed per Method §4).
-- `flutter analyze` on the Friday-related Dart changes: clean.
-- Not yet done: no CI wiring, no visual/screenshot verification of the tool
-  itself (i.e., no independent human eyeballing of every row in the
-  generated report against the live apps side by side) — the report's
-  accuracy rests on the script's extraction logic being correct, which was
-  spot-checked (color math verified by hand with `colorsys` for several
-  rows) but not exhaustively.
+- `python3 scripts/parity/web_flutter_parity.py` (all sections): first run
+  exited 1 with exactly 7 findings, all in `colors`, all reviewed by hand
+  above — no `UNMAPPED` or `STALE` findings remained once the map was
+  corrected iteratively against two real script bugs (found and fixed per
+  Method §4). After applying the computed color fixes, re-run exits **0,
+  zero findings** across all three sections.
+- `flutter analyze`: clean (zero errors) on every changed file.
+- `flutter test`: dashboard golden tests (achievement grid, streak today,
+  progress stats panel) regenerated and passing. One pre-existing failure
+  (`login_page_golden_test.dart`) confirmed **unrelated** — reproduced by
+  stashing all of this session's changes and re-running against the clean,
+  untouched codebase, where it failed identically; not investigated further
+  as out of scope for this initiative.
+- Not yet done: no CI wiring, no independent human eyeballing of every row
+  in the generated report against the live apps side by side — the
+  report's accuracy rests on the script's extraction logic being correct,
+  which was spot-checked (color math verified by hand with `colorsys` for
+  several rows) but not exhaustively.
 
 ## Follow-ups / Deferred
-- Decide whether/how to fix the small real color drifts this surfaced
-  (`accent`/`assistantBase`, `destructive`, `revisionBase`, `primaryHover`,
-  `projectLight`) — a deliberate design-review decision, not a tooling fix.
 - Screenshot/visual-diff layer (REA/Playwright for web, Flutter integration-
   test screenshots for mobile) as a second layer on top of this structural
   check, per `scripts/parity/README.md`'s own stated gap.
