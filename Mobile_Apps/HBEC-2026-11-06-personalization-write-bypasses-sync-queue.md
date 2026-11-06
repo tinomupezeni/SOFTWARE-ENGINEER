@@ -4,7 +4,7 @@
 **Project:** HBEC (mobile_flutter)
 **Environment:** Development
 **Severity:** Medium
-**Status:** Investigating (flagged, not fixed — pre-existing, shared by multiple features)
+**Status:** Resolved
 
 ## Summary
 Flutter's offline-first rule ("mutations go through the sync queue, never
@@ -94,18 +94,86 @@ it.
 ## Solution
 
 ### Immediate Fix
-None applied in this pass — flagged per the task's explicit instruction to
-confirm, not assume, and reported rather than silently fixed inside an
-unrelated migration PR, since fixing it touches three features' tests
-(`ExamPracticePage`, `TopicRevisionPage`, `InteractiveLearningPage`) and the
-shared `AuthRepositoryImpl`/`PersonalizationCubit` test suite, which is
-properly its own change.
+Fixed in a dedicated pass, scoped only to the add/remove-subject path
+(per the explicit "don't blanket-convert every `AuthRepositoryImpl` write"
+instruction — password/email changes etc. correctly stay synchronous):
 
-### Follow-up
-Route `AuthRepositoryImpl.savePersonalization` through `SyncQueueService`
-when called post-onboarding (i.e. from `AddSubjectSheet`, not
-`PersonalizationPage`'s initial wizard, which can reasonably stay
-online-required since it gates account creation).
+- `AuthRepository.savePersonalization` / `AuthRepositoryImpl.savePersonalization`
+  gained an `allowQueue` parameter (default `false`, preserving the old
+  online-required behaviour). When `true` and the remote call throws, the
+  repository no longer returns `Result.error`: it applies the write to the
+  local cache (new `AuthLocalDataSource.applyPersonalizationPatch`, merging
+  grade/examBoardId/examBoardCode/subjects into the cached `UserModel`) and
+  enqueues it via the existing `SyncQueueLocalDataSource.enqueueSync('save_personalization', payload)`
+  — the same queue `revision_repository_impl.dart` already uses, with the
+  `save_personalization` handler registered in `injection.dart`'s
+  `SyncQueueService` map alongside `submit_attempt`/`submit_quiz_attempt`.
+- `PersonalizationCubit.savePersonalization` now forwards `allowQueue` and,
+  importantly, actually inspects the repository's `Result` and rethrows on
+  `Err` — previously it awaited and discarded the `Result` entirely, so a
+  real failure from the onboarding wizard's online-required path was already
+  silently swallowed before this fix; that was a latent bug in the exact
+  method this issue required touching, fixed as part of the same change.
+- Call sites: `AddSubjectSheet._updateProfile` (used by ExamPracticePage,
+  TopicRevisionPage and InteractiveLearningPage's add-subject flows) passes
+  `allowQueue: true`. `PersonalizationPage` passes `allowQueue: widget.isEditMode`
+  — the first-time wizard (`isEditMode == false`) stays online-required
+  because it gates account creation, exactly as scoped in the original
+  follow-up note; reopening the same page from Settings post-onboarding
+  (`isEditMode == true`) is the same offline-capable mutation as
+  `AddSubjectSheet` and now queues too.
+- Optimistic UI: `AddSubjectSheet`/`PersonalizationPage` both call
+  `AuthBloc.add(ProfileRefreshRequested())` after a save. That handler used
+  to only emit on a successful remote `getProfile()` call, so offline it
+  emitted nothing and the UI kept showing the pre-edit subject list even
+  though the local cache had already been patched. `AuthBloc._onProfileRefreshRequested`
+  now falls back to `getCachedUser()` on a failed remote fetch and emits that
+  if present, so the queued local update is visible immediately.
+
+### Testing
+- `test/features/auth/data/repositories/auth_repository_impl_test.dart` (new):
+  online success writes straight through with no queue interaction;
+  `allowQueue: false` + remote failure returns `Err` and touches neither the
+  cache nor the queue (pins the onboarding wizard's online-required
+  behaviour); `allowQueue: true` + remote failure applies the local patch,
+  enqueues `save_personalization` with the exact payload, and returns `Ok`;
+  a device with no cached user yet is handled without throwing.
+- `test/features/auth/presentation/bloc/personalization_cubit_test.dart` (new):
+  completes without throwing on success; forwards `allowQueue` through
+  (true and the false default); throws with the failure message on `Err`.
+- `test/features/auth/presentation/bloc/auth_bloc_test.dart` (new):
+  `ProfileRefreshRequested` emits the fresh profile on success; falls back to
+  the cached user (simulating the post-queue optimistic state) when the
+  remote fetch fails; emits nothing when there is no cached user either or
+  when both reads fail.
+- `flutter analyze`: clean on every touched file (no new issues; the 66
+  pre-existing issues elsewhere in the app, plus 2 pre-existing golden-test
+  pixel-diff failures and one pre-existing dangling test file reference from
+  concurrent interactive-learning work in the same working tree, are
+  unrelated — verified by stashing this change and re-running them, which
+  reproduced the same failures without it).
+- `flutter test` (full suite): all auth tests pass (20/20, 12 new); no
+  regressions in exam/revision/interactive-learning suites that depend on
+  `AddSubjectSheet`/`PersonalizationCubit`.
+
+### What still calls the old direct (non-queued) path, and why
+- `PersonalizationPage` in its first-time wizard mode (`isEditMode == false`)
+  — `allowQueue` defaults to `false`. This is deliberate: it gates account
+  creation and must report a real failure synchronously rather than let a
+  brand-new account finish signup with a queued, unconfirmed personalization
+  write.
+- Every other `AuthRepositoryImpl` mutation (`login`, `changePassword`,
+  `updateAccount`, `updatePhoneNumber`, `convertToParent`, `savePrivacy`,
+  `saveStudyPlan`, `saveCompanion`, etc.) is untouched — per the task's scope
+  instruction, these need synchronous server confirmation and queueing them
+  would be wrong, not safer.
+
+### Follow-up (still open)
+The **Prevention / Rule** guardrail above (a repository-layer test asserting
+every reachable `AuthRepositoryImpl` mutation is either queued or explicitly
+documented as online-only) was not written in this pass — it's a broader
+contract test across the whole repository, not specific to this bug, and is
+left as a separate follow-up.
 
 ## References
 - `STUDENT/mobile_flutter/lib/features/auth/data/repositories/auth_repository_impl.dart`
