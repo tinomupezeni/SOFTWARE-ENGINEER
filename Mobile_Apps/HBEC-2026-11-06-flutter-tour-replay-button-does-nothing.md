@@ -4,7 +4,7 @@
 **Project:** HBEC
 **Environment:** Development working tree (uncommitted)
 **Severity:** Low — not user-facing data loss, but a dead-end control: tapping it does nothing observable
-**Status:** Investigating
+**Status:** Resolved
 
 ## Summary
 `STUDENT/mobile_flutter/lib/features/auth/presentation/widgets/settings/tour_replay_card.dart`
@@ -76,20 +76,33 @@ whether it compiles) — HBEC repo, `.claude/skills/migrate-web-to-flutter/SKILL
 ## Solution
 
 ### Immediate Fix
-None yet — documented at point of discovery per this repo's logging rule.
-Two options for whoever picks this up: (a) hide/disable the "Restart the
-tour" card on Flutter until onboarding is ported, since a dead button is
-worse than no button, or (b) port the onboarding tour itself (small scope:
-one overlay component + step data) so the card does what it says.
+Option (b) taken: ported the onboarding tour itself rather than hiding the
+card. `STUDENT/mobile_flutter/lib/features/onboarding/` now has
+`tour_steps.dart`, `tour_target.dart`, `tour_step_card.dart` and
+`tour_manager.dart` — a driven, multi-page walkthrough mounted once in
+`main.dart`'s `MaterialApp.router` builder, matching web's `TourManager.tsx`
+mounted once in `App.tsx`. 8 of web's 9 steps ported (`theme-picker` dropped
+— no multi-skin theming system exists on Flutter yet to point it at).
+
+The card itself had a second, narrower bug once the tour existed to expose
+it: `restartTour()` returned `Future<Result<void>>` and discarded the
+response, and `User.hasCompletedTour` was never parsed from `/auth/me/` at
+all — so even with a tour built, `TourReplayCard` had no way to tell
+`AuthBloc` the flag had flipped back to false, which is exactly the signal
+`TourManager` watches to know "replay" rather than "first run". Fixed:
+`User.hasCompletedTour` added to the entity/model/datasource parsing;
+`AuthRepository.restartTour()`/`completeTour()` now return `Result<User>`;
+`TourReplayCard` dispatches `ProfileRefreshRequested()` on success and shows
+an error banner on failure instead of discarding it silently.
 
 ### Long-term Fix
-Port web's `TourManager.tsx` + `tourSteps.ts` as a Flutter onboarding
-feature — tracked as the `feature-onboarding` node in
-`scripts/parity/screen_map.yaml`.
+Done — see Immediate Fix. Full writeup:
+`STUDENT/mobile_flutter/planning/episodes/2026-11-06_onboarding_tour.md`
+(HBEC repo).
 
 ## Prevention
-- [ ] Hide or fix the tour-replay card (pick one of the two options above).
-- [ ] Code changes required.
+- [x] Hide or fix the tour-replay card (pick one of the two options above).
+- [x] Code changes required.
 
 ## Related Issues
 - `HBEC-2026-11-06-flutter-parity-script-blind-to-nested-feature.md` — same
@@ -104,5 +117,5 @@ feature — tracked as the `feature-onboarding` node in
 
 ---
 
-**Resolved By:** Pending
-**Time to Resolution:** Pending
+**Resolved By:** Claude Sonnet 5 (agent session)
+**Time to Resolution:** Same day (2026-11-06)
