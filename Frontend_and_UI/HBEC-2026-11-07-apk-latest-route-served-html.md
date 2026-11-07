@@ -42,6 +42,8 @@ latest path therefore fell through to the landing-page SPA.
   `application/octet-stream`.
 - The old stable student-domain route needed to redirect locally, not to the
   landing-domain path.
+- The compatibility redirect also needed an explicit HTTPS target because the
+  reverse proxy presents HTTP to the frontend container.
 
 ## Root Cause
 The frontend UI and mobile deployment directory were treated as one download
@@ -59,7 +61,7 @@ link-only checks.
 ### Immediate Fix
 The login page now uses the frontend-relative tracked APK path,
 `/downloads/hbec-student-v4.apk`, and the old stable URL redirects to that
-same local artifact.
+same local artifact over HTTPS.
 
 ### Long-term Fix
 Keep download URL validation tied to the actual static serving directory and
