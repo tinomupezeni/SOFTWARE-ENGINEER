@@ -35,11 +35,12 @@ docker exec backend-green python manage.py shell
 - Zero Mutare records with stored `learning_area` containing `SHONA` match that predicate.
 - 591 STEM-matching rows have `program__name=CHISHONA`; their stored `learning_area` values are STEM subjects such as Mathematics, Computer Science, and Geography.
 - Separately, 263 rows have stored `learning_area=CHISHONA`; those rows do not match the STEM predicate, but 80 are attached to a `MATHEMATICS` program, showing source-data field divergence.
+- Production contains Mutare placeholder programs `CHISHONA (2YEAR)` and `MATHEMATICS (3YEAR)`, both created on 2026-09-12. The upload service explicitly documents that duration-like codes from Mutare created these programs and funnelled unrelated subjects onto them.
 - `auto_stem_category()` classifies teachers-college rows from `Student.learning_area`, while `stem_students()` serializes `program_name`.
 - The frontend teacher-college terminology maps “Program” to “Learning Area,” hiding the distinction.
 
 ## Root Cause
-The teacher-college upload/data model contains two competing subject-like fields. STEM classification uses `Student.learning_area`, but the STEM directory displays `program_name` and relabels it as “Learning Area.” The resulting contract mismatch presents a Chishona program label as STEM even when the STEM subject came from the separate learning-area field.
+The Mutare upload used duration labels as program codes, so the importer created placeholder programs and attached unrelated rows to them. The teacher-college data model then compounded this with two competing subject-like fields: STEM classification uses `Student.learning_area`, but the STEM directory displays `program_name` and relabels it as “Learning Area.” The resulting contract mismatch presents a Chishona placeholder-program label as STEM when the STEM subject came from the separate learning-area field.
 
 ## Prevention / Rule
 **Guardrail:** Define one canonical teacher-college subject field for classification and display, then add a validation check that rejects or quarantines uploads where `program_name` and `learning_area` represent conflicting subject values.
@@ -52,7 +53,7 @@ This prevents a display field from disagreeing with the field used by the STEM c
 For Mutare Teachers College only, cleared `selected_category=STEM` from the 591 rows whose displayed program name was `CHISHONA`. Program names and learning-area values were not overwritten.
 
 ### Long-term Fix
-Align the teacher-college upload contract, STEM classifier, API serializer, and frontend terminology around the canonical field. Reconcile existing Mutare rows only after the source spreadsheet or institution confirms which column is authoritative.
+Repair the Mutare rows from the original spreadsheet using validated program/subject mappings; do not infer replacements from the placeholder names alone. Keep the existing duration-code rejection in the upload path, and align the teacher-college upload contract, STEM classifier, API serializer, and frontend terminology around one canonical subject field.
 
 ## Prevention
 - [ ] Configuration changes needed
