@@ -4,7 +4,7 @@
 **Project:** TESC
 **Environment:** Production
 **Severity:** High
-**Status:** Investigating
+**Status:** Workaround Applied
 
 ## Summary
 Mutare Teachers College records that display `CHISHONA` on the STEM directory are not being classified as STEM because the stored learning area is Chishona. The STEM rule evaluates the separate `Student.learning_area` field, while the STEM directory displays `program_name`; the institution terminology then relabels that program column as “Learning Area.” This makes records with program name `CHISHONA` and STEM-valued `learning_area` appear to be Chishona STEM students.
@@ -49,7 +49,7 @@ This prevents a display field from disagreeing with the field used by the STEM c
 ## Solution
 
 ### Immediate Fix
-No production data was modified. The affected rows and classification predicate were isolated for institution-owner confirmation.
+For Mutare Teachers College only, cleared `selected_category=STEM` from the 591 rows whose displayed program name was `CHISHONA`. Program names and learning-area values were not overwritten.
 
 ### Long-term Fix
 Align the teacher-college upload contract, STEM classifier, API serializer, and frontend terminology around the canonical field. Reconcile existing Mutare rows only after the source spreadsheet or institution confirms which column is authoritative.
@@ -58,7 +58,13 @@ Align the teacher-college upload contract, STEM classifier, API serializer, and 
 - [ ] Configuration changes needed
 - [ ] Monitoring/alerts to add
 - [ ] Documentation to update
-- [ ] Code changes required
+- [x] Code changes required
+
+## Verification
+- Before cleanup: 591 Mutare `CHISHONA` program rows matched STEM.
+- After cleanup: 0 Mutare `CHISHONA` program rows match STEM.
+- Mutare STEM total changed from 3,053 to 2,462.
+- The update was limited to `institution_id=82` and `selected_category`; no program or learning-area text was changed.
 
 ## Related Issues
 - None
@@ -72,5 +78,5 @@ Align the teacher-college upload contract, STEM classifier, API serializer, and 
 
 ---
 
-**Resolved By:** Investigation complete; remediation pending source-data confirmation
+**Resolved By:** Copilot; scoped data workaround applied
 **Time to Resolution:** Investigation session
