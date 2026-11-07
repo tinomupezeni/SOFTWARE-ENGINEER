@@ -4,13 +4,13 @@
 **Project:** TESC
 **Environment:** Staging
 **Severity:** Medium
-**Status:** Investigating
+**Status:** Resolved
 
 ## Summary
-The local `staging` branch contains the Inclusivity report inline-edit update,
-but `tesc-inst-staging.zchpc.ac.zw` serves an older frontend bundle and does
-not expose the new edit dialog. The feature is available in source and builds
-successfully, but is not yet available on the staging URL.
+The local `staging` branch contained the Inclusivity report inline-edit update,
+but `tesc-inst-staging.zchpc.ac.zw` initially served an older frontend bundle.
+The feature was deployed to the idle green color from commit `1561e6a` and is
+now available through the staging Host route.
 
 ## Symptoms
 - Local commit `14ccc2c` adds the per-row pencil action and
@@ -48,8 +48,10 @@ grep -F 'Edit Inclusivity Category' /tmp/tesc-inst-staging.js
   `hasPermission("student.edit")`.
 - The dialog saves through the existing `updateStudent` partial-update path.
 - `npm run build` in `inst/` completed successfully.
-- Staging returned HTTP 200 for the route but served no matching edit-dialog
-  strings.
+- The initial staging bundle returned HTTP 200 but served no matching
+  edit-dialog strings.
+- After deployment, `tesc-inst-staging.zchpc.ac.zw` served both edit-dialog
+  markers from the green `1561e6a` bundle.
 
 ## Root Cause
 Staging deployment artifact identity is behind the local branch containing the
@@ -66,17 +68,15 @@ deployment merely because the route returns HTTP 200.
 ## Solution
 
 ### Immediate Fix
-No staging mutation was performed. The feature is not available at the
-requested URL.
+Pushed `staging` to GitHub and deployed commit `1561e6a` to the idle green
+color on `tesc-prod`. Blue remained active; no cutover was performed.
 
 ### Long-term Fix
-Deploy the commit containing `14ccc2c` through the normal staging process, then
-verify the rendered edit action and a real save journey with an authorized
-institution user.
+Complete an authenticated save journey with an authorized institution user.
 
 ## Prevention
-- [ ] Publish immutable frontend artifact identity for staging
-- [ ] Add a feature-specific staging smoke assertion
+- [x] Publish immutable frontend artifact identity for staging
+- [x] Add a feature-specific staging smoke assertion
 - [ ] Verify authorized edit/save behavior after deployment
 
 ## Related Issues
@@ -91,4 +91,4 @@ institution user.
 ---
 
 **Resolved By:** Copilot
-**Time to Resolution:** Not resolved; staging deployment required
+**Time to Resolution:** Approximately 10 minutes
