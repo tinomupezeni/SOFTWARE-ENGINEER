@@ -42,6 +42,8 @@ ssh hbca-vps 'ls -lh /home/winstontino/projects/landing-page/downloads'
 - The deploy script copied APKs to `/home/winstontino/projects/landing-page/downloads`.
 - The deploy script invoked `flutter build apk --release` without a production
   Dart define.
+- The VPS does not currently have a Flutter SDK on the expected path, so the
+  documented VPS build path cannot execute there.
 
 ## Root Cause
 The mobile publishing path and the frontend serving path had drifted, and the
@@ -61,7 +63,9 @@ and prevents emulator-only builds from being published as production releases.
 ### Immediate Fix
 Updated the deployment script to publish to `/opt/hbec/downloads`, build against
 `https://student.hbca.tech/api`, and publish the stable `latest` URL. Bumped the
-Flutter app to version `1.0.4+8`.
+Flutter app to version `1.0.4+8`. Because the VPS lacks Flutter, the exact
+committed source was built locally with those defines and the resulting APK was
+uploaded to the VPS download directory.
 
 ### Long-term Fix
 Keep the compose mount, deployment script, and frontend download URL aligned;
@@ -73,6 +77,10 @@ version and rejects localhost/emulator API values.
 - [ ] Monitoring/alerts to add
 - [x] Documentation to update
 - [x] Code changes required
+
+The script now performs an explicit Flutter-SDK preflight and fails with a
+specific message when the VPS toolchain is absent. Installing and pinning the
+Flutter SDK on the build host remains deferred.
 
 ## Related Issues
 - `HBEC-2026-11-07-apk-download-link-404.md`
