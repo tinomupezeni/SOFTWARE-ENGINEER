@@ -41,13 +41,13 @@ This guardrail exercises the failure path that the PR's current sequential or ha
 ## Solution
 
 ### Immediate Fix
-No fix made in this review. Define the read behavior for a live row from a later grade, then enforce it before returning mastery and learner profile context.
+get_mastery reads the current grade snapshot when the live row belongs to a later grade. Writers restore the destination grade’s prior state, or start an empty earlier grade when none exists; returning to a later grade restores its own state. Real PostgreSQL round-trip regression tests passed.
 
 ### Long-term Fix
 Keep the regression proof in CI and verify the exact deployed artifact before promotion.
 
 ## Prevention
-- [ ] Add the guardrail above.
+- [x] Add the guardrail above.
 - [ ] Verify in staging with the intended migration and app revisions.
 - [ ] Confirm the target environment after promotion.
 
@@ -59,5 +59,5 @@ Keep the regression proof in CI and verify the exact deployed artifact before pr
 
 ---
 
-**Resolved By:** Pending
-**Time to Resolution:** Ongoing
+**Resolved By:** Local code fix in 9d5e6a220; target deployment pending
+**Time to Resolution:** Local implementation and validation on 2026-11-08; staging and production pending

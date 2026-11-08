@@ -34,20 +34,20 @@ Traced the changed operation through its data, request, or deployment boundary.
 The duplicate and quota checks are read-then-write operations with no per-learner serialization or conflict handling.
 
 ## Prevention / Rule
-**Guardrail:** Use a per-learner transactional lock or equivalent atomic quota reservation, plus an ON CONFLICT duplicate path; test concurrent same-file and near-cap saves with separate connections.
+**Guardrail:** Use a per-learner transactional lock or equivalent atomic quota reservation, with the duplicate check inside the lock; test concurrent same-file and near-cap saves with separate connections.
 
 This guardrail exercises the failure path that the PR's current sequential or happy-path tests omit.
 
 ## Solution
 
 ### Immediate Fix
-No fix made in this review. Make save atomic under concurrency and return the existing row for a duplicate.
+The save transaction now takes a per-learner PostgreSQL advisory lock before checking duplicate content and the 500-file cap. Separate-session concurrency regressions passed for duplicate and near-cap saves.
 
 ### Long-term Fix
 Keep the regression proof in CI and verify the exact deployed artifact before promotion.
 
 ## Prevention
-- [ ] Add the guardrail above.
+- [x] Add the guardrail above.
 - [ ] Verify in staging with the intended migration and app revisions.
 - [ ] Confirm the target environment after promotion.
 
@@ -59,5 +59,5 @@ Keep the regression proof in CI and verify the exact deployed artifact before pr
 
 ---
 
-**Resolved By:** Pending
-**Time to Resolution:** Ongoing
+**Resolved By:** Local code fix in 9d5e6a220; target deployment pending
+**Time to Resolution:** Local implementation and validation on 2026-11-08; staging and production pending

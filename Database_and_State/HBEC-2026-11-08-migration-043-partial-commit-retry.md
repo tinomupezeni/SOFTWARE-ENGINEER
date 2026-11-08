@@ -41,13 +41,13 @@ This guardrail exercises the failure path that the PR's current sequential or ha
 ## Solution
 
 ### Immediate Fix
-No fix made in this review. Rework migration 043 and rehearse failure after the first concurrent index build against disposable PostgreSQL 15, then rerun upgrade to head.
+Migration 043 now checks existing columns and drops only invalid concurrent indexes before recreating them. PostgreSQL 15 rehearsal recovered a deliberately partial 043 with an invalid index, then reached 045; a 045→042→045 round trip also passed.
 
 ### Long-term Fix
 Keep the regression proof in CI and verify the exact deployed artifact before promotion.
 
 ## Prevention
-- [ ] Add the guardrail above.
+- [x] Add the guardrail above.
 - [ ] Verify in staging with the intended migration and app revisions.
 - [ ] Confirm the target environment after promotion.
 
@@ -59,5 +59,5 @@ Keep the regression proof in CI and verify the exact deployed artifact before pr
 
 ---
 
-**Resolved By:** Pending
-**Time to Resolution:** Ongoing
+**Resolved By:** Local code fix in 9d5e6a220; target deployment pending
+**Time to Resolution:** Local implementation and validation on 2026-11-08; staging and production pending

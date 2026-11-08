@@ -42,14 +42,14 @@ This prevents an outage or expired session from being presented as absent learne
 ## Solution
 
 ### Immediate Fix
-No fix made in this review. Preserve the request failure and render a retryable error state.
+The list API now propagates request errors. MyFilesPage shows an error and Retry action, while a successful empty response still shows the empty state. The focused frontend suite (12 tests) and TypeScript typecheck passed.
 
 ### Long-term Fix
 Keep the failure-path test in CI and verify the signed-in browser journey on staging.
 
 ## Prevention
-- [ ] Add explicit list error state.
-- [ ] Add failure-path UI test.
+- [x] Add explicit list error state.
+- [x] Add failure-path UI test.
 - [ ] Verify the target user journey.
 
 ## Related Issues
@@ -61,5 +61,5 @@ Keep the failure-path test in CI and verify the signed-in browser journey on sta
 
 ---
 
-**Resolved By:** Pending
-**Time to Resolution:** Ongoing
+**Resolved By:** Local code fix in 9d5e6a220; target deployment pending
+**Time to Resolution:** Local implementation and validation on 2026-11-08; staging and production pending

@@ -41,13 +41,13 @@ This guardrail exercises the failure path that the PR's current sequential or ha
 ## Solution
 
 ### Immediate Fix
-No fix made in this review. Replace print() with the configured structured logger and keep dry-run counts as fields.
+The backfill command uses the configured JSON logger with trace_id, span_id and service.name. A PostgreSQL-backed dry run emitted only JSON log lines with these fields.
 
 ### Long-term Fix
 Keep the regression proof in CI and verify the exact deployed artifact before promotion.
 
 ## Prevention
-- [ ] Add the guardrail above.
+- [ ] Add the lint/CI guardrail above; the command itself now uses JSON logging.
 - [ ] Verify in staging with the intended migration and app revisions.
 - [ ] Confirm the target environment after promotion.
 
@@ -59,5 +59,5 @@ Keep the regression proof in CI and verify the exact deployed artifact before pr
 
 ---
 
-**Resolved By:** Pending
-**Time to Resolution:** Ongoing
+**Resolved By:** Local code fix in 9d5e6a220; target deployment pending
+**Time to Resolution:** Local implementation and validation on 2026-11-08; staging and production pending

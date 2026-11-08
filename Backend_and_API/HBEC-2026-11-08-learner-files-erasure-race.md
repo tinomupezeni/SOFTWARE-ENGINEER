@@ -41,13 +41,13 @@ This guardrail exercises the failure path that the PR's current sequential or ha
 ## Solution
 
 ### Immediate Fix
-No fix made in this review. Add a durable write fence and a race test that proves no file remains after both operations settle.
+Migration 045 adds a durable learner_file_erasures tombstone. Saves and erasure share a per-learner PostgreSQL transaction lock; the save path rejects a tombstoned account, and the erasure commits the tombstone and file deletion together. Database regressions cover saves after erasure.
 
 ### Long-term Fix
 Keep the regression proof in CI and verify the exact deployed artifact before promotion.
 
 ## Prevention
-- [ ] Add the guardrail above.
+- [x] Add the guardrail above.
 - [ ] Verify in staging with the intended migration and app revisions.
 - [ ] Confirm the target environment after promotion.
 
@@ -59,5 +59,5 @@ Keep the regression proof in CI and verify the exact deployed artifact before pr
 
 ---
 
-**Resolved By:** Pending
-**Time to Resolution:** Ongoing
+**Resolved By:** Local code fix in 9d5e6a220; target deployment pending
+**Time to Resolution:** Local implementation and validation on 2026-11-08; staging and production pending
