@@ -4,7 +4,7 @@
 **Project:** MARITCHO
 **Environment:** Production
 **Severity:** High
-**Status:** Investigating
+**Status:** Resolved
 
 ## Summary
 Maricho's production Compose file builds the API and frontend from repository-relative
@@ -63,8 +63,11 @@ failing because source build contexts are absent.
 ## Solution
 
 ### Immediate Fix
-Pending: replace production `build:` entries with immutable image references and
-add a resumable image upload/deploy verification script.
+Changed production Compose to use `maricho-backend:${APP_VERSION}` and
+`maricho-frontend:${APP_VERSION}` image references. Added a resumable image
+uploader and deployment script that uploads the tagged images, validates the
+remote configuration, runs the stack, checks migrations and readiness, verifies
+the exact running image tags, and performs frontend smoke checks.
 
 ### Long-term Fix
 Keep source builds in local/CI Compose files and make the production deployment
@@ -73,10 +76,10 @@ preflight, migration confirmation, readiness checks, and frontend/backend smoke
 checks.
 
 ## Prevention
-- [ ] Configuration changes needed
+- [x] Configuration changes needed
 - [ ] Monitoring/alerts to add
-- [ ] Documentation to update
-- [ ] Code changes required
+- [x] Documentation to update
+- [x] Code changes required
 
 ## Related Issues
 - ProjectFlow reference: `projectflow_backend/deploy.sh`
@@ -89,5 +92,5 @@ checks.
 
 ---
 
-**Resolved By:** Pending
-**Time to Resolution:** Pending
+**Resolved By:** Copilot
+**Time to Resolution:** Same engineering session
