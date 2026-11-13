@@ -9,13 +9,16 @@
 ## Summary
 The temporary live E2E data provisioning attempt failed after creating the SKU
 because the provisioning script assumed every SKU already had a related
-`StockItem`. LEC creates stock rows on first inventory touch, so dereferencing
-`sku.stock` before calling an inventory service raised an exception and stopped
-the test setup.
+`StockItem`, and it also assumed a caller-supplied slug would be retained by
+the catalogue service. LEC creates stock rows on first inventory touch and
+generates product slugs from the product name, so both assumptions stopped the
+test setup from reaching the browser journey.
 
 ## Symptoms
 - The provisioning command created the temporary users, category, product, and
   SKU, then failed with `Sku has no stock`.
+- The requested slug did not match the service-generated slug, so the first
+  browser navigation reached a product route without an Add to cart control.
 - The authenticated E2E test could not start because stock was not initialized.
 
 ## Environment Details
@@ -34,7 +37,9 @@ created and published.
 `apps/inventory/services.py` documents and implements on-demand stock-row
 creation through `stock_for`, `receive`, and related services. The temporary
 provisioning code bypassed that contract by directly dereferencing the
-reverse one-to-one relation.
+reverse one-to-one relation. Separately, `catalogue.create_product()` owns slug
+generation; the seeder passed a slug-shaped value but later used it as though
+it were authoritative.
 
 ```bash
 docker exec -i lec_api python manage.py shell
@@ -44,27 +49,32 @@ docker exec -i lec_api python manage.py shell
 - `Sku.stock` is optional until the SKU is first counted or stocked.
 - `inventory.receive()` uses `get_or_create()` and writes the required ledger
   movement atomically.
+- `catalogue.create_product()` derives the actual slug from the product name.
 - The application behavior is intentional; the defect was in the temporary
   provisioning procedure.
 
 ## Root Cause
 The E2E setup procedure treated a lazily created inventory projection as an
-eager catalogue relation.
+eager catalogue relation and treated a generated catalogue identifier as a
+caller-controlled field.
 
 ## Prevention / Rule
-**Guardrail:** E2E data seeders must initialize inventory only through
-`apps.inventory.services` and must never dereference `sku.stock` directly
-before calling an inventory service.
+**Guardrail:** E2E data seeders must use returned model identifiers and
+initialize inventory only through `apps.inventory.services`; they must never
+reconstruct a slug or dereference `sku.stock` before calling an inventory
+service.
 
 The inventory service is the single path that creates the stock head and its
-ledger entry, preventing setup scripts from bypassing the stock consistency
-contract.
+ledger entry, and the returned product object is the source of truth for its
+generated slug. Together these boundaries prevent setup scripts from bypassing
+the stock consistency contract or navigating to a non-existent product.
 
 ## Solution
 
 ### Immediate Fix
-The failed setup was left unchanged and will be resumed idempotently using
-`inventory.receive()` to create the stock row and ledger entry.
+The failed setup was left unchanged and will be resumed idempotently using the
+returned product slug plus `inventory.receive()` to create the stock row and
+ledger entry.
 
 ### Long-term Fix
 Promote the temporary provisioning steps into a checked, reusable E2E fixture
