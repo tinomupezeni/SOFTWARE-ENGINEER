@@ -4,7 +4,7 @@
 **Project:** LEC Biotec
 **Environment:** Production
 **Severity:** Low
-**Status:** Investigating
+**Status:** Resolved
 
 ## Summary
 The production deployment runs the API, Celery worker, and Celery beat from the
@@ -66,18 +66,18 @@ ensures logs and task processing can be tied to the exact deployed source.
 ## Solution
 
 ### Immediate Fix
-No production change was made during this read-only audit. The application was
-healthy and the mismatch did not block serving traffic.
+Added `APP_VERSION: ${APP_VERSION:-0.0.0}` to the `worker` and `beat` services
+in `docker-compose.yml`, committed as `3ff367d`, and deployed it to production.
 
 ### Long-term Fix
-Pass `APP_VERSION: ${APP_VERSION:-0.0.0}` to `worker` and `beat`, then add a
-deployment check that fails when the three service values differ.
+Add a deployment verification check that fails when the API, worker, and beat
+report different versions.
 
 ## Prevention
-- [ ] Configuration changes needed
+- [x] Configuration changes needed
 - [ ] Monitoring/alerts to add
 - [x] Documentation updated
-- [ ] Code changes required
+- [x] Code changes required
 
 ## Related Issues
 - `LEC-BIOTEC-2026-11-12-production-env-missing.md`
@@ -90,5 +90,5 @@ deployment check that fails when the three service values differ.
 
 ---
 
-**Resolved By:** Pending
-**Time to Resolution:** Pending
+**Resolved By:** Copilot
+**Time to Resolution:** Same deployment session
