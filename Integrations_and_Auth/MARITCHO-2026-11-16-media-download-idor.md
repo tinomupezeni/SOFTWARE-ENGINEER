@@ -4,7 +4,7 @@
 **Project:** MARITCHO
 **Environment:** Development (found in code review, PR #11, branch `fix/solid-trade-picker-sheet`)
 **Severity:** Critical
-**Status:** Investigating (not yet fixed — flagged in PR review, awaiting fix/merge decision)
+**Status:** Resolved
 
 ## Summary
 During a code review of MARITCHO PR #11 ("responsive web layout, BFF wiring, and pgvector semantic
@@ -65,15 +65,18 @@ with a one-line negative-authorization test per protected endpoint.
 ## Solution
 
 ### Immediate Fix
-Not yet applied — flagged during PR review before merge. Recommended fix: restore the ownership/role
-check in `backend/app/apps/media/router.py` around line 95:
+Restored the ownership/role check in `backend/app/apps/media/router.py` around line 95, pushed to
+`fix/solid-trade-picker-sheet` (commit `72a5495`) before merge:
 ```python
 if model is None or (model.owner_id != current_user.id and current_user.role.value != "OPS"):
     raise HTTPException(status_code=404, detail="Media not found")
 ```
 
 ### Long-term Fix
-- Add the regression test described above.
+- The guardrail regression test described above has not yet been added as a dedicated test case —
+  tracked as a follow-up; the fix commit addressed the other 6 PR review findings (inconsistent
+  relevance scoring, duplicated skill taxonomy, missing search debounce, blocking sync call, etc.)
+  plus this one, but a negative-authorization test for `download_media` specifically is still open.
 - Audit other endpoints touched in the same PR for similarly dropped authorization checks, since this
   one was found by review rather than by a failing test.
 
@@ -95,5 +98,5 @@ if model is None or (model.owner_id != current_user.id and current_user.role.val
 
 ---
 
-**Resolved By:** N/A (not yet resolved)
-**Time to Resolution:** N/A
+**Resolved By:** tinomupezeni (via Claude Code)
+**Time to Resolution:** Same session as discovery (2026-11-16)
