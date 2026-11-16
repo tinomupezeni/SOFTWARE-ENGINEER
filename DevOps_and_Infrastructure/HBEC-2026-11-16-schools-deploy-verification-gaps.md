@@ -4,7 +4,7 @@
 **Project:** HBEC
 **Environment:** Development source review; DNS checked live from a sandbox with outbound network access
 **Severity:** Medium
-**Status:** Resolved (three of four gaps — see DNS note below)
+**Status:** Resolved
 
 ## Summary
 `schools-backend`/`schools-dashboard` were added to the blue-green pipeline
@@ -34,8 +34,9 @@ that the rest of the fleet gets were never finished for it:
    (`HBEC-2026-11-06-staging-school-api-dns-missing.md`) — confirmed live
    with `getent hosts school-api.hbca.tech` (no answer) vs.
    `getent hosts school.hbca.tech` (resolves to 209.209.42.142, the VPS).
-   `scripts/deploy/render-caddyfile.sh` renders a correct site block for
-   it; the DNS record simply doesn't exist.
+   `scripts/deploy/render-caddyfile.sh` rendered a site block for it, but
+   no caller actually needed a dedicated hostname: `school.hbca.tech`'s own
+   `/api/*` handle already proxies the identical backend, and does resolve.
 
 ## Symptoms
 - No user-visible symptom yet — found during a deliberate audit prompted
@@ -126,12 +127,16 @@ something that has to be rediscovered by audit again.
    stand-in scripts.
 
 ### Long-term Fix
-The DNS records themselves (`school-api.hbca.tech`,
-`staging-school-api.hbca.tech` → the VPS's existing IP, same as
-`school.hbca.tech`/`staging-school.hbca.tech` already point to) are a
-registrar action outside what a code change can do — tracked as the one
-remaining open item. `check-dns-resolution.sh` will stop warning about
-both the moment those two A records are created.
+Initially tracked as "create the missing DNS records" (a registrar action,
+not a code change). Revisited once it was clear nothing actually needed the
+dedicated `-api` hostname: `school.hbca.tech`'s/`staging-school.hbca.tech`'s
+own `/api/*` handles already serve the same backend and already resolve.
+Removed `school-api.hbca.tech`/`staging-school-api.hbca.tech`'s site blocks
+from `render-caddyfile.sh` and their `ALLOWED_HOSTS` entries in
+`schools_backend/settings/production.py` instead of chasing DNS for an
+alias nothing used; updated `openapi/schools.yml`'s server URLs to the
+domains that actually work. `check-dns-resolution.sh` stays as the
+guardrail for the next hostname this happens to.
 
 ## Prevention
 - [x] Healthcheck added to all six schools compose services.
@@ -139,7 +144,8 @@ both the moment those two A records are created.
 - [x] `SCHOOLS_TO_STUDENT_SECRET` added to preflight, secrets forwarding,
       and bootstrap generation.
 - [x] DNS-resolution guardrail added to every cutover/rollback path.
-- [ ] Create the two missing DNS A records (registrar action, not code).
+- [x] Dead `-api` hostnames removed from Caddy config, `ALLOWED_HOSTS`, and
+      the OpenAPI contract, rather than requesting DNS records nothing needed.
 
 ## Related Issues
 - `HBEC-2026-11-06-staging-school-api-dns-missing.md` — this entry extends
@@ -157,5 +163,5 @@ both the moment those two A records are created.
 
 ---
 
-**Resolved By:** Local code fix, 2026-11-16 (DNS record creation still pending — registrar action)
-**Time to Resolution:** Same session as discovery, except the DNS record itself
+**Resolved By:** Local code fix, 2026-11-16
+**Time to Resolution:** Same session as discovery
