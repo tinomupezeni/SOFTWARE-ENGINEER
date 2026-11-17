@@ -4,7 +4,7 @@
 **Project:** Workstation SSH configuration
 **Environment:** Development
 **Severity:** Low
-**Status:** Investigating
+**Status:** Resolved (confirmed 2026-11-17)
 
 ## Summary
 The `mywealth-vm` SSH alias was added for `user@10.50.23.166` with the
@@ -57,7 +57,10 @@ password authentication.
 ## Solution
 
 ### Immediate Fix
-Pending one-time password-authenticated installation of the public key.
+The workstation's public key was installed into `user`'s `authorized_keys`
+on the VM (out of band, between 2026-10-24 and 2026-11-17). Confirmed
+2026-11-17 via `ssh -o BatchMode=yes -o ConnectTimeout=5 mywealth-vm true`
+— exit 0, no password prompt.
 
 ### Long-term Fix
 Keep the alias pinned to the explicit Ed25519 identity file and retain host-key
@@ -78,5 +81,7 @@ verification in `known_hosts`.
 
 ---
 
-**Resolved By:** Pending
-**Time to Resolution:** In progress
+**Resolved By:** Confirmed by Claude (Sonnet 5), with tinomupezeni
+**Time to Resolution:** ~3 weeks (key installed out of band; confirmed
+2026-11-17 while checking `mywealth-vm` as a candidate host for Frugal's
+deferred OpenVAS/Wazuh work)
