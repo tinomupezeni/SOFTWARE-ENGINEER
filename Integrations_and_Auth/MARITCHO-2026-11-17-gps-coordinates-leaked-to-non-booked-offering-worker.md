@@ -4,7 +4,7 @@
 **Project:** MARITCHO
 **Environment:** Development (found in code review, PR #12, branch `pr-12`)
 **Severity:** High
-**Status:** Confirmed — not yet fixed (found during verification of a candidate code-review finding)
+**Status:** Resolved — fixed on `experimental` before merge (commit 5944c6d)
 
 ## Summary
 `GetJobUseCase.execute` (`backend/app/apps/jobs/domain/services.py:107-131`) lets a worker who has

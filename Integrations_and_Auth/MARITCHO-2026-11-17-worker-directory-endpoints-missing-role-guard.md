@@ -4,7 +4,7 @@
 **Project:** MARITCHO
 **Environment:** Development (found in code review, PR #12, branch `pr-12`)
 **Severity:** Medium
-**Status:** Confirmed — not yet fixed (found during verification of a candidate code-review finding)
+**Status:** Resolved — fixed on `experimental` before merge (commit 5944c6d)
 
 ## Summary
 The new `GET /workers` (`list_nearby_workers`) and `GET /workers/{worker_id}`

@@ -4,7 +4,7 @@
 **Project:** MARITCHO
 **Environment:** Development (found in code review, PR #12, branch `pr-12`)
 **Severity:** High
-**Status:** Confirmed — not yet fixed (found during verification of a candidate code-review finding)
+**Status:** Resolved — fixed on `experimental` before merge (commit 5944c6d)
 
 ## Summary
 `JobOfferRepository.get_for_job` (`backend/app/apps/jobs/infrastructure/repositories.py:427-429`)
