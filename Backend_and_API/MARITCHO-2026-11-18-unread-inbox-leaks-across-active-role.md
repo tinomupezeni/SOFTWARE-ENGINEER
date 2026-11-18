@@ -4,7 +4,7 @@
 **Project:** MARITCHO
 **Environment:** Development (found in code review of PR #13, pre-merge)
 **Severity:** High
-**Status:** Investigating
+**Status:** Resolved
 
 ## Summary
 The new unread-inbox query's `is_party` check in `unread.py` grants offer-based access purely on `worker_id == user_id`, without the active-role condition (`user_role == RoleEnum.WORKER`) that the equivalent job-party checks and the websocket close-code check both require. This creates a data leak: a conversation is listed with real preview text and unread count even though the role-checked paths for the same job reject access.
@@ -43,10 +43,10 @@ This closes the gap because the bug exists only because the three checks were im
 ## Solution
 
 ### Immediate Fix
-Not yet applied — PR #13 is under review, changes requested.
+`unread.py`'s identity-only check (`worker_id == user_id`, no role filter) turned out to already match the capability model correctly. The fix was applied on the other side: `_require_job_party` and `_socket_close_code` were changed to check capabilities (`Person.acts_as()` / `RoleEnum.WORKER in user_capabilities`) instead of active role, which makes them consistent with `unread.py` instead of the other way around. See [[maritcho-2026-11-18-job-party-active-role-vs-capability]].
 
 ### Long-term Fix
-Replace the ad hoc `is_party` check in `unread.py` with the same capability/role-aware predicate used by `_require_job_party` and `_socket_close_code` (see [[maritcho-2026-11-18-job-party-active-role-vs-capability]] for the related decision on which rule — active-role vs. capability-based — should be canonical).
+No further change needed in `unread.py` itself.
 
 ## Prevention
 - [ ] Code changes required (unify party-check logic)

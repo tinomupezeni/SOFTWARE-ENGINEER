@@ -4,7 +4,7 @@
 **Project:** MARITCHO
 **Environment:** Development (found in code review of PR #13, pre-merge)
 **Severity:** High
-**Status:** Investigating
+**Status:** Resolved
 
 ## Summary
 `_require_job_party` (duplicated in `jobs/domain/services.py` and `GetJobUseCase`) still gates offer-based job-party access on the caller's active role (`user_role == RoleEnum.WORKER`) rather than the new capability-based `Person.acts_as()` mechanism PR #13 introduced and applied to `RequireRole` and `BookJobUseCase`. This contradicts the PR's own stated goal that switching active mode should never remove the other side's access.
@@ -42,10 +42,10 @@ This closes the gap because the bug is a leftover of the old pattern coexisting 
 ## Solution
 
 ### Immediate Fix
-Not yet applied — PR #13 is under review, changes requested.
+`messaging/domain/services.py::_require_job_party` and `interface_adapters/router.py::_socket_close_code` now take the caller's capabilities (`frozenset[RoleEnum]` / `Person.acts_as()`) instead of a single active-role value, checking `RoleEnum.WORKER in capabilities` / `RoleEnum.OPS in capabilities`. `jobs/domain/services.py::GetJobUseCase` was fixed the same way. The plain `_require_job_party` in `jobs/domain/services.py` (used by `ListJobDisputesUseCase`/`GetJobLedgerUseCase`/`GetJobRecordUseCase`) has no offer-based branch and was left as-is — its only role check is the OPS override, which isn't a self-service dual role, so it isn't affected by this bug class.
 
 ### Long-term Fix
-Deduplicate `_require_job_party` into one shared function and migrate it to use `Person.acts_as()`, consistent with `RequireRole` and `BookJobUseCase`.
+Done — see Immediate Fix. No further deduplication of the two differently-shaped `_require_job_party` helpers was done, since they check different things (messaging's includes the offer-party branch; jobs' plain variant doesn't).
 
 ## Prevention
 - [ ] Code changes required (dedupe + migrate `_require_job_party`)

@@ -4,7 +4,7 @@
 **Project:** MARITCHO
 **Environment:** Development (found in code review of PR #13, pre-merge)
 **Severity:** High
-**Status:** Investigating
+**Status:** Resolved
 
 ## Summary
 `is_worker = current_user.role == RoleEnum.WORKER` in `search_open_jobs` is new code added by PR #13, but it uses active-mode semantics instead of the capability-based `.acts_as()` check applied to every other role gate the PR touched. This defeats the new skill-matching/eligibility feature for exactly the account type (dual-role) the PR was built to support.
@@ -43,10 +43,10 @@ This closes the gap because the bug was invisible precisely because no test comb
 ## Solution
 
 ### Immediate Fix
-Not yet applied — PR #13 is under review, changes requested.
+Replaced `current_user.role == RoleEnum.WORKER` with `current_user.acts_as(RoleEnum.WORKER)` in `search_open_jobs`.
 
 ### Long-term Fix
-Replace `current_user.role == RoleEnum.WORKER` with the capability-based `.acts_as(RoleEnum.WORKER)` check used elsewhere in the PR.
+Done — see Immediate Fix. A dual-role-in-BUYER-mode-with-WORKER-skills test case for this endpoint is still not added; left as a follow-up (test matrix gap, not a merge blocker on its own now that the production bug is fixed).
 
 ## Prevention
 - [ ] Code changes required

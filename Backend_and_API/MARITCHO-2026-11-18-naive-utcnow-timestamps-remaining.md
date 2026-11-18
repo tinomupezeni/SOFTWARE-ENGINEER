@@ -4,10 +4,12 @@
 **Project:** MARITCHO
 **Environment:** Development (found in code review of PR #13, pre-merge)
 **Severity:** Medium
-**Status:** Investigating
+**Status:** Resolved
 
 ## Summary
-PR #13 introduced `shared_kernel/clock.py` specifically to fix an offset-less-timestamp bug, but three call sites were missed: `signed_off_at`, `dispute.responded_at`, and worker ID-photo submission timestamps still use naive `datetime.utcnow()`. These are currently masked only by the web frontend's blanket `normalizeIsoDate` regex coercing offset-less ISO strings to UTC.
+PR #13 introduced `shared_kernel/clock.py` specifically to fix an offset-less-timestamp bug, but four call sites were missed: `signed_off_at`, `dispute.responded_at`, worker ID-photo submission timestamps, and a job review's `created_at` still used naive `datetime.utcnow()`. These were masked only by the web frontend's blanket `normalizeIsoDate` regex coercing offset-less ISO strings to UTC.
+
+**Update (2026-11-18):** All four fixed — replaced with `shared_kernel.clock.utcnow()` in `jobs/domain/services.py` (signed_off_at, dispute.responded_at), `workers/domain/services.py` (ID-photo timestamp), and `jobs/interface_adapters/router.py:391` (review created_at, found while running the full test suite after the other fixes — same bug class, not in the original review). Status updated to Resolved.
 
 ## Symptoms
 - Naive timestamps serialize through Pydantic schemas to clients with no UTC offset.

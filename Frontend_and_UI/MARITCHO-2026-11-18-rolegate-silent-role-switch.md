@@ -4,7 +4,7 @@
 **Project:** MARITCHO
 **Environment:** Development (found in code review of PR #13, pre-merge)
 **Severity:** High
-**Status:** Investigating
+**Status:** Resolved
 
 ## Summary
 `RoleGate.tsx` fires a persisted server-side role switch (`PATCH /users/me`) as a side effect of merely rendering a route for the other role, with no user confirmation. For a dual-capability (buyer+worker) account, visiting a route gated for the role the account isn't currently active in flips the account's active role account-wide.
@@ -44,10 +44,10 @@ This directly closes the gap: the bug exists because a mutation was allowed to r
 ## Solution
 
 ### Immediate Fix
-Not yet applied — PR #13 is under review, changes requested.
+`RoleGate` no longer calls `switchMode.mutateAsync` automatically from the render-path effect. It now shows a confirmation `Sheet` ("Switch mode?") when the account could switch into the gated role, and only calls the mutation when the person taps "Switch mode"; "Not now" routes them to their current side's home screen instead.
 
 ### Long-term Fix
-Replace the automatic `switchMode.mutateAsync` call with a read-only capability gate for rendering, and require an explicit user action (confirmation dialog or dedicated "switch mode" control) before persisting any role change.
+Done — see Immediate Fix.
 
 ## Prevention
 - [ ] Code changes required (remove implicit mutation from RoleGate; add explicit confirmation flow)

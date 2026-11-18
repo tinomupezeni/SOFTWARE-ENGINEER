@@ -4,7 +4,7 @@
 **Project:** MARITCHO
 **Environment:** Development (found in code review of PR #13, pre-merge)
 **Severity:** Low
-**Status:** Investigating
+**Status:** Resolved
 
 ## Summary
 `model_can_act_as` (`backend/app/apps/accounts/infrastructure/models.py:47`) reimplements the identical role-capability union logic as the new `Person.acts_as()` domain method, operating directly on the ORM model instead of converting to the domain entity first. `get_public_profile` depends on this infrastructure copy rather than the canonical domain method.
@@ -41,10 +41,10 @@ This closes the gap by catching duplicated business logic at review time, before
 ## Solution
 
 ### Immediate Fix
-Not yet applied — PR #13 is under review, changes requested.
+Removed `model_can_act_as`. The accounts repository's private `_to_entity` mapper was made public as `person_from_model`; `get_public_profile` now converts the loaded `PersonModel` to the `Person` domain entity via `person_from_model()` and calls `.acts_as(RoleEnum.WORKER)` directly.
 
 ### Long-term Fix
-Have `get_public_profile` convert the ORM row to the `Person` domain entity (or call a shared helper) and use `Person.acts_as()` directly; remove `model_can_act_as`.
+Done — see Immediate Fix.
 
 ## Prevention
 - [ ] Code changes required
