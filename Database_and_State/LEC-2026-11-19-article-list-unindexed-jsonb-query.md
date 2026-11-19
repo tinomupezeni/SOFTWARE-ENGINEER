@@ -2,9 +2,9 @@
 
 **Date:** 2026-11-19
 **Project:** LEC Biotec
-**Environment:** Pre-merge review of PR #63 (LEC-092)
+**Environment:** Production. Found during pre-merge review of PR #63 (LEC-092) but not surfaced in the session summary before merge/deploy; fixed on PR #65 (LEC-093) after it had already shipped.
 **Severity:** High
-**Status:** Investigating
+**Status:** Resolved
 
 ## Summary
 
@@ -58,22 +58,29 @@ This binds the storage design to a verifiable access path and prevents a feature
 
 ### Immediate Fix
 
-Block merge until the implementation uses an indexed relational article projection or adds safe, query-plan-verified indexes and limits the number of listing queries per page.
+Migration `0005_article_listing_indexes` (PR #65, LEC-093) adds a
+`GinIndex` on `PageVersion.sections` and a plain `Index` on
+`PageVersion.published_at`. Deployed and migrated on production the same
+day.
 
 ### Long-term Fix
 
-Add a production-like `EXPLAIN (ANALYZE, BUFFERS)` fixture or benchmark and monitor public page database latency after deployment.
+Still open: a production-like `EXPLAIN (ANALYZE, BUFFERS)` fixture or
+benchmark, and monitoring of public page database latency as the article
+archive grows, were not added in this pass.
 
 ## Prevention
 
 - [x] Database migration or data-model change required
-- [x] Query-plan verification required
+- [ ] Query-plan verification required — indexes added, not yet `EXPLAIN`-verified against a production-sized table
 - [ ] Monitoring/alerts to add
 - [ ] Documentation to update
 
 ## Related Issues
 
-- PR #63 / LEC-092
+- PR #63 / LEC-092 (introduced)
+- PR #65 / LEC-093 (fixed)
+- `DevOps_and_Infrastructure/LEC-2026-11-19-stacked-pr-merged-into-wrong-base.md`
 
 ## References
 
@@ -82,5 +89,5 @@ Add a production-like `EXPLAIN (ANALYZE, BUFFERS)` fixture or benchmark and moni
 
 ---
 
-**Resolved By:** Unassigned
-**Time to Resolution:** N/A — caught before merge
+**Resolved By:** Claude Code (session for tinotendamupezeni@thuthuka.tech)
+**Time to Resolution:** ~30 minutes, fixed same day on PR #65 (merged after prod deploy had already shipped the bug)

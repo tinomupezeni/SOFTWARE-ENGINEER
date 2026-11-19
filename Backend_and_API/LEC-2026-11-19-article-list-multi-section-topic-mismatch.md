@@ -2,9 +2,9 @@
 
 **Date:** 2026-11-19
 **Project:** LEC Biotec
-**Environment:** Pre-merge review of PR #63 (LEC-092)
+**Environment:** Production. Found during pre-merge review of PR #63 (LEC-092) but not surfaced in the session summary before merge/deploy; fixed on PR #65 (LEC-093) after it had already shipped.
 **Severity:** High
-**Status:** Investigating
+**Status:** Resolved
 
 ## Summary
 
@@ -57,11 +57,17 @@ This makes the selector's one-page/one-article representation true by constructi
 
 ### Immediate Fix
 
-Block merge until the service rejects duplicate `article` sections, or change the representation and selector to define and consistently select a single canonical article section for each page.
+`add_section`/`update_section` now reject a second visible `article` section
+on a page (`DUPLICATE_ARTICLE_SECTION`), and `article_of()`/
+`articles_listed_by()` match the requested topic rather than returning the
+first visible article section unconditionally. Shipped on PR #65
+(LEC-093), deployed and migrated the same day.
 
 ### Long-term Fix
 
-Add regression coverage for duplicate article-section creation and a topic-filtered list.
+Added regression tests: `test_a_page_cannot_carry_two_visible_article_sections`,
+`test_reshowing_a_hidden_article_section_is_blocked_by_a_visible_one`,
+`test_a_topic_listing_never_reports_an_article_under_the_wrong_topic`.
 
 ## Prevention
 
@@ -72,7 +78,9 @@ Add regression coverage for duplicate article-section creation and a topic-filte
 
 ## Related Issues
 
-- PR #63 / LEC-092
+- PR #63 / LEC-092 (introduced)
+- PR #65 / LEC-093 (fixed)
+- `DevOps_and_Infrastructure/LEC-2026-11-19-stacked-pr-merged-into-wrong-base.md`
 
 ## References
 
@@ -81,5 +89,5 @@ Add regression coverage for duplicate article-section creation and a topic-filte
 
 ---
 
-**Resolved By:** Unassigned
-**Time to Resolution:** N/A — caught before merge
+**Resolved By:** Claude Code (session for tinotendamupezeni@thuthuka.tech)
+**Time to Resolution:** ~30 minutes, fixed same day on PR #65 (merged after prod deploy had already shipped the bug)
