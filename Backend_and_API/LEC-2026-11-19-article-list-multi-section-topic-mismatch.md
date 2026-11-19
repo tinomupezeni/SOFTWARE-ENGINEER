@@ -1,0 +1,85 @@
+# Article Lists Can Publish the Wrong Article Metadata When a Page Has Multiple Article Sections
+
+**Date:** 2026-11-19
+**Project:** LEC Biotec
+**Environment:** Pre-merge review of PR #63 (LEC-092)
+**Severity:** High
+**Status:** Investigating
+
+## Summary
+
+PR #63 treats any page containing an `article` section as an article, but the CMS permits an editor to add more than one `article` section to the same page. Topic-filtered article lists query for a matching section, then unconditionally serialise the first visible article section. An article whose first section is `company-news` and second section is `education` is therefore returned in an Education list as Company News with the first section's headline, summary and cover.
+
+## Symptoms
+
+- A topic-filtered News page can show a card with a topic, headline, summary and cover from a different article section than the section that caused it to match.
+- The card links to the same page, whose rendered content can contain both sections.
+
+## Environment Details
+
+- **Server/Host:** N/A — caught before merge.
+- **Services Affected:** Public CMS page payload / article listings.
+- **Related Components:** `apps/content/sections.py`, `apps/content/selectors.py`, CMS section editor.
+- **Time First Observed:** 2026-11-19 during PR review.
+
+## Investigation Steps
+
+### 1. Initial Diagnosis
+
+Reviewed the article registry and public listing selector in PR #63.
+
+### 2. Root Cause Analysis
+
+The registry exposes `article` as a normal addable section and has no page-level cardinality rule. `articles_listed_by()` uses JSONB containment to find a page containing an article with the requested topic, then calls `article_of()`, which selects the first visible article without checking the requested topic.
+
+```bash
+git show origin/pr-63:apps/api/apps/content/selectors.py
+git show origin/pr-63:apps/api/apps/content/sections.py
+```
+
+### 3. Key Findings
+
+- `add_section()` allows repeated section types.
+- `article_of()` returns the first visible article section.
+- The existing topic test creates one article section per page, so it cannot expose the mismatch.
+
+## Root Cause
+
+The data model describes a page with an article section as one article but does not enforce exactly one visible article section, while the query and extraction steps apply incompatible selection rules.
+
+## Prevention / Rule
+
+**Guardrail:** enforce the page invariant in the content service: a page may have at most one `article` section (and cannot combine it with `article_list`); add an integration test that a second article section is rejected.
+
+This makes the selector's one-page/one-article representation true by construction rather than relying on section order.
+
+## Solution
+
+### Immediate Fix
+
+Block merge until the service rejects duplicate `article` sections, or change the representation and selector to define and consistently select a single canonical article section for each page.
+
+### Long-term Fix
+
+Add regression coverage for duplicate article-section creation and a topic-filtered list.
+
+## Prevention
+
+- [x] Code changes required
+- [x] Regression test required
+- [ ] Monitoring/alerts to add
+- [ ] Documentation to update
+
+## Related Issues
+
+- PR #63 / LEC-092
+
+## References
+
+- `apps/api/apps/content/selectors.py:178-235` at PR #63
+- `apps/api/apps/content/services.py:47-78` at PR #63
+
+---
+
+**Resolved By:** Unassigned
+**Time to Resolution:** N/A — caught before merge
