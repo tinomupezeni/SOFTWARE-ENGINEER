@@ -7,16 +7,27 @@ not here.
 ## What this repo is
 
 A cross-project engineering memory: bug/issue logs, completed-initiative
-reports, a stack-agnostic engineering guide library, and general
-working-process notes for how to run a session or task.
+reports, a stack-agnostic engineering guide library, per-project living
+context (`Project_Memory/`), and general working-process notes for how to
+run a session or task.
 
-**What it is not:** a place for one project's own planning artifacts
-(ADRs, procedural workflow docs, architecture decisions). Those belong in
-that project's own repo. If you find one here, it's misplaced — check the
-originating project's repo for the canonical copy before assuming this
-one is authoritative.
+**What it is not:** a place for a project's one-off planning scratchwork
+(sprint boards, ticket-level task breakdowns). That belongs in that
+project's own repo or tracker. The one deliberate exception is
+`Project_Memory/[PROJECT]/` — a living architecture/decisions snapshot
+meant to be read here, centrally, before touching any project's codebase.
+If you find some *other* per-project artifact outside `Project_Memory/`,
+it's misplaced — check the originating project's repo for the canonical
+copy before assuming this one is authoritative.
 
 ## What are you trying to do?
+
+**Starting work on a project, want to orient fast without reading the
+whole codebase**
+→ `Project_Memory/[PROJECT]/MAIN.md` first, if that project has one. It's
+the index into that project's architecture, standing decisions, and
+current state. If it doesn't have one yet, or seems stale, read the code
+and consider seeding/updating it (`templates/project-memory-template/`).
 
 **Debugging something, want to check for a known pattern first**
 → the matching technical-area folder below, filtered by the project's log
@@ -84,7 +95,8 @@ before writing a new one.
 | `Integrations_and_Auth/` | Bug/issue logs — integrations & auth |
 | `Mobile_Apps/` | Bug/issue logs — mobile apps |
 | `reports/` | Completed-initiative reports (flat, cross-cutting) |
-| `templates/` | `issue-template.md`, `report-template.md`, a Vite-frontend `Dockerfile` template |
+| `Project_Memory/` | Per-project living context snapshots, one folder per project — read `[PROJECT]/MAIN.md` first |
+| `templates/` | `issue-template.md`, `report-template.md`, `project-memory-template/`, a Vite-frontend `Dockerfile` template |
 | `Principal_Engineer/` | Stack-agnostic engineering guide library — see its own `engineering-guides/MANIFEST.md` |
 | `Lessons/` | General, cross-project lessons + the cheat sheet |
 | `References/` | Vendored third-party reference material (not authored here) |

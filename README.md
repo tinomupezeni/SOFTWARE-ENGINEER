@@ -32,7 +32,8 @@ SOFTWARE-ENGINEER/
 ├── Integrations_and_Auth/
 ├── Mobile_Apps/
 ├── reports/                   # completed-initiative reports
-├── templates/                 # issue/report templates
+├── Project_Memory/            # per-project living context (see below)
+├── templates/                 # issue/report/project-memory templates
 ├── Principal_Engineer/        # stack-agnostic engineering guide library
 ├── Lessons/                   # general cross-project lessons + cheat sheet
 └── References/                # vendored third-party reference material
@@ -41,6 +42,39 @@ SOFTWARE-ENGINEER/
 named `[PROJECT]-YYYY-MM-DD-issue-name.md`. Reports live flat in `reports/`,
 same naming convention, since a report usually spans more than one
 technical area.)*
+
+### Project_Memory/ — the one exception to "no per-project subfolders"
+
+Bug logs and reports stay prefix-based (no per-project subfolder) because
+they're an append-only cross-project log, searched by technical area.
+`Project_Memory/` is different in kind: it's a *living, per-project*
+context snapshot — current architecture, standing decisions, non-obvious
+implementation notes — meant to let an agent orient on a project without
+re-reading its whole codebase. That only works as one folder per project,
+so it's the deliberate exception to the convention above.
+
+Structure per project (see `templates/project-memory-template/`):
+```
+Project_Memory/[PROJECT]/
+├── MAIN.md                    # read this first — index + current state
+├── architecture/               # what the system looks like now
+├── decisions/                  # why it's built this way (not code-derivable)
+├── implementation/             # non-obvious mechanism notes
+├── prompts/significant-tasks.md
+└── change-history/             # dated entries, only when they change arch/decisions
+```
+
+Rules:
+- Update the relevant file **in the same session** that changes
+  architecture or a standing decision — don't batch this for later, it
+  rots fast otherwise.
+- `decisions/` holds the *why*, not facts re-derivable by reading code.
+  Don't duplicate code-derivable facts here — that's what makes this
+  trustworthy instead of just another stale doc.
+- A bug found while working in a project still gets its own bug-log entry
+  per the normal convention; `Project_Memory/` cross-references it rather
+  than duplicating it.
+- One folder per project tracked here (see "Projects Tracked" below).
 
 ### Bug/issue logs vs. reports
 - **Bug/issue log** (technical-area folders): a specific bug, misconfiguration,
