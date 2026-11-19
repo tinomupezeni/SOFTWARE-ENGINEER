@@ -76,6 +76,24 @@ Added regression tests: `test_a_page_cannot_carry_two_visible_article_sections`,
 - [ ] Monitoring/alerts to add
 - [ ] Documentation to update
 
+## Post-fix re-review (2026-11-19)
+
+A second `/code-review` pass on PR #65 flagged that the new guard in
+`add_section`/`update_section` only prevents a *second* visible `article`
+section going forward — it does not reconcile a page that already had two
+before the guard existed. Checked production directly:
+
+```python
+Section.objects.filter(type="article", is_visible=True).values("page_id") \
+    .annotate(n=Count("id")).filter(n__gt=1)
+# -> []
+```
+
+Zero pages currently violate the invariant, so this is a closed risk today,
+not a live bug. Flagging here rather than silently dropping it: if a future
+data import or admin bulk-edit ever bypasses `add_section`/`update_section`
+(e.g. a raw `Section.objects.create`), this guard would not catch it.
+
 ## Related Issues
 
 - PR #63 / LEC-092 (introduced)
