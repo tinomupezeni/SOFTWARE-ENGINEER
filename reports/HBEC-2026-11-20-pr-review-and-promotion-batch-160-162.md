@@ -41,7 +41,8 @@ User requested systematic code review of open PRs (#165, #164, #163, #162, #160)
 - Student Frontend vitest: 57 test files, 363 tests passed.
 
 ## Follow-ups / Deferred
-- Review and evaluate PR #163 (`feat/friday-web-research`).
+- PR #163 evaluated, tested (38 harness + 5 frontend tests pass), and promoted to `master` (`f78dab05b`).
+- Proceed to PR #164 (`fix/missing-diagrams`).
 - Await PR #160 author resolution of telemetry standards and merge conflicts.
 
 ---
