@@ -30,7 +30,7 @@ position.
   containers; `staging-*` domains always point at the *inactive* colour
   (green) and share the same live database.
 - **Live artifacts:** blue = `sha-4b4d5ae` (108 commits behind
-  `experimental`), green = `sha-1daf513` (= `master`~1). Both colours share
+  `experimental`), green = `sha-3279947` (master tip; schools email fix + /health/ready/). Both colours share
   one Postgres: `hbec-postgres` (alias `postgres`), reached through
   `hbec-main-pgbouncer`; databases `hbec`, `hbec_admin`, `hbec_schools`,
   `hbec_student`, `hbec_notifications`, `hbec_payments`, `hbec_litellm`.
@@ -54,8 +54,7 @@ position.
   production (no `EMAIL_*` vars → console mail backend, no password reset
   anywhere) — see
   `DevOps_and_Infrastructure/HBEC-2026-11-20-school-admin-password-never-delivered.md`.
-  The schools backend also has **no `/health/ready/`** (404 in both
-  colours; compose healthcheck points at `/health/live/`) — see
+  The schools backend `/health/ready/` is fixed on green only (`3279947`, compose healthcheck now points at it); blue still 404 until cutover — see
   `DevOps_and_Infrastructure/HBEC-2026-11-20-schools-backend-has-no-readiness-probe.md`.
 
 ## Map

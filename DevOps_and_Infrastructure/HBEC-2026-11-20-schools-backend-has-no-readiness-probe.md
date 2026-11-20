@@ -4,7 +4,7 @@
 **Project:** HBEC
 **Environment:** Production (both colours), source review
 **Severity:** Medium
-**Status:** Fix implemented locally 2026-11-20 (uncommitted in HBEC working tree, not yet deployed) — update to Resolved after deploy + live /health/ready/ check
+**Status:** Fixed on the inactive colour (green = `sha-3279947`, HBEC master `3279947`); live `/health/ready/` -> 200 verified 2026-11-20. Blue (`4b4d5ae`, live) still 404 until cutover.
 
 ## Summary
 `SCHOOLS/schools_backend` registers only `health/live/`; requesting
@@ -81,7 +81,7 @@ schools backend that cannot serve logins.
 ## Solution
 
 ### Immediate Fix
-Implemented 2026-11-20 in the HBEC working tree (not yet committed/deployed): `ReadyHealthCheckView` (DB `SELECT 1` on its own thread, 2.0s bound, single in-flight probe lock, 503 on failure), `health/ready/` route, compose base healthcheck (line ~443) switched to `/health/ready/`, 3 new tests (32/32 pass locally, ruff clean). Local evidence only.
+Implemented 2026-11-20 in the HBEC working tree (committed `3279947`, deployed to green): `ReadyHealthCheckView` (DB `SELECT 1` on its own thread, 2.0s bound, single in-flight probe lock, 503 on failure), `health/ready/` route, compose base healthcheck (line ~443) switched to `/health/ready/`, 3 new tests (32/32 pass locally, ruff clean). Local evidence only.
 
 ### Long-term Fix
 - [x] Add `ReadyHealthCheckView` to
@@ -108,5 +108,5 @@ Implemented 2026-11-20 in the HBEC working tree (not yet committed/deployed): `R
 
 ---
 
-**Resolved By:** opencode (mimo-v2.6-flash-free) — investigation only; fix open
+**Resolved By:** opencode investigation; fix by Antigravity (Claude), 2026-11-20 (green only)
 **Time to Resolution:** open
