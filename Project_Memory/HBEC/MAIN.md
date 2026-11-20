@@ -44,6 +44,7 @@ position.
   `scripts/deploy/manual-deploy-color.sh` + `manual-cutover.sh` on the
   VPS, and no CI job (new ones included) actually executes until Actions
   is unblocked.
+- **2026-11-20:** PR #162 (state machines + review queue concurrency fix) merged to `master` (`5ab7b34b5`). Earlier: school-creation email-normalization (`8e93138`) and schools `/health/ready/` (`3279947`) deployed to green.
 - **2026-11-20:** school-creation email-normalization fix committed to
   `master` (`8e93138`) and deployed to the **inactive** colour (green =
   `sha-8e93138`, reached via `staging-*` domains); `active_color` still
