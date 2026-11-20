@@ -39,15 +39,24 @@ position.
   `scripts/deploy/wait-for-ci.sh`) then `cd.yml` on `master` builds every
   image and flips colour. As of 2026-11-20 `ci.yml` gained the missing
   `schools-backend-tests` job (the schools service had no CI at all).
-- **2026-11-20 fix in working tree (not yet committed/deployed):**
-  school-creation email normalization in
-  `SCHOOLS/schools_backend/institutions/views.py` + regression tests + the
-  CI job above. See
+  **GitHub Actions has produced no run since 2026-10-05** (billing-blocked
+  per the runbooks) — deploys go through
+  `scripts/deploy/manual-deploy-color.sh` + `manual-cutover.sh` on the
+  VPS, and no CI job (new ones included) actually executes until Actions
+  is unblocked.
+- **2026-11-20:** school-creation email-normalization fix committed to
+  `master` (`8e93138`) and deployed to the **inactive** colour (green =
+  `sha-8e93138`, reached via `staging-*` domains); `active_color` still
+  `blue` (`sha-4b4d5ae`), no cutover yet. Same commit added the
+  `schools-backend-tests` CI job. See
   `Integrations_and_Auth/HBEC-2026-11-20-school-admin-cannot-login-mixed-case-email.md`.
 - **Open:** school-admin credential delivery has no working channel in
   production (no `EMAIL_*` vars → console mail backend, no password reset
   anywhere) — see
   `DevOps_and_Infrastructure/HBEC-2026-11-20-school-admin-password-never-delivered.md`.
+  The schools backend also has **no `/health/ready/`** (404 in both
+  colours; compose healthcheck points at `/health/live/`) — see
+  `DevOps_and_Infrastructure/HBEC-2026-11-20-schools-backend-has-no-readiness-probe.md`.
 
 ## Map
 - `architecture/` — what the system looks like now (components, data flow,
