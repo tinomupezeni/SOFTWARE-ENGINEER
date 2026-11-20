@@ -43,7 +43,8 @@ User requested systematic code review of open PRs (#165, #164, #163, #162, #160)
 ## Follow-ups / Deferred
 - PR #163 evaluated, tested (38 harness + 5 frontend tests pass), and promoted to `master` (`f78dab05b`).
 - PR #164 evaluated, verified (220 harness + 209 frontend tests pass), and promoted to `master` (`26e7ce34e`).
-- Proceed to PR #165 (`feat/project-guide-rubric`).
+- PR #165 evaluated, verified (149 harness tests pass), and promoted to `master` (`f3a75354b`).
+- Entire PR review & promotion batch completed (#160 requested changes, #162-#165 promoted).
 - Await PR #160 author resolution of telemetry standards and merge conflicts.
 
 ---

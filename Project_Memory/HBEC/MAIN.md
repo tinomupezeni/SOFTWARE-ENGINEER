@@ -44,6 +44,7 @@ position.
   `scripts/deploy/manual-deploy-color.sh` + `manual-cutover.sh` on the
   VPS, and no CI job (new ones included) actually executes until Actions
   is unblocked.
+- **2026-11-20:** PR #165 (Project Guide: SBP rubric-steered build loop) merged to `master` (`f3a75354b`).
 - **2026-11-20:** PR #164 (question diagrams: triangle renderer + missing visual false alarm cleanup) merged to `master` (`26e7ce34e`).
 - **2026-11-20:** PR #163 (Friday web research grounded in school work) merged to `master` (`f78dab05b`).
 - **2026-11-20:** PR #162 (state machines + review queue concurrency fix) merged to `master` (`5ab7b34b5`). Earlier: school-creation email-normalization (`8e93138`) and schools `/health/ready/` (`3279947`) deployed to green.
