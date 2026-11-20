@@ -51,3 +51,9 @@ User requested systematic code review of open PRs (#165, #164, #163, #162, #160)
 
 **Completed By:** Antigravity
 **Duration:** ~1.5 hours
+
+## Post-Promotion Deployment
+- Target commit `f3a75354b` successfully deployed to inactive color (**green**) on `hbca-vps`.
+- Verification gates passed: container healthchecks, signed HMAC links, secret parity, and retrieval data.
+- Staging domains point at green: `https://staging-student.hbca.tech`, `https://staging-admin.hbca.tech`, `https://staging-school.hbca.tech`.
+- QA tasks created on ProjectFlow (HBCA project) and assigned to `mutepfamutsa@gmail.com`.

@@ -30,7 +30,7 @@ position.
   containers; `staging-*` domains always point at the *inactive* colour
   (green) and share the same live database.
 - **Live artifacts:** blue = `sha-4b4d5ae` (108 commits behind
-  `experimental`), green = `sha-3279947` (master tip; schools email fix + /health/ready/). Both colours share
+  `experimental`), green = `sha-f3a7535` (master tip; schools email fix + /health/ready/). Both colours share
   one Postgres: `hbec-postgres` (alias `postgres`), reached through
   `hbec-main-pgbouncer`; databases `hbec`, `hbec_admin`, `hbec_schools`,
   `hbec_student`, `hbec_notifications`, `hbec_payments`, `hbec_litellm`.
@@ -44,6 +44,7 @@ position.
   `scripts/deploy/manual-deploy-color.sh` + `manual-cutover.sh` on the
   VPS, and no CI job (new ones included) actually executes until Actions
   is unblocked.
+- **2026-11-20:** Green deployed to `sha-f3a7535` on `hbca-vps` (verified: health, signed links, secret parity). Staging domains ready for QA testing.
 - **2026-11-20:** PR #165 (Project Guide: SBP rubric-steered build loop) merged to `master` (`f3a75354b`).
 - **2026-11-20:** PR #164 (question diagrams: triangle renderer + missing visual false alarm cleanup) merged to `master` (`26e7ce34e`).
 - **2026-11-20:** PR #163 (Friday web research grounded in school work) merged to `master` (`f78dab05b`).
