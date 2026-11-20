@@ -4,7 +4,7 @@
 **Project:** HBEC
 **Environment:** Production (both colours), source review
 **Severity:** Medium
-**Status:** Open (found during verification of the 2026-11-20 green deploy)
+**Status:** Fix implemented locally 2026-11-20 (uncommitted in HBEC working tree, not yet deployed) — update to Resolved after deploy + live /health/ready/ check
 
 ## Summary
 `SCHOOLS/schools_backend` registers only `health/live/`; requesting
@@ -81,16 +81,16 @@ schools backend that cannot serve logins.
 ## Solution
 
 ### Immediate Fix
-None yet — discovered after the 2026-11-20 deploy of `sha-8e93138`.
+Implemented 2026-11-20 in the HBEC working tree (not yet committed/deployed): `ReadyHealthCheckView` (DB `SELECT 1` on its own thread, 2.0s bound, single in-flight probe lock, 503 on failure), `health/ready/` route, compose base healthcheck (line ~443) switched to `/health/ready/`, 3 new tests (32/32 pass locally, ruff clean). Local evidence only.
 
 ### Long-term Fix
-- [ ] Add `ReadyHealthCheckView` to
+- [x] Add `ReadyHealthCheckView` to
   `SCHOOLS/schools_backend/institutions/health.py` (DB probe with the
   2.0s bound from `AGENTS.md`), register `health/ready/` in
   `schools_backend/urls.py`.
-- [ ] Point the schools-backend healthcheck in
+- [x] Point the schools-backend healthcheck in
   `docker-compose.production.yml` at `/health/ready/`.
-- [ ] Regression test (guardrail above).
+- [x] Regression test (guardrail above).
 
 ## Prevention
 - [ ] Code changes required — view + route + compose healthcheck + test.
