@@ -96,15 +96,44 @@ user confirmation, since it is a separate public repository from this one.
 - Confirmed via `cat` that `bundles/*/SKILL.md` files only reference skill
   names and contain no content needing a parallel edit.
 
+## 2026-11-23 Continuation — Added the Two Deferred Skills
+
+Per follow-up, the user asked to close the guide-12/guide-3 gap rather than
+leave it deferred. Added two new skills to `engineering-skills`:
+
+- `accessibility-usability` (source: guide 12 HCI) — design-token
+  contrast/distinctness regression checks, error-state honesty (no coercing
+  an error into a generic/empty state), form/dialog recoverability rules, and
+  boundary-case input-device/state testing (multitouch, memoized-value
+  staleness, per-attempt state leakage — the last also overlaps guide 20,
+  intentionally, since it's a UI-correctness concern from both angles).
+- `mobile-parity` (source: guide 3 Mobile App Agent-First Development) —
+  cross-client (web/mobile) contract drift as a first-class failure mode, and
+  auditing parity/screen-map tooling itself rather than trusting a "0 gaps
+  found" result, since the tooling was found blind to nested features in the
+  source incident.
+
+Wired both into `manifests/pack.yaml` (skills list), `manifests/source-map.yaml`
+(sources 12 and 3 respectively), the README's skill-selection table, and
+`CHANGELOG.md`; lightly trimmed the now-delivered "accessibility" item out of
+`ROADMAP.md`'s "Later" section. `npm run validate` passed at 17 skill
+surfaces (up from 15). Committed and pushed to
+`github.com/tinomupezeni/engineering-skills` (commit `4ba4c5a`).
+
+Neither skill was added to an existing bundle (`production-engineering-pack`,
+`agent-engineering-pack`, `ai-systems-engineering-pack`) — both are
+domain-specific (UI/mobile) rather than a universal production control, so
+forcing them into a general bundle would blur those bundles' scope; a project
+installing them does so by name, same as any other specialist skill not in a
+bundle.
+
 ## Follow-ups / Deferred
-- Guides 12 (HCI) and 3 (Mobile) gained new sections with no corresponding
-  public skill to receive them (no UX/accessibility or mobile-parity skill
-  exists in the pack). Revisit if/when the user wants a skill added for
-  either domain.
 - `npm run source:check` should be run for real (live GitHub API) the next
   time this machine has network access confirmed working for it, to verify
   the freshness marker actually resolves correctly against the pushed
   SOFTWARE-ENGINEER commit.
+- Consider whether either new skill belongs in a bundle once real usage shows
+  it's commonly installed alongside an existing pack rather than alone.
 
 ## References
 - `reports/Global-Engineering-2026-11-14-all-logs-reading.md` (the guide
