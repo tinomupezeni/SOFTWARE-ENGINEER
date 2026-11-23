@@ -127,11 +127,55 @@ forcing them into a general bundle would blur those bundles' scope; a project
 installing them does so by name, same as any other specialist skill not in a
 bundle.
 
+## 2026-11-23 Continuation — Local Install Refreshed Across Agents
+
+The user asked whether the public-repo updates were actually live for any
+agent on this machine. They were not: the shared local install at
+`~/.agents/skills/` (installed via the `skills` CLI from
+`tinomupezeni/engineering-skills` on 2026-10-17, per `~/.agents/.skill-lock.json`)
+predated every change made in this session, and the two new skills didn't
+exist at install time. Refreshed it:
+
+- `npx skills update -g -y` updated the 9 skills whose content changed in the
+  first guide-sync pass (`agent-delegation`, `configuration-parity`,
+  `contract-integrity`, `database-change-safety`, `deployment-truth`,
+  `distributed-consistency`, `engineering-baseline`, `security-boundaries`,
+  `task-contract`).
+- `npx skills add . -g -a '*' -s accessibility-usability -s mobile-parity -y`
+  installed the two new skills, universal-copied or symlinked into 77 of 79
+  agent integrations the `skills` CLI recognizes on this machine (everything
+  except Eve and PromptScript, which the CLI reports don't support global
+  skill installation at all).
+- `issue-to-production` and `observability-correctness` were found scoped to
+  only 7 agents from the original 2026-10-17 install (narrower than the other
+  ten skills' 61+), and were widened to the same 77-agent footprint for
+  consistency.
+- Verified byte-for-byte parity between every file in
+  `/home/shadowe/Projects/engineering-skills/skills/*/SKILL.md` and its
+  installed copy under `~/.agents/skills/`, and ran `npm run source:check`,
+  which confirmed the local pack is current against the live
+  `tinomupezeni/SOFTWARE-ENGINEER` commit (`79107a89e7cb88ab0e0f02f0bb8ab12efb47ff49`).
+
+**Finding, separate from this refresh:** before today, only Claude Code's
+`~/.claude/skills/` actually symlinked the full `tinomupezeni/engineering-skills`
+pack from `~/.agents/skills/`. Every other agent-tool config directory this
+machine has (Codex, Grok, Qwen, Trae, Kiro, Augment, and dozens more) only had
+an unrelated third-party skill (`cloudflare/security-audit-skill`) linked in,
+not this pack — despite `~/.agents/skills/` existing since 2026-10-17 and the
+`skills` CLI being fully capable of targeting all of them with `-a '*'`. The
+2026-10-17 install evidently only ever targeted a handful of agents (or
+Claude Code specifically) rather than the full agent list this CLI supports.
+This refresh is the first time the pack was actually installed broadly.
+
 ## Follow-ups / Deferred
-- `npm run source:check` should be run for real (live GitHub API) the next
-  time this machine has network access confirmed working for it, to verify
-  the freshness marker actually resolves correctly against the pushed
-  SOFTWARE-ENGINEER commit.
+- Confirm with the user whether the Eve and PromptScript agent integrations
+  (the two the `skills` CLI reports as unsupported for global install) are
+  actually in use on this machine; if so, their skill-loading convention
+  would need to be investigated separately since this CLI can't reach them.
+- Re-run `npx skills update -g -y` the next time a guide-driven skill edit
+  lands, rather than relying on a future session to notice the drift — this
+  refresh step was missing from the original sync in this session and had to
+  be added as a follow-up fix.
 - Consider whether either new skill belongs in a bundle once real usage shows
   it's commonly installed alongside an existing pack rather than alone.
 
