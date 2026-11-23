@@ -167,18 +167,35 @@ concrete guide additions (not just restated advice) in the same session:
 No application code in any tracked project was changed; this is
 documentation-only, same scope as the 2026-10-17 recurrence-controls update.
 
+## 2026-11-23 Continuation (2) — Lower-Volume Findings Converted
+
+The findings deferred above were converted into guide sections in the same
+session, on request:
+
+- `20. Development Tasks Guide.md` — new "§14 Boundary-Value and Sentinel
+  Exhaustiveness" (falsy-zero defaulting, defensive-clamp-hides-real-zero,
+  sentinel/exception conflation) and new "§15 UI State Must Not Assume a
+  Single Input Stream or a Static Prop" (pointer/multitouch races, stale
+  memoized values, per-attempt state leaking across attempts).
+- `5. Secure Application Configuration.md` — new "Build-Time Environment
+  Variables Must Be Verified as Actually Inlined" section (the Vite/webpack
+  static-substitution failure mode, distinct from the existing forbidden-
+  string bundle scan).
+- `12. HCI.md` — new "Design-Token Changes Must Assert Contrast and
+  Distinctness" section (WCAG contrast + perceptual-distance checks on
+  palette/rebrand changes).
+- `3. Mobile App Agent-First Development Guide.md` — new "§9 Cross-Platform
+  Parity Tooling Must Be as Rigorously Verified as the Screens It Checks"
+  checklist (parity map/script blind spots on nested features).
+- `18. Build Once Deploy Everywhere.md` — added a checklist item for the
+  frontend-only-change case (stale served bundle with a healthy backend).
+
 ## Follow-ups / Deferred
-- The individually-novel, lower-recurrence findings noted per-sector above
-  (falsy-zero defaulting, sentinel/exception conflation, build-time env var
-  not inlined into the bundle, pointer/focus-id races, design-token contrast
-  regressions, parity-tooling blind spots) were recorded here but not yet
-  converted into guide sections — candidates for a future pass once each
-  shows enough repeat volume to warrant a named guardrail, or sooner if the
-  user wants them addressed now.
-- Consider whether any of the six guide files touched today should be
-  rewired into specific projects' `CLAUDE.md`/`AGENTS.md` per the manifest's
-  own "don't copy the whole guide, copy the parts that bite" instruction —
-  not done in this session, which was limited to the central guide library.
+- Consider whether any of the guide files touched across both passes today
+  should be rewired into specific projects' `CLAUDE.md`/`AGENTS.md` per the
+  manifest's own "don't copy the whole guide, copy the parts that bite"
+  instruction — not done in this session, which was limited to the central
+  guide library.
 
 ## References
 - `index.md`
