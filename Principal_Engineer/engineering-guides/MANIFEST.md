@@ -334,6 +334,19 @@
   | Most long-lived projects | Medium | The asymmetric-evidence principle (observed execution proves liveness; absence never proves deadness) and the risk-tiered authorization model are broadly applicable safety guidance any time deletion of "apparently unused" code/config/schema is being considered, independent of whether a dedicated tool is ever built. |
 - **Note:** Added to the manifest 2026-10-26, same day the file was authored — logged immediately rather than left to be rediscovered later the way guides 20/21/24 were.
 
+### 26. Multi-VM Database High Availability
+- **File:** `26. Multi-VM Database High Availability.md`
+- **Scope:** Complete architectural blueprint, configuration files, and operational runbook for deploying self-hosted, distributed PostgreSQL database infrastructure across independent virtual machines. Implements Patroni for streaming replication supervision, a 3-node etcd cluster for Raft consensus and split-brain elimination, and local HAProxy routing sidecars for application connection failover.
+- **Stack:** PostgreSQL 15, Patroni, etcd, HAProxy, Docker Compose.
+- **Triggers:** Project runs a critical relational database on a single VM; post-incident review requires eliminating host-level single points of failure (SPOF); requirement for $< 30$s RTO automatic failover and zero data loss; requirement for zero-downtime maintenance and OS patching.
+- **applies_to:**
+  | Project | Fit | Notes |
+  |---|---|---|
+  | TESC (ScalarEye) | High | Directly deployed and verified post-Chinhoyi training downtime incident (staged across `tesc-prod`, `tesc-staging`, and `erp-vm`). |
+  | HBEC | High | Core multi-tenant database currently runs on a single host. |
+  | TESE-MARKET | Medium | Multi-service backend with independent PostgreSQL instances. |
+- **Note:** Added 2026-11-24, derived directly from the successful TESC multi-VM HA staging implementation. Fully rewirable to any project running PostgreSQL on self-hosted VMs.
+
 ---
 
 ## Pilot: TESE-MARKET (BFF)
