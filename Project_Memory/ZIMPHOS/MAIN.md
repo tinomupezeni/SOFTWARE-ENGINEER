@@ -29,18 +29,25 @@ built installable/offline-first (PWA, IndexedDB outbox).
   commit history: "complete production readiness with migrations, celery,
   baseline seed and docker setup"). A `/messages` endpoint was recently
   added to the contract/backend/frontend-types chain.
-  - **Found 2026-11-24, fixed locally, not yet committed:** `config/wsgi.py`
-    never existed despite `WSGI_APPLICATION` pointing at it — the Django
-    dev server (and any real WSGI server) crashes on boot. See
-    `Backend_and_API/ZIMPHOS-2026-11-24-missing-wsgi-module.md`. The fix
-    (a standard `config/wsgi.py`) is sitting locally in the working tree;
-    commit it on the next backend-touching branch.
+  - **Found 2026-11-24, fixed in PR #8:** `config/wsgi.py` never existed
+    despite `WSGI_APPLICATION` pointing at it — the Django dev server (and
+    any real WSGI server) crashes on boot. See
+    `Backend_and_API/ZIMPHOS-2026-11-24-missing-wsgi-module.md`.
   - Confirmed 2026-11-24: `docker compose up` (postgres, redis, backend,
     celery_worker, celery_beat) runs cleanly once `wsgi.py` exists, after
-    `manage.py migrate` and `manage.py seed_baseline`. `GET /api/products`
-    correctly returns 401 unauthenticated — login/logout endpoints are
-    still missing (see gap list below), so there's currently no way to
-    authenticate against the real backend from the frontend.
+    `manage.py migrate` and `manage.py seed_baseline`.
+  - **PR #8 (2026-11-24, open, not merged):** real `POST /api/login`,
+    `POST /api/logout`, `GET /api/csrf` added — the "still missing
+    entirely: login/logout + CSRF endpoints" gap below is now closed
+    (pending PR #8 merging). Login is CSRF-protected explicitly (DRF's
+    `SessionAuthentication` only CSRF-checks once a session user already
+    exists) and rate-limited to 5/min per client IP. `production.py` now
+    sets `SESSION_COOKIE_SECURE`/`CSRF_COOKIE_SECURE` (gated on
+    `not DEBUG`, since local Docker runs this module over plain HTTP).
+    The seeded admin and reconciler accounts (see `seed_baseline`,
+    credentials not repeated here) can now sign in through the desk app's
+    own form instead of Django's `/admin/login/`. Full report:
+    `reports/ZIMPHOS-2026-11-24-real-login-csrf-flow.md`.
 - **Frontend:** as of PR #3 (`experimental` → `main`, merged 2026-11-23),
   every planned screen exists: desk (today/overview, stock
   check/reconciliation, alerts, distributor detail, money/receivables,
@@ -76,7 +83,8 @@ built installable/offline-first (PWA, IndexedDB outbox).
   6. `POST /payments` has no idempotency key.
   7. `signature` is optional on POD (proof of delivery) in the backend,
      though the field app always captures one.
-  - Still missing entirely: login/logout + CSRF endpoints.
+  - ~~Still missing entirely: login/logout + CSRF endpoints.~~ Closed by
+    PR #8 (2026-11-24) — see above.
 - **PR #3 review (2026-11-24):** reviewed via ECC `code-review` skill at
   high effort against the SOFTWARE-ENGINEER Code Review guide (guide 24).
   5 "important"-severity findings logged individually in
@@ -111,6 +119,7 @@ built installable/offline-first (PWA, IndexedDB outbox).
 - `prompts/significant-tasks.md` — not yet populated.
 - `change-history/` — `2026-11-24-pr7-pr5-merge.md` (PR #7/#5 review,
   fixes, and merge, plus the merge-conflict resolution between them).
+  `2026-11-24-real-login-flow.md` (PR #8: real login/logout/CSRF).
 
 ## Known gaps / don't trust this for
 This memory file was created from a single session's PR review plus the
