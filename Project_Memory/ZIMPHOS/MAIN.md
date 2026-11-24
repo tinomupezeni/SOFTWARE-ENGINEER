@@ -20,12 +20,29 @@ API client from `docs/contracts/openapi.yaml`. The frontend has two
 built installable/offline-first (PWA, IndexedDB outbox).
 
 ## Current state
+- **`main` is current as of 2026-11-24**: PR #7 (contract: evidence photos,
+  collections, count checks) and PR #5 (phone app rework: driver app, desk
+  shop page, collections) are both merged. PR #5 depended on #7; merging #5
+  required resolving contract/type-generation conflicts with #7 (see
+  `change-history/2026-11-24-pr7-pr5-merge.md`).
 - **Backend:** has migrations, Celery, baseline seed, Docker setup (per
   commit history: "complete production readiness with migrations, celery,
   baseline seed and docker setup"). A `/messages` endpoint was recently
   added to the contract/backend/frontend-types chain.
-- **Frontend:** as of PR #3 (`experimental` → `main`, not yet merged as of
-  2026-11-24), every planned screen exists: desk (today/overview, stock
+  - **Found 2026-11-24, fixed locally, not yet committed:** `config/wsgi.py`
+    never existed despite `WSGI_APPLICATION` pointing at it — the Django
+    dev server (and any real WSGI server) crashes on boot. See
+    `Backend_and_API/ZIMPHOS-2026-11-24-missing-wsgi-module.md`. The fix
+    (a standard `config/wsgi.py`) is sitting locally in the working tree;
+    commit it on the next backend-touching branch.
+  - Confirmed 2026-11-24: `docker compose up` (postgres, redis, backend,
+    celery_worker, celery_beat) runs cleanly once `wsgi.py` exists, after
+    `manage.py migrate` and `manage.py seed_baseline`. `GET /api/products`
+    correctly returns 401 unauthenticated — login/logout endpoints are
+    still missing (see gap list below), so there's currently no way to
+    authenticate against the real backend from the frontend.
+- **Frontend:** as of PR #3 (`experimental` → `main`, merged 2026-11-23),
+  every planned screen exists: desk (today/overview, stock
   check/reconciliation, alerts, distributor detail, money/receivables,
   BRD targets, desk actions — counts/write-offs/alerts/payments/
   deliveries, admin — connections/settings/audit trail), plus a full
@@ -72,6 +89,17 @@ built installable/offline-first (PWA, IndexedDB outbox).
   window) plus 5 lower-severity maintainability nits (not individually
   logged — see the PR review conversation/findings for detail if needed).
   Fixes for the 5 important findings are in progress as of this entry.
+- **PR #7 and #5 review (2026-11-24):** reviewed via ECC `code-review` skill
+  against the same guide (guide 24). PR #7 (contract-only): 4 findings, all
+  fixed and merged — `collection_handover` nullability mismatch between
+  `openapi.yaml` and `api-types.ts`, an undocumented ordering dependency
+  between `SubmitCountRequest.started_at` and `photo_evidence.taken_at`
+  for the "too-fast count" check, and a wording contradiction in
+  `docs/contracts/README.md` between "never reject on a finding" and
+  `AdjustmentItem.decision_note`. PR #5 (app code): 2 findings, both
+  fixed and merged — `LocationCheck.tsx` rendered `Math.round(null)` as
+  "±0 m" instead of "unknown" GPS accuracy, and `AlertFacts.tsx` silently
+  dropped any `null`-valued detail field instead of rendering "—".
 
 ## Map
 - `architecture/` — frontend shell/screen structure, offline outbox design.
@@ -81,8 +109,8 @@ built installable/offline-first (PWA, IndexedDB outbox).
 - `implementation/` — not yet populated; candidate: the offline outbox
   retry/dedup mechanism once its fix lands.
 - `prompts/significant-tasks.md` — not yet populated.
-- `change-history/` — not yet populated; add an entry once PR #3's fixes
-  land and it merges.
+- `change-history/` — `2026-11-24-pr7-pr5-merge.md` (PR #7/#5 review,
+  fixes, and merge, plus the merge-conflict resolution between them).
 
 ## Known gaps / don't trust this for
 This memory file was created from a single session's PR review plus the
@@ -98,4 +126,5 @@ this session.
   `docs/system-design/` (system design docs) are the project's own
   authoritative references — read those directly, this file only indexes
   what's been learned across sessions.
-- Bug log entries: `Frontend_and_UI/ZIMPHOS-2026-11-24-*.md`.
+- Bug log entries: `Frontend_and_UI/ZIMPHOS-2026-11-24-*.md`,
+  `Backend_and_API/ZIMPHOS-2026-11-24-missing-wsgi-module.md`.
