@@ -55,37 +55,55 @@ against a server that just finished a cold `next build` moments earlier,
 on a runner with no guaranteed CPU headroom.
 
 ### 3. Key Findings
-- This is not caused by PR #14's feature work (pricing modes, GPS location,
-  vetting) directly, but the app has grown since the last time this was
-  reliably passing, plausibly pushing an already-marginal timing budget
-  over the edge more often.
-- The lifecycle suite already uses a 180s overall test timeout and a
-  `untilAfterReload` helper elsewhere for similarly slow-to-settle UI, so
-  a generous explicit timeout on this one assertion is consistent with how
-  the rest of the suite already handles CI-speed variance.
+- Raising the timeout to 30s still wasn't enough on PR #14's CI run. Read
+  the uploaded backend container logs for that run and found the
+  WebSocket actually was accepted server-side (`"WebSocket
+  /jobs/{id}/ws?token=*** [accepted]"`) — just well after the 30s
+  assertion had already timed out. This rules out a routing/auth failure;
+  the socket does connect, it's just queued behind other work.
+- The socket-token fetch and the WS handshake only need the backend, not
+  the Next.js BFF (`NEXT_PUBLIC_WS_URL` points the browser straight at the
+  FastAPI container) — so the contention is on the backend side: a single
+  uvicorn worker synchronously hashing passwords (bcrypt) for the two
+  accounts this suite creates, on a shared, likely single-core CI runner,
+  delays everything else the worker needs to handle, including the socket
+  upgrade.
+- PR #14's larger account-setup flow (additional skills/service-area calls
+  during onboarding, visible in the same log dump) adds more sequential
+  work before the chat step, which plausibly explains why this went from
+  intermittent on `main` to deterministic on this PR specifically — not
+  because the PR broke WebSocket routing, but because it added enough
+  extra setup time to reliably exceed the previous tight budget.
 
 ## Root Cause
-A fixed 10s expect timeout on an assertion that depends on a full
-WebSocket connect-and-auth round trip against a cold production server,
-with no margin for CI runner variance.
+A fixed, too-tight expect timeout on an assertion that depends on a
+WebSocket accept queued behind the backend's synchronous bcrypt work on a
+single uvicorn worker, with no margin for CI runner contention — not a
+connectivity or auth bug (the socket is confirmed to connect successfully,
+just later than the original 10s/30s budgets allowed).
 
 ## Prevention / Rule
 **Guardrail:** any E2E assertion gating on a WebSocket's first connect (not
 just a REST response) should use an explicit, generous timeout rather than
 the suite's default — the default is sized for UI state changes, not a
-multi-step async handshake against a freshly started server.
+multi-step async handshake that can queue behind other synchronous backend
+work (bcrypt hashing, in this case) on a single worker under CI contention.
 
 ## Solution
 
 ### Immediate Fix
 Raised the two `"Connected · messages arrive instantly"` assertions in
-`job-lifecycle.spec.ts` from the default 10s to an explicit 30s timeout.
+`job-lifecycle.spec.ts` from the default 10s to 30s (commit 65f2142), then
+to 60s (commit 4898a4c) after confirming via backend container logs that
+the socket was still only timing out on the assertion, not failing to
+connect — comfortably within the lifecycle project's 180s per-test
+timeout.
 
 ### Long-term Fix
-If this still flakes at 30s, the next step would be instrumenting
-`useChatSocket`'s connect path with timing (or pre-warming the Next.js
-server with a request before the suite starts) rather than raising the
-timeout further.
+If this still flakes at 60s, the real fix is making account setup in
+`auth/signup` not block the single uvicorn worker on bcrypt (e.g. run it
+in a thread pool executor, or add a second worker for the throwaway E2E
+backend) rather than raising the timeout further.
 
 ## Prevention
 - [ ] Configuration changes needed
@@ -99,7 +117,7 @@ timeout further.
   others) show the same pre-existing failure
 
 ## References
-- Commit 65f2142 on branch `experimental`
+- Commits 65f2142, 4898a4c on branch `experimental`
 
 ---
 
