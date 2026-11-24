@@ -1,4 +1,4 @@
-# Lifecycle E2E chat-connect assertion too tight for CI, intermittently failing on main
+# Lifecycle E2E chat page hits a real connection failure under CI load, intermittently failing on main
 
 **Date:** 2026-11-24
 **Project:** MARITCHO
@@ -55,55 +55,56 @@ against a server that just finished a cold `next build` moments earlier,
 on a runner with no guaranteed CPU headroom.
 
 ### 3. Key Findings
-- Raising the timeout to 30s still wasn't enough on PR #14's CI run. Read
-  the uploaded backend container logs for that run and found the
-  WebSocket actually was accepted server-side (`"WebSocket
-  /jobs/{id}/ws?token=*** [accepted]"`) — just well after the 30s
-  assertion had already timed out. This rules out a routing/auth failure;
-  the socket does connect, it's just queued behind other work.
-- The socket-token fetch and the WS handshake only need the backend, not
-  the Next.js BFF (`NEXT_PUBLIC_WS_URL` points the browser straight at the
-  FastAPI container) — so the contention is on the backend side: a single
-  uvicorn worker synchronously hashing passwords (bcrypt) for the two
-  accounts this suite creates, on a shared, likely single-core CI runner,
-  delays everything else the worker needs to handle, including the socket
-  upgrade.
-- PR #14's larger account-setup flow (additional skills/service-area calls
-  during onboarding, visible in the same log dump) adds more sequential
-  work before the chat step, which plausibly explains why this went from
-  intermittent on `main` to deterministic on this PR specifically — not
-  because the PR broke WebSocket routing, but because it added enough
-  extra setup time to reliably exceed the previous tight budget.
+- Raising the timeout to 30s, then 60s, still didn't fix it on PR #14's CI
+  run — same failure both times. That ruled out "just needs more time."
+- Downloaded the failed run's `lifecycle-report` artifact
+  (`gh run download <id> -n lifecycle-report`) and read the Playwright
+  error-context snapshot for the failing assertion. It showed the
+  browser's own **"This page couldn't load" / "Reload" / "Back"**
+  interstitial — a genuine navigation/connection failure, not a chat
+  screen that was merely slow to show "Connected." This was the actual
+  root cause; the earlier timeout-based fixes were treating a symptom.
+- This points to the single Next.js dev-ish production server (`next
+  start`) occasionally refusing/dropping a connection when both browser
+  contexts (buyer and worker) navigate around it concurrently under CI's
+  constrained CPU, not a WebSocket-specific problem.
+- The suite already has a helper, `untilAfterReload`, built for exactly
+  this class of "needs a reload to recover" flake elsewhere in the same
+  spec — the fix was to reuse that pattern instead of inventing a new one
+  or keeps padding a timeout that was never the actual constraint.
 
 ## Root Cause
-A fixed, too-tight expect timeout on an assertion that depends on a
-WebSocket accept queued behind the backend's synchronous bcrypt work on a
-single uvicorn worker, with no margin for CI runner contention — not a
-connectivity or auth bug (the socket is confirmed to connect successfully,
-just later than the original 10s/30s budgets allowed).
+An occasional real connection failure navigating to the chat page under
+CI's constrained CPU/concurrency (confirmed via the browser's own
+error interstitial in the failure screenshot), not a slow WebSocket
+handshake — so no timeout, however large, would have reliably fixed it.
 
 ## Prevention / Rule
-**Guardrail:** any E2E assertion gating on a WebSocket's first connect (not
-just a REST response) should use an explicit, generous timeout rather than
-the suite's default — the default is sized for UI state changes, not a
-multi-step async handshake that can queue behind other synchronous backend
-work (bcrypt hashing, in this case) on a single worker under CI contention.
+**Guardrail:** before raising a timeout on a flaky E2E assertion a second
+time, pull the failure's actual artifact (screenshot / error-context /
+trace), not just the assertion's own timeout message — it can reveal the
+page never got as far as the state you're waiting on. For "needs a reload
+to recover" flakes specifically, reuse this suite's existing
+`untilAfterReload` helper rather than adding a new one-off retry/timeout
+pattern.
 
 ## Solution
 
 ### Immediate Fix
 Raised the two `"Connected · messages arrive instantly"` assertions in
 `job-lifecycle.spec.ts` from the default 10s to 30s (commit 65f2142), then
-to 60s (commit 4898a4c) after confirming via backend container logs that
-the socket was still only timing out on the assertion, not failing to
-connect — comfortably within the lifecycle project's 180s per-test
-timeout.
+to 60s (commit 4898a4c) — neither fixed it, which is what prompted
+downloading the artifact and finding the real cause. Switched both
+assertions to `untilAfterReload` (commit b8e9b95), reloading until the
+socket comes up instead of waiting once with a bigger number. Verified
+locally against docker-compose: the full lifecycle suite passes
+end-to-end.
 
 ### Long-term Fix
-If this still flakes at 60s, the real fix is making account setup in
-`auth/signup` not block the single uvicorn worker on bcrypt (e.g. run it
-in a thread pool executor, or add a second worker for the throwaway E2E
-backend) rather than raising the timeout further.
+If this still flakes, the next step is reducing concurrent load on the
+single `next start` dev server during this step (e.g. not having both
+browser contexts navigate at the same moment) rather than adding more
+retries.
 
 ## Prevention
 - [ ] Configuration changes needed
@@ -117,7 +118,7 @@ backend) rather than raising the timeout further.
   others) show the same pre-existing failure
 
 ## References
-- Commits 65f2142, 4898a4c on branch `experimental`
+- Commits 65f2142, 4898a4c, b8e9b95 on branch `experimental`
 
 ---
 
