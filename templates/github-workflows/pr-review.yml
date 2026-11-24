@@ -1,0 +1,24 @@
+# Copy this file verbatim into <project>/.github/workflows/pr-review.yml.
+# Don't edit the review logic here — it all lives in
+# tinomupezeni/SOFTWARE-ENGINEER/.github/workflows/claude-pr-review.yml, so
+# every project stays in sync automatically. See
+# ../github-workflows/README.md for one-time setup (the ANTHROPIC_API_KEY
+# secret).
+
+name: PR Review (Claude)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  review:
+    uses: tinomupezeni/SOFTWARE-ENGINEER/.github/workflows/claude-pr-review.yml@main
+    secrets: inherit
+    with:
+      ping_username: tinomupezeni

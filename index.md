@@ -65,6 +65,13 @@ per the manifest's own instructions.
 - [`Principal_Engineer/engineering-guides/19. Issue-to-Verified-Production Engineering Workflow.md`](<./Principal_Engineer/engineering-guides/19. Issue-to-Verified-Production Engineering Workflow.md>)
 - [`Principal_Engineer/engineering-guides/20. Development Tasks Guide.md`](<./Principal_Engineer/engineering-guides/20. Development Tasks Guide.md>)
 
+**Want to auto-review PRs on a project, pinging you only when it hits
+something that needs a human decision**
+→ [`templates/github-workflows/README.md`](./templates/github-workflows/README.md) —
+copy its `pr-review.yml` into the project's `.github/workflows/`; the actual
+review logic is one shared reusable workflow maintained here, not duplicated
+per project.
+
 **Want the fast, memorizable version of recurring lessons, not the full
 technical detail**
 → [`Lessons/CHEAT_SHEET.md`](./Lessons/CHEAT_SHEET.md).
@@ -96,7 +103,7 @@ before writing a new one.
 | `Mobile_Apps/` | Bug/issue logs — mobile apps |
 | `reports/` | Completed-initiative reports (flat, cross-cutting) |
 | `Project_Memory/` | Per-project living context snapshots, one folder per project — read `[PROJECT]/MAIN.md` first |
-| `templates/` | `issue-template.md`, `report-template.md`, `project-memory-template/`, a Vite-frontend `Dockerfile` template |
+| `templates/` | `issue-template.md`, `report-template.md`, `project-memory-template/`, a Vite-frontend `Dockerfile` template, `github-workflows/` (reusable Claude PR-review Action — see below) |
 | `Principal_Engineer/` | Stack-agnostic engineering guide library — see its own `engineering-guides/MANIFEST.md` |
 | `Lessons/` | General, cross-project lessons + the cheat sheet |
 | `References/` | Vendored third-party reference material (not authored here) |

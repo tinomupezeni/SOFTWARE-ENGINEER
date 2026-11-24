@@ -1,0 +1,59 @@
+name: Claude PR Review (reusable)
+
+# Single source of truth for automated PR review, called by every project via
+# templates/github-workflows/pr-review.yml. Don't fork per-project copies of
+# this file — edit it here and every project picks up the change on its next
+# PR. See templates/github-workflows/README.md for setup and
+# Principal_Engineer/engineering-guides/24. Code Review.md for the review
+# standard this implements.
+
+on:
+  workflow_call:
+    inputs:
+      ping_username:
+        description: "GitHub username to @mention when the review needs a human decision"
+        type: string
+        required: false
+        default: "tinomupezeni"
+      ref:
+        description: "Git ref of this template to fetch the review prompt from (branch/tag/sha)"
+        type: string
+        required: false
+        default: "main"
+    secrets:
+      ANTHROPIC_API_KEY:
+        required: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  review:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch shared review prompt
+        env:
+          PROMPT_URL: "https://raw.githubusercontent.com/tinomupezeni/SOFTWARE-ENGINEER/${{ inputs.ref }}/templates/github-workflows/review-prompt.md"
+        run: |
+          curl -fsSL "$PROMPT_URL" -o /tmp/review-prompt.md
+          sed -i "s/{{PING_USERNAME}}/${{ inputs.ping_username }}/g" /tmp/review-prompt.md
+
+      # NOTE: verify these `with:` keys against the current
+      # anthropics/claude-code-action README before relying on this in
+      # production — action input names have changed across major versions.
+      - name: Run Claude Code review
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          prompt_file: /tmp/review-prompt.md
+          allowed_tools: "Bash(gh:*),Read,Grep,Glob"
+          timeout_minutes: 20
