@@ -108,6 +108,28 @@ built installable/offline-first (PWA, IndexedDB outbox).
   fixed and merged — `LocationCheck.tsx` rendered `Math.round(null)` as
   "±0 m" instead of "unknown" GPS accuracy, and `AlertFacts.tsx` silently
   dropped any `null`-valued detail field instead of rendering "—".
+- **Presentation deployment (2026-11-24):** live at https://zimphos.restk.tech,
+  deployed to hbca-vps's `/sdb-disk` (1TB secondary disk), fully isolated
+  from HBEC's own stack — own `docker-compose.prod.yml`, own containers,
+  own network, bind-mounted data under `./data` rather than Docker's
+  default data-root. Routed through HBEC's existing Caddy gateway
+  (`hbec-gateway`) via a hostname-based site block (not a port/firewall
+  opening), since the gateway only has 80/443 published. PR #9 (not yet
+  merged) carries the deployment artifacts (`docker-compose.prod.yml`,
+  `frontend/Dockerfile`, `frontend/nginx.conf`).
+  - **Found and fixed during setup:** joining the frontend container to
+    HBEC's shared gateway network caused the generic DNS name `backend`
+    to collide with a different client's (agricredit's) own `backend`
+    alias on that network — requests were briefly proxied to the wrong
+    tenant's container. See
+    `DevOps_and_Infrastructure/ZIMPHOS-2026-11-24-shared-network-dns-collision.md`.
+    Fixed with a unique alias (`zimphos-backend-internal`); this is a
+    generic risk worth remembering for *any* future deploy onto a shared
+    multi-tenant Docker host, not just this one.
+  - restk-vps and chemglee-vps were also audited as deployment targets
+    earlier in the same work; hbca-vps was chosen for more RAM/CPU
+    headroom and its already-provisioned Caddy gateway + large secondary
+    disk, even though it's otherwise HBEC's dedicated box.
 
 ## Map
 - `architecture/` — frontend shell/screen structure, offline outbox design.
@@ -120,6 +142,8 @@ built installable/offline-first (PWA, IndexedDB outbox).
 - `change-history/` — `2026-11-24-pr7-pr5-merge.md` (PR #7/#5 review,
   fixes, and merge, plus the merge-conflict resolution between them).
   `2026-11-24-real-login-flow.md` (PR #8: real login/logout/CSRF).
+  `2026-11-24-hbca-vps-deployment.md` (presentation deployment + the
+  shared-network DNS collision).
 
 ## Known gaps / don't trust this for
 This memory file was created from a single session's PR review plus the
