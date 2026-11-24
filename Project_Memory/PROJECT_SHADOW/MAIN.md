@@ -16,4 +16,7 @@ The core gameplay philosophy balances the player's private chuunibyou power fant
 - **AI & Logic**: Gameplay Ability System (GAS), Hierarchical Finite State Machines (HFSM) for dual-identity masking, and Behavior Trees for autonomous followers.
 
 ## Current State
-- Initial game architecture compendium researched and authored at `GAME_DEVELOPMENT_COMPENDIUM.md`.
+- **Phase 0 & 1 Complete**: Evaluated Godot 4.7.2 with Compatibility renderer; established Four-Layer Architecture and Headless Simulation separation.
+- **Milestone 2.2 Complete**: Single-threaded WebAssembly export verified with IndexedDB persistence.
+- **Milestone 2.3 Complete**: Top-down 2D Oakhaven Outskirts, 8-directional player, NPC raycast line-of-sight cones, observable appearance decoupling, and alleyway persona switching verified.
+- **Milestone 2.4 Complete**: First follower-command loop implemented. Abandoned shed trapdoor transitions to Sanctuary Interior. Alpha NPC recruited with cognitive profile and Shadow Parable Bias. Command Desk UI (3-slot directive builder) and Parchment Debrief UI with player responses. CausalResolutionEngine resolves operations against authoritative WorldKnowledgeGraph facts, generating ActualWorldEvents and FalseConclusions without altering ground truth. All 16 headless unit tests passing; browser bundle updated.
