@@ -98,6 +98,10 @@ built installable/offline-first (PWA, IndexedDB outbox).
   logged — see the PR review conversation/findings for detail if needed).
   Fixes for the 5 important findings are in progress as of this entry.
 - **PR #7 and #5 review (2026-11-24):** reviewed via ECC `code-review` skill
+- **PR #10 and #11 review (2026-11-25):** reviewed under Engineering Guide 24 (Code Review).
+  - PR #11 (Contract prototype proposals: count start window, weeks of cover, delivery ETA, statement queue endpoint, `as_of` parameters) verified strictly additive, conforming to OpenAPI 3.0 and TypeScript interfaces without leaking private audit counts.
+  - PR #10 (Synthetic demo seed data, role routing fix on sign out, prototype-aligned desk UI with Recharts) verified against backend pytest suite (53 tests pass) and frontend vitest suite (257 tests pass, tsc clean).
+  - Formal GitHub review comments posted on both PRs. Full review report in `reports/ZIMPHOS-2026-11-25-code-review-pr10-pr11.md`.
   against the same guide (guide 24). PR #7 (contract-only): 4 findings, all
   fixed and merged — `collection_handover` nullability mismatch between
   `openapi.yaml` and `api-types.ts`, an undocumented ordering dependency
