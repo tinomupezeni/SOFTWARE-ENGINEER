@@ -4,10 +4,10 @@
 **Project:** MARITCHO
 **Environment:** Development / Staging
 **Severity:** Medium
-**Status:** Investigating
+**Status:** Resolved
 
 ## Summary
-In PR #15 ("feat: shareable job links (WEB-024)"), the backend introduces a new public endpoint `GET /jobs/{job_id}/share` powered by `GetJobShareSummaryUseCase`. However, the central API contract specification `docs/architecture/openapi.yaml` was not updated to reflect this new endpoint or its response schema `JobShareOut`, causing contract drift between backend implementation and API specification.
+In PR #15 ("feat: shareable job links (WEB-024)"), the backend introduced a new public endpoint `GET /jobs/{job_id}/share` powered by `GetJobShareSummaryUseCase`. However, the central API contract specification `docs/architecture/openapi.yaml` was initially not updated to reflect this new endpoint or its response schema `JobShareOut`, causing contract drift between backend implementation and API specification. This was resolved before merging PR #15.
 
 ## Symptoms
 - The endpoint `GET /jobs/{job_id}/share` exists in `backend/app/apps/jobs/interface_adapters/router.py` and is tested in `backend/tests/test_job_share.py`.
@@ -47,13 +47,13 @@ This rule ensures that any route addition or modification immediately enforces s
 ## Solution
 
 ### Immediate Fix
-Document the `GET /jobs/{job_id}/share` route and `JobShareOut` schema in `docs/architecture/openapi.yaml` with appropriate summary, description, parameter format (`uuid`), and 200/404 responses.
+Documented `GET /jobs/{job_id}/share` and `JobShare` schema in `docs/architecture/openapi.yaml` with appropriate summary, description, parameter format (`uuid`), and 200/404 responses in commit `4da73ea`, subsequently merged to `main` via PR #15.
 
 ### Long-term Fix
 Add an automated test in `backend/tests/` that compares `app.openapi()["paths"]` against `docs/architecture/openapi.yaml` to ensure zero contract drift.
 
 ## Prevention
-- [ ] Add `GET /jobs/{job_id}/share` to `docs/architecture/openapi.yaml`.
+- [x] Add `GET /jobs/{job_id}/share` to `docs/architecture/openapi.yaml`.
 - [ ] Implement automated route-to-spec parity check in test suite.
 
 ## Related Issues
@@ -66,5 +66,5 @@ Add an automated test in `backend/tests/` that compares `app.openapi()["paths"]`
 
 ---
 
-**Resolved By:** Antigravity (Code Review)
-**Time to Resolution:** Pending PR merge / update
+**Resolved By:** Antigravity (Code Review & Merge)
+**Time to Resolution:** ~30 minutes

@@ -1,6 +1,6 @@
 # MARITCHO — Memory Index
 
-**Last updated:** 2026-11-24
+**Last updated:** 2026-11-25
 **Project repo:** /home/shadowe/Projects/MARITCHO (GitHub: Rest-creator/MARITCHO)
 **One-line what-it-is:** An "inDrive-style" marketplace matching buyers who
 post jobs (trade/skill, suburb, budget) to local workers who quote and get
@@ -41,13 +41,13 @@ project explicitly defaults to "design for the worker's worst day."
 - **2026-11-24:** PR #14 ("support typing and GPS location in suburb
   options") reviewed — added `pricing_mode` (FIXED/NEGOTIABLE/AFTER_VISIT)
   and worker police-clearance vetting to the job/worker domain, plus GPS-pin
-  location entry on the frontend. Review found and fixed 4 bugs directly on
-  the PR branch (commit `319e337`); 3 issues left open as architectural
-  (repository save() has no optimistic lock, GPS-only location fabricates a
-  fake address string, trade-change-while-MATCHED isn't re-validated) plus
-  one logging-standard nit, all posted as a PR review comment. See bug-log
-  entries prefixed `MARITCHO-2026-11-24-*` in `Backend_and_API/` and
-  `Frontend_and_UI/`.
+  location entry on the frontend.
+- **2026-11-25:** PR #15 ("feat: shareable job links (WEB-024)") reviewed
+  and merged to `main` — introduced public teaser links (`/j/[jobId]`,
+  `GET /jobs/{job_id}/share`) that hide private buyer data (ADR-004),
+  generated dynamic 1200x630 OpenGraph cards, defensive same-site redirection
+  via `safeNextPath` (`?next=`), updated `openapi.yaml` contract spec, and
+  added structured logging and typing cleanup.
 
 ## Map
 - `architecture/` — what the system looks like now (components, data flow,
