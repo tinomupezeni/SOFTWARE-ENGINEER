@@ -1,6 +1,6 @@
 # ZIMPHOS — Memory Index
 
-**Last updated:** 2026-11-24
+**Last updated:** 2026-11-25
 **Project repo:** /home/shadowe/Projects/Zimphos (GitHub: winstonjthinker/Zimphos)
 **One-line what-it-is:** Consignment stock visibility and reconciliation system for ZimPhos — lets ZimPhos independently verify what its distributors report (stock, counts, payments) rather than trusting the distributor's own figures.
 
@@ -134,6 +134,26 @@ built installable/offline-first (PWA, IndexedDB outbox).
     earlier in the same work; hbca-vps was chosen for more RAM/CPU
     headroom and its already-provisioned Caddy gateway + large secondary
     disk, even though it's otherwise HBEC's dedicated box.
+- **PR #14 (load_demo_data) and PR #12 (driver pickup contract) merged
+  2026-11-25**, via a messier-than-expected chain:
+  - `main` itself had a stale `schema.d.ts` (PR #11's
+    `TriggerStocktakeRequest.start_window_minutes` was never regenerated
+    in) — found while regenerating for PR #12, fixed in PR #15 along with
+    the two frontend call sites that silently relied on the stale type.
+  - Chasing what looked like CI-only flakiness in `RoleGate.test.tsx`
+    (same PR #15) turned up two real bugs, not test fragility: two tests
+    asserted on async side-effects synchronously instead of via
+    `waitFor` (fixed), and a genuine sign-out navigation race —
+    `SignOutButton` navigated from the logout mutation's `onSettled`,
+    which could fire after `resetSession()`'s own query invalidation had
+    already unmounted the button, Node-version-dependent (always passed
+    on local Node 22, always failed on CI's Node 24). Fixed by moving the
+    navigation into `SignedOut`'s own mount effect instead of any
+    mutation callback. See
+    `Frontend_and_UI/ZIMPHOS-2026-11-25-signout-navigation-race.md`.
+  - PR #12 (driver pickup: `POST /dispatches/{id}/pickup`,
+    `PickupRecord`, etc.) is contract-only, additive, no implementation
+    yet — matches the pattern of #6/#7's backend-work-to-follow PRs.
 
 ## Map
 - `architecture/` — frontend shell/screen structure, offline outbox design.
