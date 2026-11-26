@@ -1,6 +1,6 @@
 # LEC Biotec — Memory Index
 
-**Last updated:** 2026-11-24
+**Last updated:** 2026-11-26
 **Project repo:** `/home/shadowe/Projects/lec-biotech-ascend` (GitHub:
 `winstonjthinker/lec-biotech-ascend`)
 **One-line what-it-is:** A laboratory-supply e-commerce platform for LEC
@@ -43,6 +43,17 @@ gate), and the admin's palette is literally what's served to visitors
 - Most ProjectFlow tasks for this project are DONE; open items as of
   2026-11-24: "Evaluate VR Headset Options" (low), "Research and Quote
   Google Ads Campaign" (high) — neither is codebase work.
+- 2026-11-26: fixed the storefront catalogue filter sidebar
+  (`FacetPanel.tsx` / `CataloguePage.tsx`) overflowing long category labels
+  into the product grid — a flex child missing `min-w-0` defeated an
+  otherwise-correct `truncate`. See
+  `Frontend_and_UI/LEC-2026-11-26-facet-panel-label-overflow.md`. Also
+  fixed a content-gate false failure from hex literals left in `Navbar.tsx`
+  comments — see
+  `Frontend_and_UI/LEC-2026-11-26-navbar-comment-hardcoded-hex.md`. Note
+  for future reports: the user described this as "on the admin side," but
+  the actual component is `apps/storefront`; `apps/admin`'s catalogue
+  filters are plain `<select>` dropdowns with no radio-button UI at all.
 
 ## Map
 
