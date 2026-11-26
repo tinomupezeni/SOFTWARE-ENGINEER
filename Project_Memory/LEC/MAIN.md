@@ -1,6 +1,6 @@
 # LEC Biotec — Memory Index
 
-**Last updated:** 2026-11-26
+**Last updated:** 2026-11-26 (later session)
 **Project repo:** `/home/shadowe/Projects/lec-biotech-ascend` (GitHub:
 `winstonjthinker/lec-biotech-ascend`)
 **One-line what-it-is:** A laboratory-supply e-commerce platform for LEC
@@ -54,6 +54,21 @@ gate), and the admin's palette is literally what's served to visitors
   for future reports: the user described this as "on the admin side," but
   the actual component is `apps/storefront`; `apps/admin`'s catalogue
   filters are plain `<select>` dropdowns with no radio-button UI at all.
+- 2026-11-26 (later): fixed the home hero's `show_carousel` slideshow
+  toggle, which did nothing in production — the live hero's `style.ground`
+  is `"paper"` (not the seed default `"ink"`), so it renders through
+  `LightHero`, which never had rotation logic at all (it only ever picked
+  one static image). Extracted the rotation into a shared
+  `useSlideRotation` hook used by both `LightHero` and `InkHero`'s
+  `BackgroundCarousel`. See
+  `Frontend_and_UI/LEC-2026-11-26-paper-hero-slideshow-never-rotated.md`.
+  **Important for future sessions:** always check the *live* published
+  page's `style.ground` via `GET /api/v1/pages/home` before assuming
+  `seed_content.py`'s defaults reflect production — the admin can and does
+  diverge from the seed.
+- Also merged and deployed PR #67 (LEC-093, ADR-020 explicit state
+  machines) and PR #68 (LEC-097, ink hero visibility fix) this session,
+  plus added the real Google Search Console verification file/meta tag.
 
 ## Map
 
