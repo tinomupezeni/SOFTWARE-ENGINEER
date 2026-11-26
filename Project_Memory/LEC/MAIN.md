@@ -69,6 +69,17 @@ gate), and the admin's palette is literally what's served to visitors
 - Also merged and deployed PR #67 (LEC-093, ADR-020 explicit state
   machines) and PR #68 (LEC-097, ink hero visibility fix) this session,
   plus added the real Google Search Console verification file/meta tag.
+- 2026-11-26 (later still): added product search to the admin catalogue
+  screen (LEC-099) — `GET /api/v1/admin/products` gained `q` and `brand`
+  params. Deliberately reused `apps/catalogue/search.py` (the storefront's
+  ranked search: exact catalogue number first) rather than writing a
+  second search implementation, passed `selectors.products(include_unpublished=True)`
+  so drafts are searchable — never by pointing the admin at
+  `PublicProductSearchView`, which explicitly refuses `include_unpublished`.
+  A non-empty `q` is capped, not cursor-paginated (ranked order can't be
+  keyset-paginated), same trade-off as the public endpoint. Admin UI: a
+  debounced search box + brand filter, search term in the URL via
+  `useSearchParams` (`OrdersScreen.tsx`'s existing convention).
 
 ## Map
 
